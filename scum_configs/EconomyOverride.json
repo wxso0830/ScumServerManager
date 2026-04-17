@@ -1,0 +1,3480 @@
+{
+  "economy-override": {
+    "economy-reset-time-hours": "-1.0",
+    "prices-randomization-time-hours": "-1.0",
+    "tradeable-rotation-time-ingame-hours-min": "1.0",
+    "tradeable-rotation-time-ingame-hours-max": "1.0",
+    "tradeable-rotation-time-of-day-min": "1.0",
+    "tradeable-rotation-time-of-day-max": "1.0",
+    "fully-restock-tradeable-hours": "0.1",
+    "trader-funds-change-rate-per-hour-multiplier": "0.5",
+    "prices-subject-to-player-count": "1",
+    "gold-price-subject-to-global-multiplier": "1",
+    "gold-base-price": "-1",
+    "gold-sale-price-modifier": "-1.0",
+    "gold-price-change-percentage-step": "-1.0",
+    "gold-price-change-per-step": "-1.0",
+    "economy-logging": "1",
+    "traders-unlimited-funds": "1",
+    "traders-unlimited-stock": "1",
+    "global-only-after-player-sale-tradeable-availability-enabled": "1",
+    "tradeable-rotation-enabled": "1",
+    "enable-fame-point-requirement": "1",
+    "traders": {
+      "A_0_Armory": [
+        {
+          "tradeable-code": "Armor_Tactical_Vest_01_02",
+          "base-purchase-price": "5000",
+          "base-sell-price": "1000",
+          "delta-price": "-1.0",
+          "can-be-purchased": "default",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "Armor_Tactical_Vest_01_03",
+          "base-purchase-price": "5000",
+          "base-sell-price": "1000",
+          "delta-price": "-1.0",
+          "can-be-purchased": "default",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "Armor_Tactical_Vest_01_04",
+          "base-purchase-price": "5000",
+          "base-sell-price": "1000",
+          "delta-price": "-1.0",
+          "can-be-purchased": "default",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "Armor_Tactical_Vest_01_05",
+          "base-purchase-price": "5000",
+          "base-sell-price": "1000",
+          "delta-price": "-1.0",
+          "can-be-purchased": "default",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "Armor_Tactical_Vest_01_01",
+          "base-purchase-price": "5000",
+          "base-sell-price": "1000",
+          "delta-price": "-1.0",
+          "can-be-purchased": "default",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "Armor_Police_Vest_01",
+          "base-purchase-price": "5000",
+          "base-sell-price": "1000",
+          "delta-price": "-1.0",
+          "can-be-purchased": "default",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "Depleted_Uranium",
+          "base-purchase-price": "50000",
+          "base-sell-price": "10000",
+          "delta-price": "-1.0",
+          "can-be-purchased": "default",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "Depleted_Uranium_Container",
+          "base-purchase-price": "5000",
+          "base-sell-price": "1000",
+          "delta-price": "-1.0",
+          "can-be-purchased": "default",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "Combat_Helmet_01",
+          "base-purchase-price": "2000",
+          "base-sell-price": "600",
+          "delta-price": "-1.0",
+          "can-be-purchased": "default",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "Combat_Helmet_02",
+          "base-purchase-price": "2000",
+          "base-sell-price": "600",
+          "delta-price": "-1.0",
+          "can-be-purchased": "default",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "Combat_Helmet_03",
+          "base-purchase-price": "2000",
+          "base-sell-price": "600",
+          "delta-price": "-1.0",
+          "can-be-purchased": "default",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "Combat_Helmet_04",
+          "base-purchase-price": "2000",
+          "base-sell-price": "600",
+          "delta-price": "-1.0",
+          "can-be-purchased": "default",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "K6-3_Helmet",
+          "base-purchase-price": "2500",
+          "base-sell-price": "500",
+          "delta-price": "-1.0",
+          "can-be-purchased": "default",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "Graphite",
+          "base-purchase-price": "10000",
+          "base-sell-price": "2083",
+          "delta-price": "-1.0",
+          "can-be-purchased": "default",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "2H_Katana",
+          "base-purchase-price": "13000",
+          "base-sell-price": "3667",
+          "delta-price": "-1.0",
+          "can-be-purchased": "default",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "2H_Katana1",
+          "base-purchase-price": "17500",
+          "base-sell-price": "4583",
+          "delta-price": "-1.0",
+          "can-be-purchased": "default",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        }
+      ],
+      "A_0_BoatShop": [],
+      "A_0_Mechanic": [
+        {
+          "tradeable-code": "BPC_Rager",
+          "base-purchase-price": "100000",
+          "base-sell-price": "40000",
+          "delta-price": "-1.0",
+          "can-be-purchased": "default",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "BPC_WolfsWagen",
+          "base-purchase-price": "80000",
+          "base-sell-price": "35000",
+          "delta-price": "-1.0",
+          "can-be-purchased": "default",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "BPC_Laika",
+          "base-purchase-price": "75000",
+          "base-sell-price": "30000",
+          "delta-price": "-1.0",
+          "can-be-purchased": "default",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "BPC_Tractor",
+          "base-purchase-price": "60000",
+          "base-sell-price": "25000",
+          "delta-price": "-1.0",
+          "can-be-purchased": "default",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "BPC_RIS",
+          "base-purchase-price": "35000",
+          "base-sell-price": "15000",
+          "delta-price": "-1.0",
+          "can-be-purchased": "default",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "BPC_SidecarBike",
+          "base-purchase-price": "25000",
+          "base-sell-price": "10000",
+          "delta-price": "-1.0",
+          "can-be-purchased": "default",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "BPC_Cruiser",
+          "base-purchase-price": "26000",
+          "base-sell-price": "12500",
+          "delta-price": "-1.0",
+          "can-be-purchased": "default",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "BPC_Dirtbike",
+          "base-purchase-price": "25000",
+          "base-sell-price": "10000",
+          "delta-price": "-1.0",
+          "can-be-purchased": "default",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        }
+      ],
+      "A_0_Trader": [
+        {
+          "tradeable-code": "Screwdriver",
+          "base-purchase-price": "40000",
+          "base-sell-price": "5000",
+          "delta-price": "-1.0",
+          "can-be-purchased": "true",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "Lockpick_Advanced_Item",
+          "base-purchase-price": "25000",
+          "base-sell-price": "4000",
+          "delta-price": "-1.0",
+          "can-be-purchased": "true",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        }
+      ],
+      "A_0_Saloon": [
+        {
+          "tradeable-code": "Bear_Skinned",
+          "base-purchase-price": "30000",
+          "base-sell-price": "15000",
+          "delta-price": "-1.0",
+          "can-be-purchased": "true",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "Boar_Skinned",
+          "base-purchase-price": "20000",
+          "base-sell-price": "10000",
+          "delta-price": "-1.0",
+          "can-be-purchased": "true",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "Buck_Skinned",
+          "base-purchase-price": "64000",
+          "base-sell-price": "32000",
+          "delta-price": "-1.0",
+          "can-be-purchased": "true",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "Doe_Skinned",
+          "base-purchase-price": "60000",
+          "base-sell-price": "30000",
+          "delta-price": "-1.0",
+          "can-be-purchased": "true",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "Donkey_skinned",
+          "base-purchase-price": "40000",
+          "base-sell-price": "20000",
+          "delta-price": "-1.0",
+          "can-be-purchased": "true",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "Goat_Skinned",
+          "base-purchase-price": "20000",
+          "base-sell-price": "10000",
+          "delta-price": "-1.0",
+          "can-be-purchased": "true",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "Hen_Torso",
+          "base-purchase-price": "5000",
+          "base-sell-price": "2500",
+          "delta-price": "-1.0",
+          "can-be-purchased": "true",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "Horse_Skinned",
+          "base-purchase-price": "70000",
+          "base-sell-price": "35000",
+          "delta-price": "-1.0",
+          "can-be-purchased": "true",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "Rabbit_Skinned",
+          "base-purchase-price": "8000",
+          "base-sell-price": "4000",
+          "delta-price": "-1.0",
+          "can-be-purchased": "true",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "Wolf_Skinned",
+          "base-purchase-price": "12000",
+          "base-sell-price": "6000",
+          "delta-price": "-1.0",
+          "can-be-purchased": "true",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "Fish_Bass",
+          "base-purchase-price": "1000",
+          "base-sell-price": "100",
+          "delta-price": "-1.0",
+          "can-be-purchased": "true",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "Fish_Bleak",
+          "base-purchase-price": "200",
+          "base-sell-price": "20",
+          "delta-price": "-1.0",
+          "can-be-purchased": "true",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "Fish_Carp",
+          "base-purchase-price": "1000",
+          "base-sell-price": "100",
+          "delta-price": "-1.0",
+          "can-be-purchased": "true",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "Fish_Catfish",
+          "base-purchase-price": "1000",
+          "base-sell-price": "100",
+          "delta-price": "-1.0",
+          "can-be-purchased": "true",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "Fish_Chub",
+          "base-purchase-price": "200",
+          "base-sell-price": "20",
+          "delta-price": "-1.0",
+          "can-be-purchased": "true",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "Fish_CrucianCarp",
+          "base-purchase-price": "100",
+          "base-sell-price": "10",
+          "delta-price": "-1.0",
+          "can-be-purchased": "true",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "Fish_Dentex",
+          "base-purchase-price": "300",
+          "base-sell-price": "31",
+          "delta-price": "-1.0",
+          "can-be-purchased": "true",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "Fish_Orata",
+          "base-purchase-price": "200",
+          "base-sell-price": "210",
+          "delta-price": "-1.0",
+          "can-be-purchased": "true",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "Fish_Pike",
+          "base-purchase-price": "150000",
+          "base-sell-price": "7500",
+          "delta-price": "-1.0",
+          "can-be-purchased": "true",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "Fish_PrussianCarp",
+          "base-purchase-price": "1000",
+          "base-sell-price": "100",
+          "delta-price": "-1.0",
+          "can-be-purchased": "true",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "Fish_Ruffe",
+          "base-purchase-price": "1000",
+          "base-sell-price": "100",
+          "delta-price": "-1.0",
+          "can-be-purchased": "true",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "Fish_Sardine",
+          "base-purchase-price": "200",
+          "base-sell-price": "200",
+          "delta-price": "-1.0",
+          "can-be-purchased": "true",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        }
+      ],
+      "A_0_Hospital": [
+        {
+          "tradeable-code": "Painkillers_01",
+          "base-purchase-price": "2400",
+          "base-sell-price": "500",
+          "delta-price": "-1.0",
+          "can-be-purchased": "default",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "Rag_Stripes",
+          "base-purchase-price": "2",
+          "base-sell-price": "0",
+          "delta-price": "-1.0",
+          "can-be-purchased": "default",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "Rags",
+          "base-purchase-price": "30",
+          "base-sell-price": "6",
+          "delta-price": "-1.0",
+          "can-be-purchased": "default",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "Apple",
+          "base-purchase-price": "40",
+          "base-sell-price": "4",
+          "delta-price": "-1.0",
+          "can-be-purchased": "default",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "Tourniquet",
+          "base-purchase-price": "2000",
+          "base-sell-price": "417",
+          "delta-price": "-1.0",
+          "can-be-purchased": "default",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "Medical_Glove_01",
+          "base-purchase-price": "700",
+          "base-sell-price": "233",
+          "delta-price": "-1.0",
+          "can-be-purchased": "default",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "Disposable_Mask",
+          "base-purchase-price": "28",
+          "base-sell-price": "9",
+          "delta-price": "-1.0",
+          "can-be-purchased": "default",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "Head_Bags_01",
+          "base-purchase-price": "55",
+          "base-sell-price": "18",
+          "delta-price": "-1.0",
+          "can-be-purchased": "default",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "Hospital_Shirt_01",
+          "base-purchase-price": "110",
+          "base-sell-price": "37",
+          "delta-price": "-1.0",
+          "can-be-purchased": "default",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "Hospital_Pants",
+          "base-purchase-price": "55",
+          "base-sell-price": "18",
+          "delta-price": "-1.0",
+          "can-be-purchased": "default",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "Bundle_Of_Rags",
+          "base-purchase-price": "110",
+          "base-sell-price": "24",
+          "delta-price": "-1.0",
+          "can-be-purchased": "default",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "Bundle_Rag_Stripes",
+          "base-purchase-price": "55",
+          "base-sell-price": "12",
+          "delta-price": "-1.0",
+          "can-be-purchased": "default",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "Emergency_bandage",
+          "base-purchase-price": "500",
+          "base-sell-price": "104",
+          "delta-price": "-1.0",
+          "can-be-purchased": "default",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "Emergency_bandage_Big",
+          "base-purchase-price": "2000",
+          "base-sell-price": "417",
+          "delta-price": "-1.0",
+          "can-be-purchased": "default",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "Hemostatic_Dressing",
+          "base-purchase-price": "1000",
+          "base-sell-price": "208",
+          "delta-price": "-1.0",
+          "can-be-purchased": "default",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "Pressure_Dressing",
+          "base-purchase-price": "1000",
+          "base-sell-price": "208",
+          "delta-price": "-1.0",
+          "can-be-purchased": "default",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "Cigarettes",
+          "base-purchase-price": "200",
+          "base-sell-price": "42",
+          "delta-price": "-1.0",
+          "can-be-purchased": "default",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "Apple_2",
+          "base-purchase-price": "40",
+          "base-sell-price": "4",
+          "delta-price": "-1.0",
+          "can-be-purchased": "default",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "Vitamins_01",
+          "base-purchase-price": "500",
+          "base-sell-price": "104",
+          "delta-price": "-1.0",
+          "can-be-purchased": "default",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "Vitamins_02",
+          "base-purchase-price": "750",
+          "base-sell-price": "156",
+          "delta-price": "-1.0",
+          "can-be-purchased": "default",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "Vitamins_03",
+          "base-purchase-price": "1000",
+          "base-sell-price": "208",
+          "delta-price": "-1.0",
+          "can-be-purchased": "default",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "ActivatedCharcoal_01",
+          "base-purchase-price": "2400",
+          "base-sell-price": "500",
+          "delta-price": "-1.0",
+          "can-be-purchased": "default",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "ActivatedCharcoal_02",
+          "base-purchase-price": "4200",
+          "base-sell-price": "875",
+          "delta-price": "-1.0",
+          "can-be-purchased": "default",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "ActivatedCharcoal_03",
+          "base-purchase-price": "6000",
+          "base-sell-price": "1250",
+          "delta-price": "-1.0",
+          "can-be-purchased": "default",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "Adrenaline_Shot",
+          "base-purchase-price": "1200",
+          "base-sell-price": "250",
+          "delta-price": "-1.0",
+          "can-be-purchased": "default",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "Antibiotics_01",
+          "base-purchase-price": "2400",
+          "base-sell-price": "500",
+          "delta-price": "-1.0",
+          "can-be-purchased": "default",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "Antibiotics_02",
+          "base-purchase-price": "4200",
+          "base-sell-price": "875",
+          "delta-price": "-1.0",
+          "can-be-purchased": "default",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "Antibiotics_03",
+          "base-purchase-price": "6000",
+          "base-sell-price": "1250",
+          "delta-price": "-1.0",
+          "can-be-purchased": "default",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "Antiparasitics_01",
+          "base-purchase-price": "300",
+          "base-sell-price": "63",
+          "delta-price": "-1.0",
+          "can-be-purchased": "default",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "Antiparasitics_02",
+          "base-purchase-price": "600",
+          "base-sell-price": "125",
+          "delta-price": "-1.0",
+          "can-be-purchased": "default",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "Antiparasitics_03",
+          "base-purchase-price": "900",
+          "base-sell-price": "188",
+          "delta-price": "-1.0",
+          "can-be-purchased": "default",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "Aspirin",
+          "base-purchase-price": "800",
+          "base-sell-price": "167",
+          "delta-price": "-1.0",
+          "can-be-purchased": "default",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "AtropineInjection",
+          "base-purchase-price": "1200",
+          "base-sell-price": "250",
+          "delta-price": "-1.0",
+          "can-be-purchased": "default",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "Isopropyl_alcohol",
+          "base-purchase-price": "1000",
+          "base-sell-price": "250",
+          "delta-price": "-1.0",
+          "can-be-purchased": "default",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "Painkillers_02",
+          "base-purchase-price": "3600",
+          "base-sell-price": "750",
+          "delta-price": "-1.0",
+          "can-be-purchased": "default",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "PainKillers_03",
+          "base-purchase-price": "4800",
+          "base-sell-price": "1000",
+          "delta-price": "-1.0",
+          "can-be-purchased": "default",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "Penicillin01",
+          "base-purchase-price": "2500",
+          "base-sell-price": "521",
+          "delta-price": "-1.0",
+          "can-be-purchased": "default",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "PotassiumIodide_Pills_01",
+          "base-purchase-price": "500",
+          "base-sell-price": "104",
+          "delta-price": "-1.0",
+          "can-be-purchased": "default",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "PotassiumIodide_Pills_02",
+          "base-purchase-price": "700",
+          "base-sell-price": "146",
+          "delta-price": "-1.0",
+          "can-be-purchased": "default",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "PotassiumIodide_Pills_03",
+          "base-purchase-price": "1000",
+          "base-sell-price": "208",
+          "delta-price": "-1.0",
+          "can-be-purchased": "default",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "Syringe",
+          "base-purchase-price": "1000",
+          "base-sell-price": "208",
+          "delta-price": "-1.0",
+          "can-be-purchased": "default",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "Crutch",
+          "base-purchase-price": "1100",
+          "base-sell-price": "458",
+          "delta-price": "-1.0",
+          "can-be-purchased": "default",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "BP_PlasticSurgeryService",
+          "base-purchase-price": "75000",
+          "base-sell-price": "10417",
+          "delta-price": "-1.0",
+          "can-be-purchased": "default",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "Antibiotic_Pill_Single",
+          "base-purchase-price": "200",
+          "base-sell-price": "42",
+          "delta-price": "-1.0",
+          "can-be-purchased": "default",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "AntiburnGel",
+          "base-purchase-price": "1000",
+          "base-sell-price": "250",
+          "delta-price": "-1.0",
+          "can-be-purchased": "default",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "AntiburnGel_Improvised",
+          "base-purchase-price": "1000",
+          "base-sell-price": "250",
+          "delta-price": "-1.0",
+          "can-be-purchased": "default",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "BP_BCUUpgradeService",
+          "base-purchase-price": "100000",
+          "base-sell-price": "1042",
+          "delta-price": "-1.0",
+          "can-be-purchased": "default",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        }
+      ],
+      "A_0_Barber": [
+        {
+          "tradeable-code": "BP_HaircutAndMakeupService",
+          "base-purchase-price": "1000",
+          "base-sell-price": "null",
+          "delta-price": "-1.0",
+          "can-be-purchased": "default",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        }
+      ],
+      "B_4_Armory": [
+        {
+          "tradeable-code": "Armor_Tactical_Vest_01_02",
+          "base-purchase-price": "5000",
+          "base-sell-price": "1000",
+          "delta-price": "-1.0",
+          "can-be-purchased": "default",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "Armor_Tactical_Vest_01_03",
+          "base-purchase-price": "5000",
+          "base-sell-price": "1000",
+          "delta-price": "-1.0",
+          "can-be-purchased": "default",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "Armor_Tactical_Vest_01_04",
+          "base-purchase-price": "5000",
+          "base-sell-price": "1000",
+          "delta-price": "-1.0",
+          "can-be-purchased": "default",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "Armor_Tactical_Vest_01_05",
+          "base-purchase-price": "5000",
+          "base-sell-price": "1000",
+          "delta-price": "-1.0",
+          "can-be-purchased": "default",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "Armor_Tactical_Vest_01_01",
+          "base-purchase-price": "5000",
+          "base-sell-price": "1000",
+          "delta-price": "-1.0",
+          "can-be-purchased": "default",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "Armor_Police_Vest_01",
+          "base-purchase-price": "5000",
+          "base-sell-price": "1000",
+          "delta-price": "-1.0",
+          "can-be-purchased": "default",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "Depleted_Uranium",
+          "base-purchase-price": "50000",
+          "base-sell-price": "10000",
+          "delta-price": "-1.0",
+          "can-be-purchased": "default",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "Depleted_Uranium_Container",
+          "base-purchase-price": "5000",
+          "base-sell-price": "1000",
+          "delta-price": "-1.0",
+          "can-be-purchased": "default",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "Combat_Helmet_01",
+          "base-purchase-price": "2000",
+          "base-sell-price": "600",
+          "delta-price": "-1.0",
+          "can-be-purchased": "default",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "Combat_Helmet_02",
+          "base-purchase-price": "2000",
+          "base-sell-price": "600",
+          "delta-price": "-1.0",
+          "can-be-purchased": "default",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "Combat_Helmet_03",
+          "base-purchase-price": "2000",
+          "base-sell-price": "600",
+          "delta-price": "-1.0",
+          "can-be-purchased": "default",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "Combat_Helmet_04",
+          "base-purchase-price": "2000",
+          "base-sell-price": "600",
+          "delta-price": "-1.0",
+          "can-be-purchased": "default",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "K6-3_Helmet",
+          "base-purchase-price": "2500",
+          "base-sell-price": "500",
+          "delta-price": "-1.0",
+          "can-be-purchased": "default",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "Graphite",
+          "base-purchase-price": "10000",
+          "base-sell-price": "2083",
+          "delta-price": "-1.0",
+          "can-be-purchased": "default",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        }
+      ],
+      "B_4_BoatShop": [],
+      "B_4_Mechanic": [
+        {
+          "tradeable-code": "BPC_Rager",
+          "base-purchase-price": "100000",
+          "base-sell-price": "40000",
+          "delta-price": "-1.0",
+          "can-be-purchased": "default",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "BPC_WolfsWagen",
+          "base-purchase-price": "80000",
+          "base-sell-price": "35000",
+          "delta-price": "-1.0",
+          "can-be-purchased": "default",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "BPC_Laika",
+          "base-purchase-price": "75000",
+          "base-sell-price": "30000",
+          "delta-price": "-1.0",
+          "can-be-purchased": "default",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "BPC_Tractor",
+          "base-purchase-price": "60000",
+          "base-sell-price": "25000",
+          "delta-price": "-1.0",
+          "can-be-purchased": "default",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "BPC_RIS",
+          "base-purchase-price": "35000",
+          "base-sell-price": "15000",
+          "delta-price": "-1.0",
+          "can-be-purchased": "default",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "BPC_SidecarBike",
+          "base-purchase-price": "25000",
+          "base-sell-price": "10000",
+          "delta-price": "-1.0",
+          "can-be-purchased": "default",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "BPC_Cruiser",
+          "base-purchase-price": "26000",
+          "base-sell-price": "12500",
+          "delta-price": "-1.0",
+          "can-be-purchased": "default",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "BPC_Dirtbike",
+          "base-purchase-price": "25000",
+          "base-sell-price": "10000",
+          "delta-price": "-1.0",
+          "can-be-purchased": "default",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        }
+      ],
+      "B_4_Trader": [
+        {
+          "tradeable-code": "Screwdriver",
+          "base-purchase-price": "40000",
+          "base-sell-price": "5000",
+          "delta-price": "-1.0",
+          "can-be-purchased": "true",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "Lockpick_Advanced_Item",
+          "base-purchase-price": "25000",
+          "base-sell-price": "4000",
+          "delta-price": "-1.0",
+          "can-be-purchased": "true",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        }
+      ],
+      "B_4_Saloon": [
+        {
+          "tradeable-code": "Bear_Skinned",
+          "base-purchase-price": "30000",
+          "base-sell-price": "15000",
+          "delta-price": "-1.0",
+          "can-be-purchased": "true",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "Boar_Skinned",
+          "base-purchase-price": "20000",
+          "base-sell-price": "10000",
+          "delta-price": "-1.0",
+          "can-be-purchased": "true",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "Buck_Skinned",
+          "base-purchase-price": "64000",
+          "base-sell-price": "32000",
+          "delta-price": "-1.0",
+          "can-be-purchased": "true",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "Doe_Skinned",
+          "base-purchase-price": "60000",
+          "base-sell-price": "30000",
+          "delta-price": "-1.0",
+          "can-be-purchased": "true",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "Donkey_skinned",
+          "base-purchase-price": "40000",
+          "base-sell-price": "20000",
+          "delta-price": "-1.0",
+          "can-be-purchased": "true",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "Goat_Skinned",
+          "base-purchase-price": "20000",
+          "base-sell-price": "10000",
+          "delta-price": "-1.0",
+          "can-be-purchased": "true",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "Hen_Torso",
+          "base-purchase-price": "5000",
+          "base-sell-price": "2500",
+          "delta-price": "-1.0",
+          "can-be-purchased": "true",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "Horse_Skinned",
+          "base-purchase-price": "70000",
+          "base-sell-price": "35000",
+          "delta-price": "-1.0",
+          "can-be-purchased": "true",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "Rabbit_Skinned",
+          "base-purchase-price": "8000",
+          "base-sell-price": "4000",
+          "delta-price": "-1.0",
+          "can-be-purchased": "true",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "Wolf_Skinned",
+          "base-purchase-price": "12000",
+          "base-sell-price": "6000",
+          "delta-price": "-1.0",
+          "can-be-purchased": "true",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "Fish_Bass",
+          "base-purchase-price": "1000",
+          "base-sell-price": "100",
+          "delta-price": "-1.0",
+          "can-be-purchased": "true",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "Fish_Bleak",
+          "base-purchase-price": "200",
+          "base-sell-price": "20",
+          "delta-price": "-1.0",
+          "can-be-purchased": "true",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "Fish_Carp",
+          "base-purchase-price": "1000",
+          "base-sell-price": "100",
+          "delta-price": "-1.0",
+          "can-be-purchased": "true",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "Fish_Catfish",
+          "base-purchase-price": "1000",
+          "base-sell-price": "100",
+          "delta-price": "-1.0",
+          "can-be-purchased": "true",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "Fish_Chub",
+          "base-purchase-price": "200",
+          "base-sell-price": "20",
+          "delta-price": "-1.0",
+          "can-be-purchased": "true",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "Fish_CrucianCarp",
+          "base-purchase-price": "100",
+          "base-sell-price": "10",
+          "delta-price": "-1.0",
+          "can-be-purchased": "true",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "Fish_Dentex",
+          "base-purchase-price": "300",
+          "base-sell-price": "31",
+          "delta-price": "-1.0",
+          "can-be-purchased": "true",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "Fish_Orata",
+          "base-purchase-price": "200",
+          "base-sell-price": "210",
+          "delta-price": "-1.0",
+          "can-be-purchased": "true",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "Fish_Pike",
+          "base-purchase-price": "150000",
+          "base-sell-price": "7500",
+          "delta-price": "-1.0",
+          "can-be-purchased": "true",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "Fish_PrussianCarp",
+          "base-purchase-price": "1000",
+          "base-sell-price": "100",
+          "delta-price": "-1.0",
+          "can-be-purchased": "true",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "Fish_Ruffe",
+          "base-purchase-price": "1000",
+          "base-sell-price": "100",
+          "delta-price": "-1.0",
+          "can-be-purchased": "true",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "Fish_Sardine",
+          "base-purchase-price": "200",
+          "base-sell-price": "200",
+          "delta-price": "-1.0",
+          "can-be-purchased": "true",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        }
+      ],
+      "B_4_Hospital": [
+        {
+          "tradeable-code": "Painkillers_01",
+          "base-purchase-price": "2400",
+          "base-sell-price": "500",
+          "delta-price": "-1.0",
+          "can-be-purchased": "default",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "Rag_Stripes",
+          "base-purchase-price": "2",
+          "base-sell-price": "0",
+          "delta-price": "-1.0",
+          "can-be-purchased": "default",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "Rags",
+          "base-purchase-price": "30",
+          "base-sell-price": "6",
+          "delta-price": "-1.0",
+          "can-be-purchased": "default",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "Apple",
+          "base-purchase-price": "40",
+          "base-sell-price": "4",
+          "delta-price": "-1.0",
+          "can-be-purchased": "default",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "Tourniquet",
+          "base-purchase-price": "2000",
+          "base-sell-price": "417",
+          "delta-price": "-1.0",
+          "can-be-purchased": "default",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "Medical_Glove_01",
+          "base-purchase-price": "700",
+          "base-sell-price": "233",
+          "delta-price": "-1.0",
+          "can-be-purchased": "default",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "Disposable_Mask",
+          "base-purchase-price": "28",
+          "base-sell-price": "9",
+          "delta-price": "-1.0",
+          "can-be-purchased": "default",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "Head_Bags_01",
+          "base-purchase-price": "55",
+          "base-sell-price": "18",
+          "delta-price": "-1.0",
+          "can-be-purchased": "default",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "Hospital_Shirt_01",
+          "base-purchase-price": "110",
+          "base-sell-price": "37",
+          "delta-price": "-1.0",
+          "can-be-purchased": "default",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "Hospital_Pants",
+          "base-purchase-price": "55",
+          "base-sell-price": "18",
+          "delta-price": "-1.0",
+          "can-be-purchased": "default",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "Bundle_Of_Rags",
+          "base-purchase-price": "110",
+          "base-sell-price": "24",
+          "delta-price": "-1.0",
+          "can-be-purchased": "default",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "Bundle_Rag_Stripes",
+          "base-purchase-price": "55",
+          "base-sell-price": "12",
+          "delta-price": "-1.0",
+          "can-be-purchased": "default",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "Emergency_bandage",
+          "base-purchase-price": "500",
+          "base-sell-price": "104",
+          "delta-price": "-1.0",
+          "can-be-purchased": "default",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "Emergency_bandage_Big",
+          "base-purchase-price": "2000",
+          "base-sell-price": "417",
+          "delta-price": "-1.0",
+          "can-be-purchased": "default",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "Hemostatic_Dressing",
+          "base-purchase-price": "1000",
+          "base-sell-price": "208",
+          "delta-price": "-1.0",
+          "can-be-purchased": "default",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "Pressure_Dressing",
+          "base-purchase-price": "1000",
+          "base-sell-price": "208",
+          "delta-price": "-1.0",
+          "can-be-purchased": "default",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "Cigarettes",
+          "base-purchase-price": "200",
+          "base-sell-price": "42",
+          "delta-price": "-1.0",
+          "can-be-purchased": "default",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "Apple_2",
+          "base-purchase-price": "40",
+          "base-sell-price": "4",
+          "delta-price": "-1.0",
+          "can-be-purchased": "default",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "Vitamins_01",
+          "base-purchase-price": "500",
+          "base-sell-price": "104",
+          "delta-price": "-1.0",
+          "can-be-purchased": "default",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "Vitamins_02",
+          "base-purchase-price": "750",
+          "base-sell-price": "156",
+          "delta-price": "-1.0",
+          "can-be-purchased": "default",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "Vitamins_03",
+          "base-purchase-price": "1000",
+          "base-sell-price": "208",
+          "delta-price": "-1.0",
+          "can-be-purchased": "default",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "ActivatedCharcoal_01",
+          "base-purchase-price": "2400",
+          "base-sell-price": "500",
+          "delta-price": "-1.0",
+          "can-be-purchased": "default",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "ActivatedCharcoal_02",
+          "base-purchase-price": "4200",
+          "base-sell-price": "875",
+          "delta-price": "-1.0",
+          "can-be-purchased": "default",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "ActivatedCharcoal_03",
+          "base-purchase-price": "6000",
+          "base-sell-price": "1250",
+          "delta-price": "-1.0",
+          "can-be-purchased": "default",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "Adrenaline_Shot",
+          "base-purchase-price": "1200",
+          "base-sell-price": "250",
+          "delta-price": "-1.0",
+          "can-be-purchased": "default",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "Antibiotics_01",
+          "base-purchase-price": "2400",
+          "base-sell-price": "500",
+          "delta-price": "-1.0",
+          "can-be-purchased": "default",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "Antibiotics_02",
+          "base-purchase-price": "4200",
+          "base-sell-price": "875",
+          "delta-price": "-1.0",
+          "can-be-purchased": "default",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "Antibiotics_03",
+          "base-purchase-price": "6000",
+          "base-sell-price": "1250",
+          "delta-price": "-1.0",
+          "can-be-purchased": "default",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "Antiparasitics_01",
+          "base-purchase-price": "300",
+          "base-sell-price": "63",
+          "delta-price": "-1.0",
+          "can-be-purchased": "default",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "Antiparasitics_02",
+          "base-purchase-price": "600",
+          "base-sell-price": "125",
+          "delta-price": "-1.0",
+          "can-be-purchased": "default",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "Antiparasitics_03",
+          "base-purchase-price": "900",
+          "base-sell-price": "188",
+          "delta-price": "-1.0",
+          "can-be-purchased": "default",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "Aspirin",
+          "base-purchase-price": "800",
+          "base-sell-price": "167",
+          "delta-price": "-1.0",
+          "can-be-purchased": "default",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "AtropineInjection",
+          "base-purchase-price": "1200",
+          "base-sell-price": "250",
+          "delta-price": "-1.0",
+          "can-be-purchased": "default",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "Isopropyl_alcohol",
+          "base-purchase-price": "1000",
+          "base-sell-price": "250",
+          "delta-price": "-1.0",
+          "can-be-purchased": "default",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "Painkillers_02",
+          "base-purchase-price": "3600",
+          "base-sell-price": "750",
+          "delta-price": "-1.0",
+          "can-be-purchased": "default",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "PainKillers_03",
+          "base-purchase-price": "4800",
+          "base-sell-price": "1000",
+          "delta-price": "-1.0",
+          "can-be-purchased": "default",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "Penicillin01",
+          "base-purchase-price": "2500",
+          "base-sell-price": "521",
+          "delta-price": "-1.0",
+          "can-be-purchased": "default",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "PotassiumIodide_Pills_01",
+          "base-purchase-price": "500",
+          "base-sell-price": "104",
+          "delta-price": "-1.0",
+          "can-be-purchased": "default",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "PotassiumIodide_Pills_02",
+          "base-purchase-price": "700",
+          "base-sell-price": "146",
+          "delta-price": "-1.0",
+          "can-be-purchased": "default",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "PotassiumIodide_Pills_03",
+          "base-purchase-price": "1000",
+          "base-sell-price": "208",
+          "delta-price": "-1.0",
+          "can-be-purchased": "default",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "Syringe",
+          "base-purchase-price": "1000",
+          "base-sell-price": "208",
+          "delta-price": "-1.0",
+          "can-be-purchased": "default",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "Crutch",
+          "base-purchase-price": "1100",
+          "base-sell-price": "458",
+          "delta-price": "-1.0",
+          "can-be-purchased": "default",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "BP_PlasticSurgeryService",
+          "base-purchase-price": "75000",
+          "base-sell-price": "10417",
+          "delta-price": "-1.0",
+          "can-be-purchased": "default",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "Antibiotic_Pill_Single",
+          "base-purchase-price": "200",
+          "base-sell-price": "42",
+          "delta-price": "-1.0",
+          "can-be-purchased": "default",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "AntiburnGel",
+          "base-purchase-price": "1000",
+          "base-sell-price": "250",
+          "delta-price": "-1.0",
+          "can-be-purchased": "default",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "AntiburnGel_Improvised",
+          "base-purchase-price": "1000",
+          "base-sell-price": "250",
+          "delta-price": "-1.0",
+          "can-be-purchased": "default",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "BP_BCUUpgradeService",
+          "base-purchase-price": "100000",
+          "base-sell-price": "1042",
+          "delta-price": "-1.0",
+          "can-be-purchased": "default",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        }
+      ],
+      "B_4_Barber": [
+        {
+          "tradeable-code": "BP_HaircutAndMakeupService",
+          "base-purchase-price": "1000",
+          "base-sell-price": "null",
+          "delta-price": "-1.0",
+          "can-be-purchased": "default",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        }
+      ],
+      "C_2_Armory": [
+        {
+          "tradeable-code": "Armor_Tactical_Vest_01_02",
+          "base-purchase-price": "5000",
+          "base-sell-price": "1000",
+          "delta-price": "-1.0",
+          "can-be-purchased": "default",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "Armor_Tactical_Vest_01_03",
+          "base-purchase-price": "5000",
+          "base-sell-price": "1000",
+          "delta-price": "-1.0",
+          "can-be-purchased": "default",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "Armor_Tactical_Vest_01_04",
+          "base-purchase-price": "5000",
+          "base-sell-price": "1000",
+          "delta-price": "-1.0",
+          "can-be-purchased": "default",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "Armor_Tactical_Vest_01_05",
+          "base-purchase-price": "5000",
+          "base-sell-price": "1000",
+          "delta-price": "-1.0",
+          "can-be-purchased": "default",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "Armor_Tactical_Vest_01_01",
+          "base-purchase-price": "5000",
+          "base-sell-price": "1000",
+          "delta-price": "-1.0",
+          "can-be-purchased": "default",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "Armor_Police_Vest_01",
+          "base-purchase-price": "5000",
+          "base-sell-price": "1000",
+          "delta-price": "-1.0",
+          "can-be-purchased": "default",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "Depleted_Uranium",
+          "base-purchase-price": "50000",
+          "base-sell-price": "10000",
+          "delta-price": "-1.0",
+          "can-be-purchased": "default",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "Depleted_Uranium_Container",
+          "base-purchase-price": "5000",
+          "base-sell-price": "1000",
+          "delta-price": "-1.0",
+          "can-be-purchased": "default",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "Combat_Helmet_01",
+          "base-purchase-price": "2000",
+          "base-sell-price": "600",
+          "delta-price": "-1.0",
+          "can-be-purchased": "default",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "Combat_Helmet_02",
+          "base-purchase-price": "2000",
+          "base-sell-price": "600",
+          "delta-price": "-1.0",
+          "can-be-purchased": "default",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "Combat_Helmet_03",
+          "base-purchase-price": "2000",
+          "base-sell-price": "600",
+          "delta-price": "-1.0",
+          "can-be-purchased": "default",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "Combat_Helmet_04",
+          "base-purchase-price": "2000",
+          "base-sell-price": "600",
+          "delta-price": "-1.0",
+          "can-be-purchased": "default",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "K6-3_Helmet",
+          "base-purchase-price": "2500",
+          "base-sell-price": "500",
+          "delta-price": "-1.0",
+          "can-be-purchased": "default",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "Graphite",
+          "base-purchase-price": "10000",
+          "base-sell-price": "2083",
+          "delta-price": "-1.0",
+          "can-be-purchased": "default",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        }
+      ],
+      "C_2_BoatShop": [],
+      "C_2_Mechanic": [
+        {
+          "tradeable-code": "BPC_Rager",
+          "base-purchase-price": "100000",
+          "base-sell-price": "40000",
+          "delta-price": "-1.0",
+          "can-be-purchased": "default",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "BPC_WolfsWagen",
+          "base-purchase-price": "80000",
+          "base-sell-price": "35000",
+          "delta-price": "-1.0",
+          "can-be-purchased": "default",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "BPC_Laika",
+          "base-purchase-price": "75000",
+          "base-sell-price": "30000",
+          "delta-price": "-1.0",
+          "can-be-purchased": "default",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "BPC_Tractor",
+          "base-purchase-price": "60000",
+          "base-sell-price": "25000",
+          "delta-price": "-1.0",
+          "can-be-purchased": "default",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "BPC_RIS",
+          "base-purchase-price": "35000",
+          "base-sell-price": "15000",
+          "delta-price": "-1.0",
+          "can-be-purchased": "default",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "BPC_SidecarBike",
+          "base-purchase-price": "25000",
+          "base-sell-price": "10000",
+          "delta-price": "-1.0",
+          "can-be-purchased": "default",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "BPC_Cruiser",
+          "base-purchase-price": "26000",
+          "base-sell-price": "12500",
+          "delta-price": "-1.0",
+          "can-be-purchased": "default",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "BPC_Dirtbike",
+          "base-purchase-price": "25000",
+          "base-sell-price": "10000",
+          "delta-price": "-1.0",
+          "can-be-purchased": "default",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        }
+      ],
+      "C_2_Trader": [
+        {
+          "tradeable-code": "Screwdriver",
+          "base-purchase-price": "40000",
+          "base-sell-price": "5000",
+          "delta-price": "-1.0",
+          "can-be-purchased": "true",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "Lockpick_Advanced_Item",
+          "base-purchase-price": "25000",
+          "base-sell-price": "4000",
+          "delta-price": "-1.0",
+          "can-be-purchased": "true",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        }
+      ],
+      "C_2_Saloon": [
+        {
+          "tradeable-code": "Bear_Skinned",
+          "base-purchase-price": "30000",
+          "base-sell-price": "15000",
+          "delta-price": "-1.0",
+          "can-be-purchased": "true",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "Boar_Skinned",
+          "base-purchase-price": "20000",
+          "base-sell-price": "10000",
+          "delta-price": "-1.0",
+          "can-be-purchased": "true",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "Buck_Skinned",
+          "base-purchase-price": "64000",
+          "base-sell-price": "32000",
+          "delta-price": "-1.0",
+          "can-be-purchased": "true",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "Doe_Skinned",
+          "base-purchase-price": "60000",
+          "base-sell-price": "30000",
+          "delta-price": "-1.0",
+          "can-be-purchased": "true",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "Donkey_skinned",
+          "base-purchase-price": "40000",
+          "base-sell-price": "20000",
+          "delta-price": "-1.0",
+          "can-be-purchased": "true",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "Goat_Skinned",
+          "base-purchase-price": "20000",
+          "base-sell-price": "10000",
+          "delta-price": "-1.0",
+          "can-be-purchased": "true",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "Hen_Torso",
+          "base-purchase-price": "5000",
+          "base-sell-price": "2500",
+          "delta-price": "-1.0",
+          "can-be-purchased": "true",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "Horse_Skinned",
+          "base-purchase-price": "70000",
+          "base-sell-price": "35000",
+          "delta-price": "-1.0",
+          "can-be-purchased": "true",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "Rabbit_Skinned",
+          "base-purchase-price": "8000",
+          "base-sell-price": "4000",
+          "delta-price": "-1.0",
+          "can-be-purchased": "true",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "Wolf_Skinned",
+          "base-purchase-price": "12000",
+          "base-sell-price": "6000",
+          "delta-price": "-1.0",
+          "can-be-purchased": "true",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "Fish_Bass",
+          "base-purchase-price": "1000",
+          "base-sell-price": "100",
+          "delta-price": "-1.0",
+          "can-be-purchased": "true",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "Fish_Bleak",
+          "base-purchase-price": "200",
+          "base-sell-price": "20",
+          "delta-price": "-1.0",
+          "can-be-purchased": "true",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "Fish_Carp",
+          "base-purchase-price": "1000",
+          "base-sell-price": "100",
+          "delta-price": "-1.0",
+          "can-be-purchased": "true",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "Fish_Catfish",
+          "base-purchase-price": "1000",
+          "base-sell-price": "100",
+          "delta-price": "-1.0",
+          "can-be-purchased": "true",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "Fish_Chub",
+          "base-purchase-price": "200",
+          "base-sell-price": "20",
+          "delta-price": "-1.0",
+          "can-be-purchased": "true",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "Fish_CrucianCarp",
+          "base-purchase-price": "100",
+          "base-sell-price": "10",
+          "delta-price": "-1.0",
+          "can-be-purchased": "true",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "Fish_Dentex",
+          "base-purchase-price": "300",
+          "base-sell-price": "31",
+          "delta-price": "-1.0",
+          "can-be-purchased": "true",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "Fish_Orata",
+          "base-purchase-price": "200",
+          "base-sell-price": "210",
+          "delta-price": "-1.0",
+          "can-be-purchased": "true",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "Fish_Pike",
+          "base-purchase-price": "150000",
+          "base-sell-price": "7500",
+          "delta-price": "-1.0",
+          "can-be-purchased": "true",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "Fish_PrussianCarp",
+          "base-purchase-price": "1000",
+          "base-sell-price": "100",
+          "delta-price": "-1.0",
+          "can-be-purchased": "true",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "Fish_Ruffe",
+          "base-purchase-price": "1000",
+          "base-sell-price": "100",
+          "delta-price": "-1.0",
+          "can-be-purchased": "true",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "Fish_Sardine",
+          "base-purchase-price": "200",
+          "base-sell-price": "200",
+          "delta-price": "-1.0",
+          "can-be-purchased": "true",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        }
+      ],
+      "C_2_Hospital": [
+        {
+          "tradeable-code": "Painkillers_01",
+          "base-purchase-price": "2400",
+          "base-sell-price": "500",
+          "delta-price": "-1.0",
+          "can-be-purchased": "default",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "Rag_Stripes",
+          "base-purchase-price": "2",
+          "base-sell-price": "0",
+          "delta-price": "-1.0",
+          "can-be-purchased": "default",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "Rags",
+          "base-purchase-price": "30",
+          "base-sell-price": "6",
+          "delta-price": "-1.0",
+          "can-be-purchased": "default",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "Apple",
+          "base-purchase-price": "40",
+          "base-sell-price": "4",
+          "delta-price": "-1.0",
+          "can-be-purchased": "default",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "Tourniquet",
+          "base-purchase-price": "2000",
+          "base-sell-price": "417",
+          "delta-price": "-1.0",
+          "can-be-purchased": "default",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "Medical_Glove_01",
+          "base-purchase-price": "700",
+          "base-sell-price": "233",
+          "delta-price": "-1.0",
+          "can-be-purchased": "default",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "Disposable_Mask",
+          "base-purchase-price": "28",
+          "base-sell-price": "9",
+          "delta-price": "-1.0",
+          "can-be-purchased": "default",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "Head_Bags_01",
+          "base-purchase-price": "55",
+          "base-sell-price": "18",
+          "delta-price": "-1.0",
+          "can-be-purchased": "default",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "Hospital_Shirt_01",
+          "base-purchase-price": "110",
+          "base-sell-price": "37",
+          "delta-price": "-1.0",
+          "can-be-purchased": "default",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "Hospital_Pants",
+          "base-purchase-price": "55",
+          "base-sell-price": "18",
+          "delta-price": "-1.0",
+          "can-be-purchased": "default",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "Bundle_Of_Rags",
+          "base-purchase-price": "110",
+          "base-sell-price": "24",
+          "delta-price": "-1.0",
+          "can-be-purchased": "default",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "Bundle_Rag_Stripes",
+          "base-purchase-price": "55",
+          "base-sell-price": "12",
+          "delta-price": "-1.0",
+          "can-be-purchased": "default",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "Emergency_bandage",
+          "base-purchase-price": "500",
+          "base-sell-price": "104",
+          "delta-price": "-1.0",
+          "can-be-purchased": "default",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "Emergency_bandage_Big",
+          "base-purchase-price": "2000",
+          "base-sell-price": "417",
+          "delta-price": "-1.0",
+          "can-be-purchased": "default",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "Hemostatic_Dressing",
+          "base-purchase-price": "1000",
+          "base-sell-price": "208",
+          "delta-price": "-1.0",
+          "can-be-purchased": "default",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "Pressure_Dressing",
+          "base-purchase-price": "1000",
+          "base-sell-price": "208",
+          "delta-price": "-1.0",
+          "can-be-purchased": "default",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "Cigarettes",
+          "base-purchase-price": "200",
+          "base-sell-price": "42",
+          "delta-price": "-1.0",
+          "can-be-purchased": "default",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "Apple_2",
+          "base-purchase-price": "40",
+          "base-sell-price": "4",
+          "delta-price": "-1.0",
+          "can-be-purchased": "default",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "Vitamins_01",
+          "base-purchase-price": "500",
+          "base-sell-price": "104",
+          "delta-price": "-1.0",
+          "can-be-purchased": "default",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "Vitamins_02",
+          "base-purchase-price": "750",
+          "base-sell-price": "156",
+          "delta-price": "-1.0",
+          "can-be-purchased": "default",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "Vitamins_03",
+          "base-purchase-price": "1000",
+          "base-sell-price": "208",
+          "delta-price": "-1.0",
+          "can-be-purchased": "default",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "ActivatedCharcoal_01",
+          "base-purchase-price": "2400",
+          "base-sell-price": "500",
+          "delta-price": "-1.0",
+          "can-be-purchased": "default",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "ActivatedCharcoal_02",
+          "base-purchase-price": "4200",
+          "base-sell-price": "875",
+          "delta-price": "-1.0",
+          "can-be-purchased": "default",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "ActivatedCharcoal_03",
+          "base-purchase-price": "6000",
+          "base-sell-price": "1250",
+          "delta-price": "-1.0",
+          "can-be-purchased": "default",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "Adrenaline_Shot",
+          "base-purchase-price": "1200",
+          "base-sell-price": "250",
+          "delta-price": "-1.0",
+          "can-be-purchased": "default",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "Antibiotics_01",
+          "base-purchase-price": "2400",
+          "base-sell-price": "500",
+          "delta-price": "-1.0",
+          "can-be-purchased": "default",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "Antibiotics_02",
+          "base-purchase-price": "4200",
+          "base-sell-price": "875",
+          "delta-price": "-1.0",
+          "can-be-purchased": "default",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "Antibiotics_03",
+          "base-purchase-price": "6000",
+          "base-sell-price": "1250",
+          "delta-price": "-1.0",
+          "can-be-purchased": "default",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "Antiparasitics_01",
+          "base-purchase-price": "300",
+          "base-sell-price": "63",
+          "delta-price": "-1.0",
+          "can-be-purchased": "default",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "Antiparasitics_02",
+          "base-purchase-price": "600",
+          "base-sell-price": "125",
+          "delta-price": "-1.0",
+          "can-be-purchased": "default",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "Antiparasitics_03",
+          "base-purchase-price": "900",
+          "base-sell-price": "188",
+          "delta-price": "-1.0",
+          "can-be-purchased": "default",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "Aspirin",
+          "base-purchase-price": "800",
+          "base-sell-price": "167",
+          "delta-price": "-1.0",
+          "can-be-purchased": "default",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "AtropineInjection",
+          "base-purchase-price": "1200",
+          "base-sell-price": "250",
+          "delta-price": "-1.0",
+          "can-be-purchased": "default",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "Isopropyl_alcohol",
+          "base-purchase-price": "1000",
+          "base-sell-price": "250",
+          "delta-price": "-1.0",
+          "can-be-purchased": "default",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "Painkillers_02",
+          "base-purchase-price": "3600",
+          "base-sell-price": "750",
+          "delta-price": "-1.0",
+          "can-be-purchased": "default",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "PainKillers_03",
+          "base-purchase-price": "4800",
+          "base-sell-price": "1000",
+          "delta-price": "-1.0",
+          "can-be-purchased": "default",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "Penicillin01",
+          "base-purchase-price": "2500",
+          "base-sell-price": "521",
+          "delta-price": "-1.0",
+          "can-be-purchased": "default",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "PotassiumIodide_Pills_01",
+          "base-purchase-price": "500",
+          "base-sell-price": "104",
+          "delta-price": "-1.0",
+          "can-be-purchased": "default",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "PotassiumIodide_Pills_02",
+          "base-purchase-price": "700",
+          "base-sell-price": "146",
+          "delta-price": "-1.0",
+          "can-be-purchased": "default",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "PotassiumIodide_Pills_03",
+          "base-purchase-price": "1000",
+          "base-sell-price": "208",
+          "delta-price": "-1.0",
+          "can-be-purchased": "default",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "Syringe",
+          "base-purchase-price": "1000",
+          "base-sell-price": "208",
+          "delta-price": "-1.0",
+          "can-be-purchased": "default",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "Crutch",
+          "base-purchase-price": "1100",
+          "base-sell-price": "458",
+          "delta-price": "-1.0",
+          "can-be-purchased": "default",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "BP_PlasticSurgeryService",
+          "base-purchase-price": "75000",
+          "base-sell-price": "10417",
+          "delta-price": "-1.0",
+          "can-be-purchased": "default",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "Antibiotic_Pill_Single",
+          "base-purchase-price": "200",
+          "base-sell-price": "42",
+          "delta-price": "-1.0",
+          "can-be-purchased": "default",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "AntiburnGel",
+          "base-purchase-price": "1000",
+          "base-sell-price": "250",
+          "delta-price": "-1.0",
+          "can-be-purchased": "default",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "AntiburnGel_Improvised",
+          "base-purchase-price": "1000",
+          "base-sell-price": "250",
+          "delta-price": "-1.0",
+          "can-be-purchased": "default",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "BP_BCUUpgradeService",
+          "base-purchase-price": "100000",
+          "base-sell-price": "1042",
+          "delta-price": "-1.0",
+          "can-be-purchased": "default",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        }
+      ],
+      "C_2_Barber": [
+        {
+          "tradeable-code": "BP_HaircutAndMakeupService",
+          "base-purchase-price": "1000",
+          "base-sell-price": "null",
+          "delta-price": "-1.0",
+          "can-be-purchased": "default",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        }
+      ],
+      "Z_3_Armory": [
+        {
+          "tradeable-code": "Armor_Tactical_Vest_01_02",
+          "base-purchase-price": "5000",
+          "base-sell-price": "1000",
+          "delta-price": "-1.0",
+          "can-be-purchased": "default",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "Armor_Tactical_Vest_01_03",
+          "base-purchase-price": "5000",
+          "base-sell-price": "1000",
+          "delta-price": "-1.0",
+          "can-be-purchased": "default",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "Armor_Tactical_Vest_01_04",
+          "base-purchase-price": "5000",
+          "base-sell-price": "1000",
+          "delta-price": "-1.0",
+          "can-be-purchased": "default",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "Armor_Tactical_Vest_01_05",
+          "base-purchase-price": "5000",
+          "base-sell-price": "1000",
+          "delta-price": "-1.0",
+          "can-be-purchased": "default",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "Armor_Tactical_Vest_01_01",
+          "base-purchase-price": "5000",
+          "base-sell-price": "1000",
+          "delta-price": "-1.0",
+          "can-be-purchased": "default",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "Armor_Police_Vest_01",
+          "base-purchase-price": "5000",
+          "base-sell-price": "1000",
+          "delta-price": "-1.0",
+          "can-be-purchased": "default",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "Depleted_Uranium",
+          "base-purchase-price": "50000",
+          "base-sell-price": "10000",
+          "delta-price": "-1.0",
+          "can-be-purchased": "default",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "Depleted_Uranium_Container",
+          "base-purchase-price": "5000",
+          "base-sell-price": "1000",
+          "delta-price": "-1.0",
+          "can-be-purchased": "default",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "Combat_Helmet_01",
+          "base-purchase-price": "2000",
+          "base-sell-price": "600",
+          "delta-price": "-1.0",
+          "can-be-purchased": "default",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "Combat_Helmet_02",
+          "base-purchase-price": "2000",
+          "base-sell-price": "600",
+          "delta-price": "-1.0",
+          "can-be-purchased": "default",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "Combat_Helmet_03",
+          "base-purchase-price": "2000",
+          "base-sell-price": "600",
+          "delta-price": "-1.0",
+          "can-be-purchased": "default",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "Combat_Helmet_04",
+          "base-purchase-price": "2000",
+          "base-sell-price": "600",
+          "delta-price": "-1.0",
+          "can-be-purchased": "default",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "K6-3_Helmet",
+          "base-purchase-price": "2500",
+          "base-sell-price": "500",
+          "delta-price": "-1.0",
+          "can-be-purchased": "default",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "Graphite",
+          "base-purchase-price": "10000",
+          "base-sell-price": "2083",
+          "delta-price": "-1.0",
+          "can-be-purchased": "default",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        }
+      ],
+      "Z_3_BoatShop": [],
+      "Z_3_Mechanic": [
+        {
+          "tradeable-code": "BPC_Rager",
+          "base-purchase-price": "100000",
+          "base-sell-price": "40000",
+          "delta-price": "-1.0",
+          "can-be-purchased": "default",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "BPC_WolfsWagen",
+          "base-purchase-price": "80000",
+          "base-sell-price": "35000",
+          "delta-price": "-1.0",
+          "can-be-purchased": "default",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "BPC_Laika",
+          "base-purchase-price": "75000",
+          "base-sell-price": "30000",
+          "delta-price": "-1.0",
+          "can-be-purchased": "default",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "BPC_Tractor",
+          "base-purchase-price": "60000",
+          "base-sell-price": "25000",
+          "delta-price": "-1.0",
+          "can-be-purchased": "default",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "BPC_RIS",
+          "base-purchase-price": "35000",
+          "base-sell-price": "15000",
+          "delta-price": "-1.0",
+          "can-be-purchased": "default",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "BPC_SidecarBike",
+          "base-purchase-price": "25000",
+          "base-sell-price": "10000",
+          "delta-price": "-1.0",
+          "can-be-purchased": "default",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "BPC_Cruiser",
+          "base-purchase-price": "26000",
+          "base-sell-price": "12500",
+          "delta-price": "-1.0",
+          "can-be-purchased": "default",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "BPC_Dirtbike",
+          "base-purchase-price": "25000",
+          "base-sell-price": "10000",
+          "delta-price": "-1.0",
+          "can-be-purchased": "default",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        }
+      ],
+      "Z_3_Trader": [
+        {
+          "tradeable-code": "Screwdriver",
+          "base-purchase-price": "40000",
+          "base-sell-price": "5000",
+          "delta-price": "-1.0",
+          "can-be-purchased": "true",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "Lockpick_Advanced_Item",
+          "base-purchase-price": "25000",
+          "base-sell-price": "4000",
+          "delta-price": "-1.0",
+          "can-be-purchased": "true",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        }
+      ],
+      "Z_3_Saloon": [
+        {
+          "tradeable-code": "Bear_Skinned",
+          "base-purchase-price": "30000",
+          "base-sell-price": "15000",
+          "delta-price": "-1.0",
+          "can-be-purchased": "true",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "Boar_Skinned",
+          "base-purchase-price": "20000",
+          "base-sell-price": "10000",
+          "delta-price": "-1.0",
+          "can-be-purchased": "true",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "Buck_Skinned",
+          "base-purchase-price": "64000",
+          "base-sell-price": "32000",
+          "delta-price": "-1.0",
+          "can-be-purchased": "true",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "Doe_Skinned",
+          "base-purchase-price": "60000",
+          "base-sell-price": "30000",
+          "delta-price": "-1.0",
+          "can-be-purchased": "true",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "Donkey_skinned",
+          "base-purchase-price": "40000",
+          "base-sell-price": "20000",
+          "delta-price": "-1.0",
+          "can-be-purchased": "true",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "Goat_Skinned",
+          "base-purchase-price": "20000",
+          "base-sell-price": "10000",
+          "delta-price": "-1.0",
+          "can-be-purchased": "true",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "Hen_Torso",
+          "base-purchase-price": "5000",
+          "base-sell-price": "2500",
+          "delta-price": "-1.0",
+          "can-be-purchased": "true",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "Horse_Skinned",
+          "base-purchase-price": "70000",
+          "base-sell-price": "35000",
+          "delta-price": "-1.0",
+          "can-be-purchased": "true",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "Rabbit_Skinned",
+          "base-purchase-price": "8000",
+          "base-sell-price": "4000",
+          "delta-price": "-1.0",
+          "can-be-purchased": "true",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "Wolf_Skinned",
+          "base-purchase-price": "12000",
+          "base-sell-price": "6000",
+          "delta-price": "-1.0",
+          "can-be-purchased": "true",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "Fish_Bass",
+          "base-purchase-price": "1000",
+          "base-sell-price": "100",
+          "delta-price": "-1.0",
+          "can-be-purchased": "true",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "Fish_Bleak",
+          "base-purchase-price": "200",
+          "base-sell-price": "20",
+          "delta-price": "-1.0",
+          "can-be-purchased": "true",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "Fish_Carp",
+          "base-purchase-price": "1000",
+          "base-sell-price": "100",
+          "delta-price": "-1.0",
+          "can-be-purchased": "true",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "Fish_Catfish",
+          "base-purchase-price": "1000",
+          "base-sell-price": "100",
+          "delta-price": "-1.0",
+          "can-be-purchased": "true",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "Fish_Chub",
+          "base-purchase-price": "200",
+          "base-sell-price": "20",
+          "delta-price": "-1.0",
+          "can-be-purchased": "true",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "Fish_CrucianCarp",
+          "base-purchase-price": "100",
+          "base-sell-price": "10",
+          "delta-price": "-1.0",
+          "can-be-purchased": "true",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "Fish_Dentex",
+          "base-purchase-price": "300",
+          "base-sell-price": "31",
+          "delta-price": "-1.0",
+          "can-be-purchased": "true",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "Fish_Orata",
+          "base-purchase-price": "200",
+          "base-sell-price": "210",
+          "delta-price": "-1.0",
+          "can-be-purchased": "true",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "Fish_Pike",
+          "base-purchase-price": "150000",
+          "base-sell-price": "7500",
+          "delta-price": "-1.0",
+          "can-be-purchased": "true",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "Fish_PrussianCarp",
+          "base-purchase-price": "1000",
+          "base-sell-price": "100",
+          "delta-price": "-1.0",
+          "can-be-purchased": "true",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "Fish_Ruffe",
+          "base-purchase-price": "1000",
+          "base-sell-price": "100",
+          "delta-price": "-1.0",
+          "can-be-purchased": "true",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "Fish_Sardine",
+          "base-purchase-price": "200",
+          "base-sell-price": "200",
+          "delta-price": "-1.0",
+          "can-be-purchased": "true",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        }
+      ],
+      "Z_3_Hospital": [
+        {
+          "tradeable-code": "Painkillers_01",
+          "base-purchase-price": "2400",
+          "base-sell-price": "500",
+          "delta-price": "-1.0",
+          "can-be-purchased": "default",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "Rag_Stripes",
+          "base-purchase-price": "2",
+          "base-sell-price": "0",
+          "delta-price": "-1.0",
+          "can-be-purchased": "default",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "Rags",
+          "base-purchase-price": "30",
+          "base-sell-price": "6",
+          "delta-price": "-1.0",
+          "can-be-purchased": "default",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "Apple",
+          "base-purchase-price": "40",
+          "base-sell-price": "4",
+          "delta-price": "-1.0",
+          "can-be-purchased": "default",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "Tourniquet",
+          "base-purchase-price": "2000",
+          "base-sell-price": "417",
+          "delta-price": "-1.0",
+          "can-be-purchased": "default",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "Medical_Glove_01",
+          "base-purchase-price": "700",
+          "base-sell-price": "233",
+          "delta-price": "-1.0",
+          "can-be-purchased": "default",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "Disposable_Mask",
+          "base-purchase-price": "28",
+          "base-sell-price": "9",
+          "delta-price": "-1.0",
+          "can-be-purchased": "default",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "Head_Bags_01",
+          "base-purchase-price": "55",
+          "base-sell-price": "18",
+          "delta-price": "-1.0",
+          "can-be-purchased": "default",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "Hospital_Shirt_01",
+          "base-purchase-price": "110",
+          "base-sell-price": "37",
+          "delta-price": "-1.0",
+          "can-be-purchased": "default",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "Hospital_Pants",
+          "base-purchase-price": "55",
+          "base-sell-price": "18",
+          "delta-price": "-1.0",
+          "can-be-purchased": "default",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "Bundle_Of_Rags",
+          "base-purchase-price": "110",
+          "base-sell-price": "24",
+          "delta-price": "-1.0",
+          "can-be-purchased": "default",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "Bundle_Rag_Stripes",
+          "base-purchase-price": "55",
+          "base-sell-price": "12",
+          "delta-price": "-1.0",
+          "can-be-purchased": "default",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "Emergency_bandage",
+          "base-purchase-price": "500",
+          "base-sell-price": "104",
+          "delta-price": "-1.0",
+          "can-be-purchased": "default",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "Emergency_bandage_Big",
+          "base-purchase-price": "2000",
+          "base-sell-price": "417",
+          "delta-price": "-1.0",
+          "can-be-purchased": "default",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "Hemostatic_Dressing",
+          "base-purchase-price": "1000",
+          "base-sell-price": "208",
+          "delta-price": "-1.0",
+          "can-be-purchased": "default",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "Pressure_Dressing",
+          "base-purchase-price": "1000",
+          "base-sell-price": "208",
+          "delta-price": "-1.0",
+          "can-be-purchased": "default",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "Cigarettes",
+          "base-purchase-price": "200",
+          "base-sell-price": "42",
+          "delta-price": "-1.0",
+          "can-be-purchased": "default",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "Apple_2",
+          "base-purchase-price": "40",
+          "base-sell-price": "4",
+          "delta-price": "-1.0",
+          "can-be-purchased": "default",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "Vitamins_01",
+          "base-purchase-price": "500",
+          "base-sell-price": "104",
+          "delta-price": "-1.0",
+          "can-be-purchased": "default",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "Vitamins_02",
+          "base-purchase-price": "750",
+          "base-sell-price": "156",
+          "delta-price": "-1.0",
+          "can-be-purchased": "default",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "Vitamins_03",
+          "base-purchase-price": "1000",
+          "base-sell-price": "208",
+          "delta-price": "-1.0",
+          "can-be-purchased": "default",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "ActivatedCharcoal_01",
+          "base-purchase-price": "2400",
+          "base-sell-price": "500",
+          "delta-price": "-1.0",
+          "can-be-purchased": "default",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "ActivatedCharcoal_02",
+          "base-purchase-price": "4200",
+          "base-sell-price": "875",
+          "delta-price": "-1.0",
+          "can-be-purchased": "default",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "ActivatedCharcoal_03",
+          "base-purchase-price": "6000",
+          "base-sell-price": "1250",
+          "delta-price": "-1.0",
+          "can-be-purchased": "default",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "Adrenaline_Shot",
+          "base-purchase-price": "1200",
+          "base-sell-price": "250",
+          "delta-price": "-1.0",
+          "can-be-purchased": "default",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "Antibiotics_01",
+          "base-purchase-price": "2400",
+          "base-sell-price": "500",
+          "delta-price": "-1.0",
+          "can-be-purchased": "default",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "Antibiotics_02",
+          "base-purchase-price": "4200",
+          "base-sell-price": "875",
+          "delta-price": "-1.0",
+          "can-be-purchased": "default",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "Antibiotics_03",
+          "base-purchase-price": "6000",
+          "base-sell-price": "1250",
+          "delta-price": "-1.0",
+          "can-be-purchased": "default",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "Antiparasitics_01",
+          "base-purchase-price": "300",
+          "base-sell-price": "63",
+          "delta-price": "-1.0",
+          "can-be-purchased": "default",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "Antiparasitics_02",
+          "base-purchase-price": "600",
+          "base-sell-price": "125",
+          "delta-price": "-1.0",
+          "can-be-purchased": "default",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "Antiparasitics_03",
+          "base-purchase-price": "900",
+          "base-sell-price": "188",
+          "delta-price": "-1.0",
+          "can-be-purchased": "default",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "Aspirin",
+          "base-purchase-price": "800",
+          "base-sell-price": "167",
+          "delta-price": "-1.0",
+          "can-be-purchased": "default",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "AtropineInjection",
+          "base-purchase-price": "1200",
+          "base-sell-price": "250",
+          "delta-price": "-1.0",
+          "can-be-purchased": "default",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "Isopropyl_alcohol",
+          "base-purchase-price": "1000",
+          "base-sell-price": "250",
+          "delta-price": "-1.0",
+          "can-be-purchased": "default",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "Painkillers_02",
+          "base-purchase-price": "3600",
+          "base-sell-price": "750",
+          "delta-price": "-1.0",
+          "can-be-purchased": "default",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "PainKillers_03",
+          "base-purchase-price": "4800",
+          "base-sell-price": "1000",
+          "delta-price": "-1.0",
+          "can-be-purchased": "default",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "Penicillin01",
+          "base-purchase-price": "2500",
+          "base-sell-price": "521",
+          "delta-price": "-1.0",
+          "can-be-purchased": "default",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "PotassiumIodide_Pills_01",
+          "base-purchase-price": "500",
+          "base-sell-price": "104",
+          "delta-price": "-1.0",
+          "can-be-purchased": "default",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "PotassiumIodide_Pills_02",
+          "base-purchase-price": "700",
+          "base-sell-price": "146",
+          "delta-price": "-1.0",
+          "can-be-purchased": "default",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "PotassiumIodide_Pills_03",
+          "base-purchase-price": "1000",
+          "base-sell-price": "208",
+          "delta-price": "-1.0",
+          "can-be-purchased": "default",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "Syringe",
+          "base-purchase-price": "1000",
+          "base-sell-price": "208",
+          "delta-price": "-1.0",
+          "can-be-purchased": "default",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "Crutch",
+          "base-purchase-price": "1100",
+          "base-sell-price": "458",
+          "delta-price": "-1.0",
+          "can-be-purchased": "default",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "BP_PlasticSurgeryService",
+          "base-purchase-price": "75000",
+          "base-sell-price": "10417",
+          "delta-price": "-1.0",
+          "can-be-purchased": "default",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "Antibiotic_Pill_Single",
+          "base-purchase-price": "200",
+          "base-sell-price": "42",
+          "delta-price": "-1.0",
+          "can-be-purchased": "default",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "AntiburnGel",
+          "base-purchase-price": "1000",
+          "base-sell-price": "250",
+          "delta-price": "-1.0",
+          "can-be-purchased": "default",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "AntiburnGel_Improvised",
+          "base-purchase-price": "1000",
+          "base-sell-price": "250",
+          "delta-price": "-1.0",
+          "can-be-purchased": "default",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        },
+        {
+          "tradeable-code": "BP_BCUUpgradeService",
+          "base-purchase-price": "100000",
+          "base-sell-price": "1042",
+          "delta-price": "-1.0",
+          "can-be-purchased": "default",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        }
+      ],
+      "Z_3_Barber": [
+        {
+          "tradeable-code": "BP_HaircutAndMakeupService",
+          "base-purchase-price": "1000",
+          "base-sell-price": "null",
+          "delta-price": "-1.0",
+          "can-be-purchased": "default",
+          "required-famepoints": "-1",
+          "available-after-sale-only": "default"
+        }
+      ]
+    }
+  }
+}

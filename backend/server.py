@@ -85,6 +85,17 @@ class ServerRename(BaseModel):
     name: str
 
 
+class UserEntry(BaseModel):
+    steam_id: str
+    flags: List[str] = Field(default_factory=list)
+    note: Optional[str] = None
+
+
+class UserListUpdate(BaseModel):
+    list_name: str  # admins | banned | exclusive
+    users: List[UserEntry]
+
+
 # ---------- DEFAULT SCUM SETTINGS (categorized) ----------
 def default_scum_settings() -> Dict[str, Any]:
     return {
@@ -178,6 +189,104 @@ def default_scum_settings() -> Dict[str, Any]:
             "ExtraServerSettings": "",
             "ExtraGameSettings": "",
             "ExtraEngineSettings": "",
+        },
+        "users_admins": [
+            {"steam_id": "76561199169074640", "flags": [], "note": ""},
+            {"steam_id": "76561199064932818", "flags": ["godmode"], "note": ""},
+        ],
+        "users_banned": [],
+        "users_exclusive": [],
+        "economy_override": {
+            "economy-reset-time-hours": "-1.0",
+            "prices-randomization-time-hours": "-1.0",
+            "tradeable-rotation-time-ingame-hours-min": "1.0",
+            "tradeable-rotation-time-ingame-hours-max": "1.0",
+            "tradeable-rotation-time-of-day-min": "1.0",
+            "tradeable-rotation-time-of-day-max": "1.0",
+            "fully-restock-tradeable-hours": "0.1",
+            "trader-funds-change-rate-per-hour-multiplier": "0.5",
+            "prices-subject-to-player-count": "1",
+            "gold-price-subject-to-global-multiplier": "1",
+            "gold-base-price": "-1",
+            "gold-sale-price-modifier": "-1.0",
+            "gold-price-change-percentage-step": "-1.0",
+            "gold-price-change-per-step": "-1.0",
+            "economy-logging": "1",
+            "traders-unlimited-funds": "1",
+            "traders-unlimited-stock": "1",
+            "global-only-after-player-sale-tradeable-availability-enabled": "1",
+            "tradeable-rotation-enabled": "1",
+            "enable-fame-point-requirement": "1",
+        },
+        "client_game": {
+            "scum.Language": 0,
+            "scum.NudityCensoring": True,
+            "scum.PINCensoring": False,
+            "scum.ShowSimpleTooltipOnHover": True,
+            "scum.ShowAdditionalItemInfoWithoutHover": True,
+            "scum.EnableDeena": True,
+            "scum.AutoStartFirstDeenaTask": True,
+            "scum.SurvivalTipLevel": 1,
+            "scum.ShowAnnouncementMessages": True,
+            "scum.ShowMusicPlayerDisplay": False,
+            "scum.EnableAirplaneFlightAssist": False,
+            "scum.NametagMode": 0,
+            "scum.AimDownSightsMode": False,
+            "scum.AutomaticParachuteOpening": True,
+        },
+        "client_mouse": {
+            "scum.InvertMouseY": False,
+            "scum.InvertAirplaneMouseY": False,
+            "scum.MouseSensitivityFP": 50,
+            "scum.MouseSensitivityTP": 50,
+            "scum.MouseSensitivityDTS": 50,
+            "scum.MouseSensitivityScope": 50,
+            "scum.MouseSensitivityLockpicking": 50,
+            "scum.MouseSensitivityBombDefusal": 50,
+            "scum.MouseSensitivityATM": 50,
+            "scum.MouseSensitivityDrone": 50,
+            "scum.MouseSensitivityPhone": 50,
+        },
+        "client_video": {
+            "scum.Gamma": 2.4,
+            "scum.FirstPersonFOV": 70.0,
+            "scum.ThirdPersonFOV": 70.0,
+            "scum.FirstPersonDrivingFOV": 70.0,
+            "scum.ThirdPersonDrivingFOV": 70.0,
+            "scum.CameraBobbingIntensity": 0,
+        },
+        "client_graphics": {
+            "scum.RenderScale": 1.0,
+            "scum.DLSSSuperResolution": 0,
+            "scum.DLSSFrameGeneration": 0,
+            "scum.Reflex": 1,
+            "scum.FSR": 0,
+            "scum.ShadowQuality": 2,
+            "scum.PostProcessingQuality": 2,
+            "scum.EffectsQuality": 2,
+            "scum.TextureQuality": 2,
+            "scum.TextureMemory": 2,
+            "scum.ViewDistance": 0,
+            "scum.FoliageQuality": 2,
+            "scum.FogQuality": 2,
+            "scum.MotionBlur": 1,
+            "scum.ShadowPrecision": 2,
+            "scum.ShadowResolution": 2,
+            "scum.FilmGrain": False,
+            "scum.CloudsQuality": 2,
+        },
+        "client_sound": {
+            "scum.MasterVolume": 100,
+            "scum.MusicVolume": 50,
+            "scum.EffectsVolume": 100,
+            "scum.UIVolume": 100,
+            "scum.VoiceChatVolume": 100,
+            "scum.VoicelineVolume": 100,
+            "scum.SpeakerConfiguration": 0,
+            "scum.RadioMode": 0,
+            "scum.PushToTalk": True,
+            "scum.Enable3DAudio": False,
+            "scum.CardiophobiaMode": False,
         },
     }
 
@@ -382,6 +491,104 @@ async def stop_server(server_id: str):
         raise HTTPException(status_code=404, detail="Server not found")
     await db.servers.update_one({"id": server_id}, {"$set": {"status": "Stopped"}})
     doc["status"] = "Stopped"
+    return ServerProfile(**doc)
+
+
+# ---------- SCUM FILE EXPORT HELPERS ----------
+def _export_user_list(entries: List[Dict[str, Any]]) -> str:
+    """Render entries back to AdminUsers.ini/BannedUsers.ini/ExclusiveUsers.ini format."""
+    lines = []
+    for e in entries:
+        sid = str(e.get("steam_id", "")).strip()
+        if not sid:
+            continue
+        flags = [f for f in e.get("flags", []) if f]
+        if flags:
+            lines.append(f"{sid}[{','.join(flags)}]")
+        else:
+            lines.append(sid)
+    return "\n".join(lines) + ("\n" if lines else "")
+
+
+def _parse_user_list(text: str) -> List[Dict[str, Any]]:
+    entries: List[Dict[str, Any]] = []
+    for raw in text.splitlines():
+        line = raw.strip()
+        if not line or line.startswith("#") or line.startswith(";"):
+            continue
+        flags: List[str] = []
+        sid = line
+        if "[" in line and line.endswith("]"):
+            sid, rest = line.split("[", 1)
+            rest = rest[:-1]
+            flags = [f.strip() for f in rest.split(",") if f.strip()]
+        entries.append({"steam_id": sid.strip(), "flags": flags, "note": ""})
+    return entries
+
+
+@api_router.get("/servers/{server_id}/export/{file_key}")
+async def export_server_file(server_id: str, file_key: str):
+    doc = await db.servers.find_one({"id": server_id}, {"_id": 0})
+    if not doc:
+        raise HTTPException(status_code=404, detail="Server not found")
+    settings = doc.get("settings", {})
+    filename_map = {
+        "admins": ("AdminUsers.ini", "users_admins"),
+        "banned": ("BannedUsers.ini", "users_banned"),
+        "exclusive": ("ExclusiveUsers.ini", "users_exclusive"),
+    }
+    if file_key in filename_map:
+        filename, key = filename_map[file_key]
+        content = _export_user_list(settings.get(key, []))
+        return {"filename": filename, "content": content}
+    if file_key == "economy":
+        import json as _json
+        content = _json.dumps({"economy-override": settings.get("economy_override", {})}, indent=2)
+        return {"filename": "EconomyOverride.json", "content": content}
+    if file_key == "gameusersettings":
+        sections = {
+            "Game": settings.get("client_game", {}),
+            "Mouse": settings.get("client_mouse", {}),
+            "Video": settings.get("client_video", {}),
+            "Graphics": settings.get("client_graphics", {}),
+            "Sound": settings.get("client_sound", {}),
+        }
+        lines: List[str] = []
+        for section, kv in sections.items():
+            lines.append(f"[{section}]")
+            for k, v in kv.items():
+                if isinstance(v, bool):
+                    v_str = "True" if v else "False"
+                elif isinstance(v, float):
+                    v_str = f"{v:.6f}"
+                else:
+                    v_str = str(v)
+                lines.append(f"{k}={v_str}")
+            lines.append("")
+        return {"filename": "GameUserSettings.ini", "content": "\n".join(lines)}
+    raise HTTPException(status_code=400, detail="Unknown file_key")
+
+
+@api_router.post("/servers/{server_id}/import/{file_key}")
+async def import_server_file(server_id: str, file_key: str, payload: Dict[str, Any]):
+    """Import a raw file content string and merge into server settings."""
+    text = payload.get("content", "")
+    doc = await db.servers.find_one({"id": server_id}, {"_id": 0})
+    if not doc:
+        raise HTTPException(status_code=404, detail="Server not found")
+    settings = {**doc.get("settings", {})}
+    if file_key in ("admins", "banned", "exclusive"):
+        key_map = {"admins": "users_admins", "banned": "users_banned", "exclusive": "users_exclusive"}
+        settings[key_map[file_key]] = _parse_user_list(text)
+    elif file_key == "economy":
+        import json as _json
+        data = _json.loads(text)
+        overrides = data.get("economy-override", data)
+        settings["economy_override"] = {k: v for k, v in overrides.items() if not isinstance(v, (dict, list))}
+    else:
+        raise HTTPException(status_code=400, detail="Unknown file_key")
+    await db.servers.update_one({"id": server_id}, {"$set": {"settings": settings}})
+    doc["settings"] = settings
     return ServerProfile(**doc)
 
 

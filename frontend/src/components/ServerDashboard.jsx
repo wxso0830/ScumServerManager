@@ -3,9 +3,10 @@ import * as Icons from "lucide-react";
 import { toast } from "sonner";
 import { Collapsible } from "./Collapsible";
 import { Field } from "./Field";
+import { UserList } from "./UserList";
 import { SETTINGS_SCHEMA } from "../lib/settingsSchema";
 import { useI18n } from "../providers/I18nProvider";
-import { endpoints } from "../lib/api";
+import { endpoints, api } from "../lib/api";
 
 const STATUS_STYLES = {
   Running: { color: "var(--success)", bg: "rgba(56,142,60,0.12)" },
@@ -73,6 +74,7 @@ export const ServerDashboard = ({ server, onChange, onDelete }) => {
 
   const renderedPanels = useMemo(() => SETTINGS_SCHEMA.map((cat) => {
     const Icon = Icons[cat.icon] || Icons.Settings;
+    const badge = cat.exportKey ? cat.exportKey.toUpperCase() : null;
     return (
       <Collapsible
         key={cat.key}
@@ -81,21 +83,56 @@ export const ServerDashboard = ({ server, onChange, onDelete }) => {
         icon={<Icon size={16} className="text-primary-brand" />}
         open={!!openMap[cat.key]}
         onToggle={() => setOpenMap((m) => ({ ...m, [cat.key]: !m[cat.key] }))}
+        badge={badge}
       >
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6">
-          {cat.fields.map((f) => (
-            <Field
-              key={f.key}
-              field={f}
-              value={(draft[cat.key] || {})[f.key]}
-              onChange={(v) => updateField(cat.key, f.key, v)}
-              testId={`field-${cat.key}-${f.key}`}
-            />
-          ))}
-        </div>
+        {cat.renderer === "user_list" ? (
+          <UserList
+            users={draft[cat.key] || []}
+            onChange={(list) => { setDraft((d) => ({ ...d, [cat.key]: list })); setDirty(true); }}
+            commonFlags={cat.commonFlags || []}
+            exportKey={cat.exportKey}
+            serverId={server.id}
+            testIdPrefix={`${cat.key}`}
+          />
+        ) : (
+          <>
+            {cat.exportKey && (
+              <div className="flex justify-end mb-3 gap-2">
+                <button
+                  className="ghost-btn text-xs flex items-center gap-2"
+                  onClick={async () => {
+                    const res = await api.get(`/servers/${server.id}/export/${cat.exportKey}`);
+                    const blob = new Blob([res.data.content], { type: "text/plain" });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement("a");
+                    a.href = url;
+                    a.download = res.data.filename;
+                    a.click();
+                    URL.revokeObjectURL(url);
+                    toast.success(res.data.filename);
+                  }}
+                  data-testid={`export-${cat.key}`}
+                >
+                  <Icons.Download size={14} /> {t("export_file")}
+                </button>
+              </div>
+            )}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6">
+              {cat.fields.map((f) => (
+                <Field
+                  key={f.key}
+                  field={f}
+                  value={(draft[cat.key] || {})[f.key]}
+                  onChange={(v) => updateField(cat.key, f.key, v)}
+                  testId={`field-${cat.key}-${f.key}`}
+                />
+              ))}
+            </div>
+          </>
+        )}
       </Collapsible>
     );
-  }), [draft, openMap, t]);
+  }), [draft, openMap, t, server.id]);
 
   return (
     <div className="flex-1 flex flex-col overflow-hidden" data-testid="server-dashboard">

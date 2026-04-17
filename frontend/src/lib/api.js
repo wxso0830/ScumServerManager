@@ -23,4 +23,7 @@ export const endpoints = {
   stopServer: (id) => api.post(`/servers/${id}/stop`).then(r => r.data),
   exportFile: (id, fileKey) => api.get(`/servers/${id}/export/${fileKey}`).then(r => r.data),
   importFile: (id, fileKey, content) => api.post(`/servers/${id}/import/${fileKey}`, { content }).then(r => r.data),
+  updateServer: (id) => api.post(`/servers/${id}/update`).then(r => r.data),
+  getAppVersion: () => api.get("/app/version").then(r => r.data),
+  applyManagerUpdate: () => api.post("/app/apply-update").then(r => r.data),
 };

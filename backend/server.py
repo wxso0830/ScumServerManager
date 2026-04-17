@@ -319,6 +319,72 @@ async def stop_server(server_id: str):
     return ServerProfile(**doc)
 
 
+@api_router.post("/servers/{server_id}/update", response_model=ServerProfile)
+async def update_server(server_id: str):
+    """Updates SCUM server binaries via SteamCMD without touching settings.
+    In web preview this is simulated — status toggles through Updating → Stopped.
+    Real SteamCMD call is in Electron main process (ipc 'lgss:update-server')."""
+    doc = await db.servers.find_one({"id": server_id}, {"_id": 0})
+    if not doc:
+        raise HTTPException(status_code=404, detail="Server not found")
+    # Preserve settings; just toggle status to simulate update cycle
+    await db.servers.update_one({"id": server_id}, {"$set": {"status": "Updating"}})
+    doc["status"] = "Updating"
+    return ServerProfile(**doc)
+
+
+@api_router.post("/servers/{server_id}/update/complete", response_model=ServerProfile)
+async def complete_server_update(server_id: str):
+    """Marks a previously-started update as complete. Called by Electron after SteamCMD exits."""
+    doc = await db.servers.find_one({"id": server_id}, {"_id": 0})
+    if not doc:
+        raise HTTPException(status_code=404, detail="Server not found")
+    await db.servers.update_one({"id": server_id}, {"$set": {"status": "Stopped"}})
+    doc["status"] = "Stopped"
+    return ServerProfile(**doc)
+
+
+# ---------- MANAGER VERSION / SELF-UPDATE ----------
+CURRENT_MANAGER_VERSION = "1.0.0"
+LATEST_MANAGER_VERSION_KEY = "manager-latest-version"
+
+
+@api_router.get("/app/version")
+async def get_app_version():
+    doc = await db.app_meta.find_one({"_id": LATEST_MANAGER_VERSION_KEY}, {"_id": 0})
+    latest = (doc or {}).get("version", CURRENT_MANAGER_VERSION)
+    return {
+        "current": CURRENT_MANAGER_VERSION,
+        "latest": latest,
+        "update_available": latest != CURRENT_MANAGER_VERSION,
+        "notes": (doc or {}).get("notes", ""),
+    }
+
+
+class ManagerReleasePublish(BaseModel):
+    version: str
+    notes: Optional[str] = ""
+
+
+@api_router.post("/app/release")
+async def publish_manager_release(payload: ManagerReleasePublish):
+    """Admin-only endpoint used by the main agent to push a new manager release.
+    Users' UI shows a pulsing 'Manager Update' button whenever latest != current."""
+    await db.app_meta.update_one(
+        {"_id": LATEST_MANAGER_VERSION_KEY},
+        {"$set": {"version": payload.version, "notes": payload.notes, "published_at": datetime.now(timezone.utc).isoformat()}},
+        upsert=True,
+    )
+    return {"ok": True, "latest": payload.version}
+
+
+@api_router.post("/app/apply-update")
+async def apply_manager_update():
+    """In web preview this simply acknowledges the update. In Electron the shell triggers
+    auto-updater + relaunch. Here we just bump the local 'current' record."""
+    return {"ok": True, "message": "Update acknowledged. In desktop build Electron will download and relaunch."}
+
+
 # ---------- SCUM FILE EXPORT / IMPORT ----------
 EXPORT_MAP = {
     "admins": ("AdminUsers.ini", lambda s: render_user_list(s.get("users_admins", []))),
@@ -437,10 +503,10 @@ async def get_settings_schema():
             {"key": "essentials_performance", "labelKey": "cat_essentials_performance", "icon": "Gauge", "section": "essentials",
              "renderer": "dynamic", "sourceKey": "srv_general", "exportKey": "server_settings",
              "fieldKeys": ["scum.MinServerTickRate", "scum.MaxServerTickRate", "scum.MaxPingCheckEnabled", "scum.MaxPing",
-                           "scum.MasterServerUpdateSendInterval", "scum.MasterServerIsLocalTest"]},
+                           "scum.MasterServerUpdateSendInterval"]},
             {"key": "essentials_wipe", "labelKey": "cat_essentials_wipe", "icon": "Eraser", "section": "essentials",
              "renderer": "dynamic", "sourceKey": "srv_general", "exportKey": "server_settings",
-             "fieldKeys": ["scum.PartialWipe", "scum.GoldWipe", "scum.FullWipe", "scum.SettingsVersion"]},
+             "fieldKeys": ["scum.PartialWipe", "scum.GoldWipe", "scum.FullWipe"]},
 
             # ------ GAMEPLAY ------
             {"key": "gameplay_view", "labelKey": "cat_gameplay_view", "icon": "Eye", "section": "gameplay",
@@ -614,11 +680,6 @@ async def get_settings_schema():
                            "scum.SquadMemberCountAtIntLevel5", "scum.SquadMemberCountLimitForPunishment",
                            "scum.RTSquadProbationDuration", "scum.SquadMoneyPenaltyPerPrevSquadMember",
                            "scum.SquadFamePointsPenaltyPerPrevSquadMember", "scum.EnableSquadMemberNameWidget"]},
-            {"key": "advanced_virtualization", "labelKey": "cat_advanced_virtualization", "icon": "Cpu", "section": "advanced",
-             "renderer": "dynamic", "sourceKey": "srv_general", "exportKey": "server_settings",
-             "fieldKeys": ["scum.ItemVirtualizationRelevancyUpdatePeriod", "scum.ItemVirtualizationEventProcessingTimeBudget",
-                           "scum.ItemVirtualizationVisitorDistanceTravelledForUpdate", "scum.ItemVirtualizationVisitorBounds",
-                           "scum.VirtualizedItemBounds", "scum.DeleteDuplicateChestsOnServerStartup"]},
             {"key": "advanced_notifications", "labelKey": "cat_advanced_notifications", "icon": "Bell", "section": "advanced",
              "renderer": "notifications", "sourceKey": "notifications", "exportKey": "notifications"},
             {"key": "advanced_input", "labelKey": "cat_advanced_input", "icon": "Keyboard", "section": "advanced",

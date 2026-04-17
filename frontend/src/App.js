@@ -20,18 +20,21 @@ const Shell = () => {
   const [servers, setServers] = useState([]);
   const [activeId, setActiveId] = useState(null);
   const [schema, setSchema] = useState(null);
+  const [appVersion, setAppVersion] = useState({ current: "1.0.0", latest: "1.0.0", update_available: false });
 
   const load = useCallback(async () => {
-    const [adminRes, setupRes, serverList, schemaRes] = await Promise.all([
+    const [adminRes, setupRes, serverList, schemaRes, versionRes] = await Promise.all([
       endpoints.adminCheck().catch(() => ({ is_admin: false })),
       endpoints.getSetup(),
       endpoints.listServers(),
       endpoints.getSchema().catch(() => null),
+      endpoints.getAppVersion().catch(() => ({ current: "1.0.0", latest: "1.0.0", update_available: false })),
     ]);
     setIsAdmin(adminRes.is_admin);
     setSetup(setupRes);
     setServers(serverList);
     setSchema(schemaRes);
+    setAppVersion(versionRes);
     if (!setupRes.is_admin_confirmed) {
       setPhase("admin");
     } else if (!setupRes.completed) {
@@ -88,6 +91,22 @@ const Shell = () => {
     await load();
   };
 
+  const handleManagerUpdate = async () => {
+    if (!appVersion.update_available) {
+      toast(t("manager_no_update"));
+      return;
+    }
+    await endpoints.applyManagerUpdate();
+    toast.success(t("manager_update_applied"));
+    const v = await endpoints.getAppVersion();
+    setAppVersion(v);
+  };
+
+  const refreshServers = async () => {
+    const list = await endpoints.listServers();
+    setServers(list);
+  };
+
   if (phase === "splash") {
     return <SplashScreen onDone={() => setPhase("loading")} />;
   }
@@ -123,7 +142,14 @@ const Shell = () => {
 
   return (
     <div className="h-full w-full flex flex-col">
-      <TopBar isAdmin={isAdmin} onResetSetup={handleResetSetup} />
+      <TopBar
+        isAdmin={isAdmin}
+        servers={servers}
+        managerUpdateAvailable={appVersion.update_available}
+        onResetSetup={handleResetSetup}
+        onServersChanged={refreshServers}
+        onManagerUpdate={handleManagerUpdate}
+      />
       <div className="flex-1 flex overflow-hidden">
         <Sidebar servers={servers} activeId={activeId} onSelect={setActiveId} onAdd={handleAddServer} managerPath={setup?.manager_path} />
         {active ? (

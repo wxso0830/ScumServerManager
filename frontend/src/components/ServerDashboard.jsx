@@ -108,6 +108,22 @@ export const ServerDashboard = ({ server, schema, onChange, onDelete }) => {
     } finally { setBusy(false); }
   };
 
+  const handleUpdate = async () => {
+    setBusy(true);
+    try {
+      const updated = await endpoints.updateServer(server.id);
+      onChange(updated);
+      toast.success(t("update_server"));
+      // Simulate completion after 1.5s in web preview
+      setTimeout(async () => {
+        try {
+          const done = await api.post(`/servers/${server.id}/update/complete`);
+          onChange(done.data);
+        } catch (_) {}
+      }, 1500);
+    } finally { setBusy(false); }
+  };
+
   const handleRename = async () => {
     if (!newName.trim() || newName === server.name) { setRenameOpen(false); return; }
     const updated = await endpoints.renameServer(server.id, newName.trim());
@@ -202,6 +218,9 @@ export const ServerDashboard = ({ server, schema, onChange, onDelete }) => {
               <Icons.Square size={14} /> {t("stop")}
             </button>
           )}
+          <button className="ghost-btn flex items-center gap-2" onClick={handleUpdate} disabled={busy || isRunning} data-testid="server-update-button" title={t("update_server")}>
+            <Icons.Download size={14} /> {t("update_server")}
+          </button>
           <button className="ghost-btn flex items-center gap-2" onClick={handleSave} disabled={!dirty || busy} data-testid="save-settings-btn">
             <Icons.Save size={14} /> {t("save_settings")}
           </button>

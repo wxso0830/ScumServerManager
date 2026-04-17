@@ -222,6 +222,156 @@ export const FIELD_META = {
   "scum.PartialWipe": { en: { label: "Partial Wipe", desc: "Reset some progression on next start." }, tr: { label: "Kısmi Sıfırlama", desc: "Sonraki başlatmada bazı ilerlemeleri sıfırlar." } },
   "scum.GoldWipe": { en: { label: "Gold Wipe", desc: "Reset all player gold on next start." }, tr: { label: "Altın Sıfırlama", desc: "Sonraki başlatmada tüm altınları sıfırlar." } },
   "scum.FullWipe": { en: { label: "Full Wipe", desc: "Complete world reset on next start." }, tr: { label: "Tam Sıfırlama", desc: "Sonraki başlatmada dünyayı tamamen sıfırlar." } },
+
+  // ===== Respawn (more) =====
+  "scum.SectorRespawnCooldown": { en: { label: "Sector Cooldown", desc: "Cooldown between sector respawns (HH:MM:SS)." }, tr: { label: "Sektör Bekleme", desc: "Sektör respawn'ları arasındaki bekleme." } },
+  "scum.ShelterRespawnCooldown": { en: { label: "Shelter Cooldown", desc: "Cooldown between shelter respawns." }, tr: { label: "Barınak Bekleme", desc: "Barınak respawn bekleme süresi." } },
+  "scum.SquadmateRespawnCooldown": { en: { label: "Squadmate Cooldown", desc: "Cooldown for squadmate respawn." }, tr: { label: "Takım Bekleme", desc: "Takım arkadaşı respawn bekleme süresi." } },
+  "scum.RandomRespawnTime": { en: { label: "Random Respawn Delay", desc: "Time after death before random spawn." }, tr: { label: "Rastgele Respawn Gecikme", desc: "Ölümden sonra rastgele doğuma kadar süre." } },
+  "scum.SectorRespawnTime": { en: { label: "Sector Respawn Delay", desc: "Time before sector-chosen spawn activates." }, tr: { label: "Sektör Respawn Gecikme", desc: "Sektör respawn aktivasyon süresi." } },
+  "scum.ShelterRespawnTime": { en: { label: "Shelter Respawn Delay", desc: "Time before shelter spawn activates." }, tr: { label: "Barınak Respawn Gecikme", desc: "Barınak respawn aktivasyon süresi." } },
+  "scum.SquadmateRespawnTime": { en: { label: "Squadmate Respawn Delay", desc: "Time before squadmate spawn activates." }, tr: { label: "Takım Respawn Gecikme", desc: "Takım respawn aktivasyon süresi." } },
+
+  // ===== Damage (more) =====
+  "scum.HumanToSentryDamageMultiplier": { en: { label: "Human → Sentry Damage", desc: "Damage players deal to sentries." }, tr: { label: "İnsan → Sentry Hasarı", desc: "Oyuncuların sentry'lere verdiği hasar." } },
+  "scum.SentryToHumanDamageMultiplier": { en: { label: "Sentry → Human Damage", desc: "Damage sentries deal to players." }, tr: { label: "Sentry → İnsan Hasarı", desc: "Sentry'lerin oyunculara verdiği hasar." } },
+  "scum.HumanToPuppetDamageMultiplier": { en: { label: "Human → Puppet Damage", desc: "Damage players deal to puppets." }, tr: { label: "İnsan → Zombi Hasarı", desc: "Oyuncuların zombilere verdiği hasar." } },
+  "scum.ItemDecayDamageMultiplier": { en: { label: "Item Decay", desc: "How fast items degrade from use/time." }, tr: { label: "Eşya Çürüme", desc: "Eşya bozulma hızı." } },
+  "scum.FoodDecayDamageMultiplier": { en: { label: "Food Decay", desc: "How fast food spoils." }, tr: { label: "Yiyecek Çürüme", desc: "Yiyecek bozulma hızı." } },
+  "scum.BaseElementDamageMultiplier": { en: { label: "Base Element Damage", desc: "Damage dealt to base building pieces." }, tr: { label: "Üs Parça Hasarı", desc: "Üs inşa parçalarına verilen hasar." } },
+
+  // ===== Skills (generic) =====
+  "scum.ArcherySkillMultiplier": { en: { label: "Archery", desc: "XP multiplier for archery skill." }, tr: { label: "Okçuluk", desc: "Okçuluk yeteneği XP çarpanı." } },
+  "scum.AviationSkillMultiplier": { en: { label: "Aviation", desc: "XP multiplier for aviation skill." }, tr: { label: "Havacılık", desc: "Havacılık yeteneği XP çarpanı." } },
+  "scum.AwarenessSkillMultiplier": { en: { label: "Awareness", desc: "XP multiplier for awareness skill." }, tr: { label: "Farkındalık", desc: "Farkındalık XP çarpanı." } },
+  "scum.BrawlingSkillMultiplier": { en: { label: "Brawling", desc: "XP multiplier for brawling skill." }, tr: { label: "Yumruk Kavga", desc: "Yumruk kavga XP çarpanı." } },
+  "scum.CamouflageSkillMultiplier": { en: { label: "Camouflage", desc: "XP multiplier for camouflage skill." }, tr: { label: "Kamuflaj", desc: "Kamuflaj XP çarpanı." } },
+  "scum.CookingSkillMultiplier": { en: { label: "Cooking", desc: "XP multiplier for cooking skill." }, tr: { label: "Aşçılık", desc: "Aşçılık XP çarpanı." } },
+  "scum.DemolitionSkillMultiplier": { en: { label: "Demolition", desc: "XP multiplier for demolition." }, tr: { label: "Yıkım", desc: "Yıkım XP çarpanı." } },
+  "scum.DrivingSkillMultiplier": { en: { label: "Driving", desc: "XP multiplier for driving skill." }, tr: { label: "Sürüş", desc: "Sürüş XP çarpanı." } },
+  "scum.EnduranceSkillMultiplier": { en: { label: "Endurance", desc: "XP multiplier for endurance." }, tr: { label: "Dayanıklılık", desc: "Dayanıklılık XP çarpanı." } },
+  "scum.EngineeringSkillMultiplier": { en: { label: "Engineering", desc: "XP multiplier for engineering." }, tr: { label: "Mühendislik", desc: "Mühendislik XP çarpanı." } },
+  "scum.FarmingSkillMultiplier": { en: { label: "Farming", desc: "XP multiplier for farming." }, tr: { label: "Tarım", desc: "Tarım XP çarpanı." } },
+  "scum.HandgunSkillMultiplier": { en: { label: "Handguns", desc: "XP multiplier for handguns." }, tr: { label: "Tabanca", desc: "Tabanca XP çarpanı." } },
+  "scum.MedicalSkillMultiplier": { en: { label: "Medical", desc: "XP multiplier for medical skill." }, tr: { label: "Tıp", desc: "Tıp XP çarpanı." } },
+  "scum.MeleeWeaponsSkillMultiplier": { en: { label: "Melee Weapons", desc: "XP multiplier for melee weapons." }, tr: { label: "Yakın Dövüş", desc: "Yakın dövüş XP çarpanı." } },
+  "scum.MotorcycleSkillMultiplier": { en: { label: "Motorcycle", desc: "XP multiplier for motorcycle skill." }, tr: { label: "Motosiklet", desc: "Motosiklet XP çarpanı." } },
+  "scum.RiflesSkillMultiplier": { en: { label: "Rifles", desc: "XP multiplier for rifles." }, tr: { label: "Tüfek", desc: "Tüfek XP çarpanı." } },
+  "scum.RunningSkillMultiplier": { en: { label: "Running", desc: "XP multiplier for running." }, tr: { label: "Koşu", desc: "Koşu XP çarpanı." } },
+  "scum.SnipingSkillMultiplier": { en: { label: "Sniping", desc: "XP multiplier for sniping." }, tr: { label: "Keskin Nişancı", desc: "Keskin nişancı XP çarpanı." } },
+  "scum.StealthSkillMultiplier": { en: { label: "Stealth", desc: "XP multiplier for stealth." }, tr: { label: "Gizlilik", desc: "Gizlilik XP çarpanı." } },
+  "scum.SurvivalSkillMultiplier": { en: { label: "Survival", desc: "XP multiplier for survival." }, tr: { label: "Hayatta Kalma", desc: "Hayatta kalma XP çarpanı." } },
+  "scum.ThieverySkillMultiplier": { en: { label: "Thievery", desc: "XP multiplier for thievery." }, tr: { label: "Hırsızlık", desc: "Hırsızlık XP çarpanı." } },
+
+  // ===== Economy (more) =====
+  "economy-reset-time-hours": { en: { label: "Economy Reset (h)", desc: "Hours between full economy resets. -1 disables." }, tr: { label: "Ekonomi Sıfırlama (sa)", desc: "Tam ekonomi sıfırlama aralığı. -1 devre dışı." } },
+  "prices-randomization-time-hours": { en: { label: "Price Shuffle (h)", desc: "Hours between price randomization. -1 disables." }, tr: { label: "Fiyat Karıştırma (sa)", desc: "Fiyat rastgele değişimi aralığı. -1 devre dışı." } },
+  "tradeable-rotation-time-ingame-hours-min": { en: { label: "Rotation Min (in-game h)", desc: "Minimum in-game hours between item rotations." }, tr: { label: "Rotasyon Min (oyun sa)", desc: "Eşya rotasyonu minimum oyun saati." } },
+  "tradeable-rotation-time-ingame-hours-max": { en: { label: "Rotation Max (in-game h)", desc: "Maximum in-game hours between rotations." }, tr: { label: "Rotasyon Maks (oyun sa)", desc: "Eşya rotasyonu maksimum oyun saati." } },
+  "trader-funds-change-rate-per-hour-multiplier": { en: { label: "Trader Funds Regen Mult", desc: "How fast traders replenish funds." }, tr: { label: "Tüccar Para Yenileme", desc: "Tüccarların para yenilenme hızı." } },
+  "prices-subject-to-player-count": { en: { label: "Dynamic Prices", desc: "1 = prices change with player count." }, tr: { label: "Dinamik Fiyat", desc: "1 = fiyatlar oyuncu sayısına göre değişir." } },
+  "fully-restock-tradeable-hours": { en: { label: "Full Restock (h)", desc: "Hours until empty stock fully restocks." }, tr: { label: "Tam Stok (sa)", desc: "Boş stokun tamamen dolma süresi." } },
+  "gold-price-subject-to-global-multiplier": { en: { label: "Gold ~ Global Mult", desc: "1 = gold price affected by global multiplier." }, tr: { label: "Altın ~ Global Çarpan", desc: "1 = altın fiyatı global çarpandan etkilenir." } },
+  "global-only-after-player-sale-tradeable-availability-enabled": { en: { label: "After-Sale Availability", desc: "Items only appear after players sell them." }, tr: { label: "Satış Sonrası Erişim", desc: "Eşyalar sadece oyuncular sattıktan sonra görünür." } },
+  "gold-sale-price-modifier": { en: { label: "Gold Sale Modifier", desc: "Modifier applied to gold sell price. -1 = default." }, tr: { label: "Altın Satış Çarpanı", desc: "Altın satış fiyatı çarpanı. -1 = varsayılan." } },
+  "gold-price-change-percentage-step": { en: { label: "Gold % Step", desc: "Percentage step used for gold price changes." }, tr: { label: "Altın % Adım", desc: "Altın fiyat değişim yüzdesi adımı." } },
+  "gold-price-change-per-step": { en: { label: "Gold Change per Step", desc: "How much gold price changes per step." }, tr: { label: "Adım Başına Değişim", desc: "Adım başına altın fiyat değişimi." } },
+
+  // ===== Features (misc) =====
+  "scum.EnableItemCooldownGroups": { en: { label: "Item Cooldown Groups", desc: "Enable cooldown groups for items." }, tr: { label: "Eşya Bekleme Grupları", desc: "Eşya grupları için bekleme süresi sistemi." } },
+  "scum.ItemCooldownGroupsDurationMultiplier": { en: { label: "Item Cooldown Mult", desc: "Multiplier for cooldown group durations." }, tr: { label: "Bekleme Çarpanı", desc: "Bekleme grupları süre çarpanı." } },
+  "scum.SpawnerProbabilityMultiplier": { en: { label: "Loot Spawn Chance", desc: "Chance of items spawning at containers." }, tr: { label: "Loot Oluşma Oranı", desc: "Kaplarda eşya oluşma oranı." } },
+  "scum.SpawnerExpirationTimeMultiplier": { en: { label: "Loot Expiration Mult", desc: "How long spawned loot stays." }, tr: { label: "Loot Kalma Çarpanı", desc: "Oluşan loot'un kalma süresi." } },
+  "scum.ExamineSpawnerProbabilityMultiplier": { en: { label: "Examine Loot Chance", desc: "Loot chance when examining containers." }, tr: { label: "İnceleme Loot Oranı", desc: "Kap incelediğinde loot oranı." } },
+
+  // ===== Raid protection (more) =====
+  "scum.RaidProtectionFlagSpecificChangeSettingCooldown": { en: { label: "Flag Setting Cooldown", desc: "Cooldown to change flag-specific settings." }, tr: { label: "Bayrak Ayar Bekleme", desc: "Bayrağa özel ayar değiştirme bekleme süresi." } },
+  "scum.RaidProtectionFlagSpecificChangeSettingPrice": { en: { label: "Flag Setting Price", desc: "Price for changing flag-specific setting." }, tr: { label: "Bayrak Ayar Fiyatı", desc: "Bayrağa özel ayar değiştirme fiyatı." } },
+  "scum.RaidProtectionFlagSpecificMaxProtectionTime": { en: { label: "Flag Max Protection", desc: "Max protection time per flag (HH:MM:SS)." }, tr: { label: "Bayrak Maks Koruma", desc: "Bayrak başına maks koruma süresi." } },
+  "scum.RaidProtectionOfflineProtectionStartDelay": { en: { label: "Offline Protect Delay", desc: "Delay before offline protection starts." }, tr: { label: "Offline Koruma Gecikme", desc: "Offline koruma başlama gecikmesi." } },
+  "scum.RaidProtectionOfflineMaxProtectionTime": { en: { label: "Offline Max Protect", desc: "Maximum offline protection time." }, tr: { label: "Offline Maks Koruma", desc: "Maksimum offline koruma süresi." } },
+
+  // ===== Base building (more) =====
+  "scum.ExtraElementsPerFlagForAdditionalSquadMember": { en: { label: "Extra Elements/Squadmate", desc: "Building element bonus per squadmate." }, tr: { label: "Takım Başı Ek Parça", desc: "Her takım üyesi için ek inşa parçası." } },
+  "scum.MaximumNumberOfExpandedElementsPerFlag": { en: { label: "Max Expanded Elements", desc: "Cap on expanded elements per flag." }, tr: { label: "Maks Genişletilmiş Parça", desc: "Bayrak başına maks genişletilmiş parça." } },
+  "scum.AllowFlagPlacementOnBBElements": { en: { label: "Flag on BB Elements", desc: "Allow placing flag on building pieces." }, tr: { label: "Bayrak İnşa Üstüne", desc: "İnşa parçası üstüne bayrak koymaya izin." } },
+  "scum.AllowFloorPlacementOnHalfAndLowWalls": { en: { label: "Floor on Half Walls", desc: "Allow floor placement on short walls." }, tr: { label: "Alçak Duvarda Zemin", desc: "Alçak duvar üstüne zemin koyma izni." } },
+  "scum.AllowWallPlacementOnHalfAndLowWalls": { en: { label: "Wall on Half Walls", desc: "Allow wall placement on short walls." }, tr: { label: "Alçak Duvarda Duvar", desc: "Alçak duvar üstüne duvar koyma izni." } },
+  "scum.ChestAcquisitionDuration": { en: { label: "Chest Acquisition Time", desc: "Time to claim an unclaimed chest (HH:MM:SS)." }, tr: { label: "Sandık Sahiplenme Süresi", desc: "Sahipsiz sandığı alma süresi." } },
+
+  // ===== Anti-cheat / Logs =====
+  "scum.RustyLocksLogging": { en: { label: "Rusty Locks Log", desc: "Log all lockpicking attempts." }, tr: { label: "Kilit Kırma Log", desc: "Tüm kilit kırma denemelerini loglar." } },
+  "scum.PlaySafeIdProtection": { en: { label: "PlaySafe ID Protection", desc: "Additional SteamID spoofing protection." }, tr: { label: "PlaySafe Kimlik Koruma", desc: "Ek SteamID sahteciliğine karşı koruma." } },
+  "scum.DeleteInactiveUsers": { en: { label: "Auto-Delete Inactives", desc: "Delete users inactive for N days." }, tr: { label: "Pasif Kullanıcı Sil", desc: "N gündür pasif kullanıcıları siler." } },
+  "scum.DaysSinceLastLoginToBecomeInactive": { en: { label: "Inactivity Threshold (days)", desc: "Days since last login before inactive." }, tr: { label: "Pasiflik Eşiği (gün)", desc: "Son girişten sonra pasif sayılma günü." } },
+  "scum.DeleteBannedUsers": { en: { label: "Delete Banned Accounts", desc: "Remove banned users' data." }, tr: { label: "Yasaklıları Sil", desc: "Yasaklı kullanıcı verilerini kaldırır." } },
+  "scum.LogChestOwnership": { en: { label: "Log Chest Ownership", desc: "Write chest ownership changes to log." }, tr: { label: "Sandık Sahipliği Log", desc: "Sandık sahipliği değişimlerini loglar." } },
+
+  // ===== Vehicles (physics) =====
+  "scum.FuelDrainFromEngineMultiplier": { en: { label: "Fuel Drain Mult", desc: "Engine fuel consumption multiplier." }, tr: { label: "Yakıt Tüketim Çarpanı", desc: "Motor yakıt tüketimi çarpanı." } },
+  "scum.BatteryDrainFromEngineMultiplier": { en: { label: "Battery Drain (Engine)", desc: "Battery drain while engine runs." }, tr: { label: "Akü Tüketim (Motor)", desc: "Motor çalışırken akü tüketimi." } },
+  "scum.BatteryDrainFromDevicesMultiplier": { en: { label: "Battery Drain (Devices)", desc: "Battery drain from accessories." }, tr: { label: "Akü Tüketim (Aksesuar)", desc: "Aksesuarlardan akü tüketimi." } },
+  "scum.BatteryDrainFromInactivityMultiplier": { en: { label: "Battery Drain (Idle)", desc: "Battery drain while idle." }, tr: { label: "Akü Tüketim (Boşta)", desc: "Araç boştayken akü tüketimi." } },
+  "scum.BatteryChargeWithAlternatorMultiplier": { en: { label: "Alternator Charge", desc: "Alternator charging rate." }, tr: { label: "Alternatör Şarj", desc: "Alternatör şarj hızı." } },
+  "scum.BatteryChargeWithDynamoMultiplier": { en: { label: "Dynamo Charge", desc: "Dynamo charging rate." }, tr: { label: "Dinamo Şarj", desc: "Dinamo şarj hızı." } },
+  "scum.MaximumTimeOfVehicleInactivity": { en: { label: "Max Inactivity (HH:MM:SS)", desc: "Time before abandoned vehicle is removed." }, tr: { label: "Maks Boşta (HH:MM:SS)", desc: "Terk edilen araçların kaldırılma süresi." } },
+  "scum.MaximumTimeForVehiclesInForbiddenZones": { en: { label: "Max in Forbidden Zone", desc: "Time vehicles may stay in forbidden zones." }, tr: { label: "Yasak Bölgede Maks Süre", desc: "Araçların yasak bölgede kalma süresi." } },
+  "scum.LogVehicleDestroyed": { en: { label: "Log Vehicle Destroyed", desc: "Write vehicle destruction events to log." }, tr: { label: "Araç Tahribatı Log", desc: "Araç tahribatlarını loglar." } },
+
+  // ===== Cargo (more) =====
+  "scum.CargoDropFallDelay": { en: { label: "Cargo Fall Delay (s)", desc: "Seconds before cargo actually falls." }, tr: { label: "Kargo Düşüş Gecikme (sn)", desc: "Kargonun gerçekten düşmesine kadar saniye." } },
+  "scum.CargoDropFallDuration": { en: { label: "Cargo Fall Duration (s)", desc: "Duration of the cargo fall." }, tr: { label: "Kargo Düşüş Süresi (sn)", desc: "Kargo düşme animasyon süresi." } },
+  "scum.CargoDropSelfdestructTime": { en: { label: "Cargo Self-destruct (s)", desc: "Seconds before unclaimed cargo destroys itself." }, tr: { label: "Kargo Kendini İmha (sn)", desc: "Sahipsiz kargonun kendini imha süresi." } },
+
+  // ===== Bunkers =====
+  "scum.AbandonedBunkerMaxSimultaneouslyActive": { en: { label: "Max Active Bunkers", desc: "Max simultaneously-open abandoned bunkers." }, tr: { label: "Aktif Sığınak Sayısı", desc: "Aynı anda açık maks terk edilmiş sığınak." } },
+  "scum.AbandonedBunkerActiveDurationHours": { en: { label: "Bunker Active Hours", desc: "Hours a bunker stays accessible." }, tr: { label: "Sığınak Açık Süre", desc: "Sığınağın açık kalma saati." } },
+  "scum.AbandonedBunkerKeyCardActiveDurationHours": { en: { label: "Bunker KeyCard Hours", desc: "Hours bunker keycard stays active." }, tr: { label: "Kart Aktif Süre", desc: "Sığınak kartının aktif kalma saati." } },
+  "scum.MaxAllowedKillboxKeycards": { en: { label: "Max Killbox Keycards", desc: "Total killbox keycards on map." }, tr: { label: "Maks Killbox Kart", desc: "Haritada toplam killbox kart sayısı." } },
+
+  // ===== Encounters (more) =====
+  "scum.EncounterBaseCharacterAmountMultiplier": { en: { label: "Base Encounter Amount", desc: "Base multiplier for encounter character count." }, tr: { label: "Karşılaşma Taban", desc: "Karşılaşma karakter sayısı taban çarpanı." } },
+  "scum.EncounterExtraCharacterPerPlayerMultiplier": { en: { label: "Extra per Player", desc: "Additional characters per online player." }, tr: { label: "Oyuncu Başı Ek", desc: "Online oyuncu başına ek karakter." } },
+  "scum.EncounterCharacterRespawnTimeMultiplier": { en: { label: "Encounter Respawn Mult", desc: "Respawn time multiplier for encounter characters." }, tr: { label: "Karşılaşma Respawn", desc: "Karşılaşma karakterleri respawn çarpanı." } },
+  "scum.EncounterHordeActivationChanceMultiplier": { en: { label: "Horde Activation Chance", desc: "Chance of horde events triggering." }, tr: { label: "Sürü Tetikleme Oranı", desc: "Zombi sürüsü olayı tetikleme oranı." } },
+  "scum.EncounterNeverRespawnCharacters": { en: { label: "Never Respawn", desc: "1 = encounter characters do not respawn." }, tr: { label: "Respawn Yok", desc: "1 = karşılaşma karakterleri respawn olmaz." } },
+
+  // ===== Quests (more) =====
+  "scum.QuestsGlobalCycleDuration": { en: { label: "Quest Cycle Duration", desc: "Duration of a global quest cycle." }, tr: { label: "Görev Döngü Süresi", desc: "Global görev döngüsü süresi." } },
+  "scum.MaxSimultaneousQuestsPerTrader": { en: { label: "Max Simultaneous/Trader", desc: "Max simultaneous quests per trader." }, tr: { label: "Tüccar Eşzamanlı Max", desc: "Tüccar başına eşzamanlı maks görev." } },
+
+  // ===== Map =====
+  "scum.CustomMapEnabled": { en: { label: "Custom Map", desc: "Enable custom playable area bounds." }, tr: { label: "Özel Harita", desc: "Özel oynanabilir alan sınırlarını açar." } },
+
+  // ===== Squad =====
+  "scum.SquadMemberCountAtIntLevel2": { en: { label: "Squad Size — Int 2", desc: "Max squad size at Intelligence 2." }, tr: { label: "Takım · Zeka 2", desc: "Zeka 2'de maks takım boyutu." } },
+  "scum.SquadMemberCountAtIntLevel3": { en: { label: "Squad Size — Int 3", desc: "Max squad size at Intelligence 3." }, tr: { label: "Takım · Zeka 3", desc: "Zeka 3'de maks takım boyutu." } },
+  "scum.SquadMemberCountAtIntLevel4": { en: { label: "Squad Size — Int 4", desc: "Max squad size at Intelligence 4." }, tr: { label: "Takım · Zeka 4", desc: "Zeka 4'de maks takım boyutu." } },
+
+  // ===== Client Graphics (more) =====
+  "scum.RenderScale": { en: { label: "Render Scale", desc: "Internal render resolution scale (0.5-2.0)." }, tr: { label: "Render Ölçeği", desc: "Dahili render çözünürlük ölçeği (0.5-2.0)." } },
+  "scum.MotionBlur": { en: { label: "Motion Blur", desc: "0 = off, 1 = on." }, tr: { label: "Hareket Bulanıklığı", desc: "0 = kapalı, 1 = açık." } },
+  "scum.ViewDistance": { en: { label: "View Distance", desc: "0 = low ... 3 = epic." }, tr: { label: "Görüş Mesafesi", desc: "0 = düşük ... 3 = epic." } },
+  "scum.FoliageQuality": { en: { label: "Foliage Quality", desc: "0 = low ... 3 = epic." }, tr: { label: "Bitki Örtüsü", desc: "0 = düşük ... 3 = epic." } },
+  "scum.PostProcessingQuality": { en: { label: "Post-Processing", desc: "0 = low ... 3 = epic." }, tr: { label: "Post-Processing", desc: "0 = düşük ... 3 = epic." } },
+  "scum.EffectsQuality": { en: { label: "Effects Quality", desc: "0 = low ... 3 = epic." }, tr: { label: "Efekt Kalitesi", desc: "0 = düşük ... 3 = epic." } },
+
+  // ===== Client Game =====
+  "scum.NudityCensoring": { en: { label: "Nudity Censoring", desc: "Client-side nudity censoring." }, tr: { label: "Çıplaklık Sansürü", desc: "İstemci tarafı çıplaklık sansürü." } },
+  "scum.ShowSimpleTooltipOnHover": { en: { label: "Simple Tooltips", desc: "Show simplified tooltips on hover." }, tr: { label: "Basit Tooltip", desc: "Hover'da basit tooltip gösterir." } },
+  "scum.EnableDeena": { en: { label: "Enable Deena", desc: "Enable Deena assistant." }, tr: { label: "Deena'yı Aç", desc: "Deena asistanını açar." } },
+  "scum.AutoStartFirstDeenaTask": { en: { label: "Auto Deena Task", desc: "Auto-start first Deena task." }, tr: { label: "İlk Deena Görevi", desc: "İlk Deena görevini otomatik başlatır." } },
+  "scum.ShowAnnouncementMessages": { en: { label: "Show Announcements", desc: "Show in-game announcements." }, tr: { label: "Duyuruları Göster", desc: "Oyun içi duyuruları gösterir." } },
+  "scum.NametagMode": { en: { label: "Nametag Mode", desc: "0 = off, 1 = friendlies only, 2 = all." }, tr: { label: "İsim Etiketi", desc: "0 = kapalı, 1 = sadece takım, 2 = hepsi." } },
+  "scum.AimDownSightsMode": { en: { label: "ADS Hold Mode", desc: "Hold vs toggle to aim." }, tr: { label: "ADS Mod", desc: "Basılı tut / aç-kapa nişan alma." } },
+
+  // ===== Essentials (more) =====
+  "scum.MasterServerUpdateSendInterval": { en: { label: "Master Server Sync (s)", desc: "Seconds between master server updates." }, tr: { label: "Master Server Sync (sn)", desc: "Master server güncelleme aralığı." } },
+  "scum.LogoutTimerInBunker": { en: { label: "Logout in Bunker (s)", desc: "Extended logout timer in bunkers." }, tr: { label: "Sığınakta Çıkış (sn)", desc: "Sığınakta uzatılmış çıkış süresi." } },
+  "scum.HideKillNotification": { en: { label: "Hide Kill Notification", desc: "Do not broadcast kills to chat." }, tr: { label: "Kill Bildirimi Gizle", desc: "Kill bildirimlerini chat'e atmaz." } },
+  "scum.DisableExamineGhost": { en: { label: "Disable Examine Ghost", desc: "Disable ghost-view of examined items." }, tr: { label: "İnceleme Ghost Kapat", desc: "İncelenen eşyalar için hayalet görünümü kapatır." } },
+  "scum.LogSuicides": { en: { label: "Log Suicides", desc: "Write suicide events to server log." }, tr: { label: "İntihar Log", desc: "İntihar olaylarını loglar." } },
+  "scum.EnableSpawnOnGround": { en: { label: "Ground Spawn", desc: "Allow ground-based initial spawn." }, tr: { label: "Zeminde Doğma", desc: "Zemin tabanlı ilk doğuma izin verir." } },
 };
 
 export const getFieldMeta = (key, lang = "en") => {

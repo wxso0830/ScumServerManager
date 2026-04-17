@@ -6,8 +6,7 @@ import { I18nProvider, useI18n } from "./providers/I18nProvider";
 import { AdminPrompt } from "./components/AdminPrompt";
 import { DiskSelectionWizard } from "./components/DiskSelectionWizard";
 import { TopBar } from "./components/TopBar";
-import { Sidebar } from "./components/Sidebar";
-import { EmptyWorkspace } from "./components/EmptyWorkspace";
+import { DashboardView } from "./components/DashboardView";
 import { ServerDashboard } from "./components/ServerDashboard";
 import { endpoints } from "./lib/api";
 
@@ -20,6 +19,7 @@ const Shell = () => {
   const [activeId, setActiveId] = useState(null);
   const [schema, setSchema] = useState(null);
   const [appVersion, setAppVersion] = useState({ current: "1.0.0", latest: "1.0.0", update_available: false });
+  const [view, setView] = useState("dashboard"); // dashboard | configs | logs
 
   const load = useCallback(async () => {
     const [adminRes, setupRes, serverList, schemaRes, versionRes] = await Promise.all([
@@ -62,10 +62,14 @@ const Shell = () => {
   };
 
   const handleAddServer = async () => {
-    const s = await endpoints.createServer({});
-    setServers((arr) => [...arr, s]);
-    setActiveId(s.id);
-    toast.success(t("toast_server_created"));
+    try {
+      const s = await endpoints.createServer({});
+      setServers((arr) => [...arr, s]);
+      setActiveId(s.id);
+      toast.success(t("toast_server_created"));
+    } catch (e) {
+      toast.error(String(e.response?.data?.detail || e.message || e));
+    }
   };
 
   const handleDelete = async (id) => {
@@ -73,7 +77,9 @@ const Shell = () => {
     setServers((arr) => arr.filter((s) => s.id !== id));
     if (activeId === id) {
       const remaining = servers.filter((s) => s.id !== id);
-      setActiveId(remaining[0]?.id || null);
+      const nextId = remaining[0]?.id || null;
+      setActiveId(nextId);
+      if (!nextId) setView("dashboard");
     }
     toast(t("toast_server_deleted"));
   };
@@ -85,6 +91,7 @@ const Shell = () => {
   const handleResetSetup = async () => {
     setServers([]);
     setActiveId(null);
+    setView("dashboard");
     await load();
   };
 
@@ -104,21 +111,40 @@ const Shell = () => {
     setServers(list);
   };
 
+  const handleOpenServer = (server) => {
+    setActiveId(server.id);
+    setView("configs");
+  };
+
+  const handleNavigate = (key) => {
+    if (key === "configs" && !activeId && servers.length > 0) {
+      setActiveId(servers[0].id);
+    }
+    setView(key);
+  };
+
   if (phase === "loading") {
-    return <div className="h-full w-full flex items-center justify-center text-dim font-mono text-sm">{t("loading")}</div>;
+    return (
+      <div className="h-full w-full flex items-center justify-center bg-bg-deep">
+        <div className="text-center">
+          <div className="font-mono text-[11px] uppercase tracking-[0.3em] text-accent-brand mb-2 cursor-blink">
+            {t("initializing")}
+          </div>
+          <div className="text-dim text-xs font-mono">{t("loading")}</div>
+        </div>
+      </div>
+    );
   }
 
   if (phase === "declined") {
     return (
-      <div className="h-full w-full flex flex-col items-center justify-center p-8 text-center theme-bg" data-testid="declined-screen">
-        <div className="absolute inset-0 bg-bg/90" />
-        <div className="relative z-10">
-          <h1 className="text-2xl font-bold text-brand">{t("close")}</h1>
-          <p className="text-dim text-sm mt-2 max-w-md">{t("admin_prompt_body")}</p>
-          <button className="tactical-btn mt-5" onClick={() => setPhase("admin")} data-testid="retry-admin-btn">
-            {t("admin_prompt_title")}
-          </button>
-        </div>
+      <div className="h-full w-full flex flex-col items-center justify-center p-8 text-center bg-bg-deep" data-testid="declined-screen">
+        <div className="label-accent mb-2">ACCESS DENIED</div>
+        <h1 className="heading-stencil text-2xl">{t("close")}</h1>
+        <p className="text-dim text-sm mt-3 max-w-md">{t("admin_prompt_body")}</p>
+        <button className="btn-primary mt-6" onClick={() => setPhase("admin")} data-testid="retry-admin-btn">
+          {t("admin_prompt_title")}
+        </button>
       </div>
     );
   }
@@ -134,26 +160,80 @@ const Shell = () => {
   const active = servers.find((s) => s.id === activeId);
 
   return (
-    <div className="h-full w-full flex flex-col">
+    <div className="h-full w-full flex flex-col bg-bg">
       <TopBar
         isAdmin={isAdmin}
         servers={servers}
         managerUpdateAvailable={appVersion.update_available}
+        managerPath={setup?.manager_path}
+        currentView={view}
+        onNavigate={handleNavigate}
         onResetSetup={handleResetSetup}
         onServersChanged={refreshServers}
         onManagerUpdate={handleManagerUpdate}
       />
+
       <div className="flex-1 flex overflow-hidden">
-        <Sidebar servers={servers} activeId={activeId} onSelect={setActiveId} onAdd={handleAddServer} managerPath={setup?.manager_path} />
-        {active ? (
-          <ServerDashboard server={active} schema={schema} onChange={handleServerChange} onDelete={handleDelete} />
-        ) : (
-          <EmptyWorkspace onAdd={handleAddServer} />
+        {view === "dashboard" && (
+          <DashboardView
+            servers={servers}
+            managerPath={setup?.manager_path}
+            onAdd={handleAddServer}
+            onOpen={handleOpenServer}
+            onChange={handleServerChange}
+            onDelete={handleDelete}
+            onRefresh={refreshServers}
+          />
         )}
+
+        {view === "configs" && (
+          active ? (
+            <ServerDashboard
+              server={active}
+              servers={servers}
+              schema={schema}
+              onChange={handleServerChange}
+              onDelete={handleDelete}
+              onBack={() => setView("dashboard")}
+              onSelectServer={(id) => setActiveId(id)}
+            />
+          ) : (
+            <NoServerSelected t={t} onGoDashboard={() => setView("dashboard")} />
+          )
+        )}
+
+        {view === "logs" && <LogsView t={t} />}
       </div>
     </div>
   );
 };
+
+const NoServerSelected = ({ t, onGoDashboard }) => (
+  <div className="flex-1 flex items-center justify-center bg-bg" data-testid="no-server-selected">
+    <div className="text-center">
+      <div className="label-accent mb-2">NO TARGET SELECTED</div>
+      <h2 className="heading-stencil text-xl mb-4">{t("command_select_server")}</h2>
+      <button className="btn-primary" onClick={onGoDashboard}>
+        {t("back_to_dashboard")}
+      </button>
+    </div>
+  </div>
+);
+
+const LogsView = ({ t }) => (
+  <div className="flex-1 flex items-center justify-center bg-bg font-mono" data-testid="logs-view">
+    <div className="text-center max-w-lg p-8 border border-brand panel corner-brackets">
+      <div className="label-accent mb-3">OPERATION LOGS</div>
+      <h2 className="heading-stencil text-xl mb-3">{t("nav_logs")}</h2>
+      <p className="text-dim text-xs leading-relaxed uppercase tracking-widest">
+        Live server output will appear here once operations begin.
+      </p>
+      <div className="mt-6 bg-bg-deep border border-brand px-4 py-3 text-left font-mono text-[11px] text-success">
+        $ lgss-manager --ready<span className="cursor-blink"></span>
+      </div>
+    </div>
+  </div>
+);
 
 export default function App() {
   return (
@@ -161,7 +241,20 @@ export default function App() {
       <I18nProvider>
         <div className="App">
           <Shell />
-          <Toaster theme="dark" position="bottom-right" richColors />
+          <Toaster
+            theme="dark"
+            position="bottom-right"
+            toastOptions={{
+              style: {
+                background: "var(--surface)",
+                border: "1px solid var(--border-strong)",
+                color: "var(--text)",
+                borderRadius: 0,
+                fontFamily: "var(--font-display)",
+                letterSpacing: "0.04em",
+              },
+            }}
+          />
         </div>
       </I18nProvider>
     </ThemeProvider>

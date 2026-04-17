@@ -1,10 +1,15 @@
 import React, { createContext, useContext, useEffect, useMemo, useState } from "react";
 
-const THEMES = ["tactical", "ghost", "jungle", "wastelander"];
+const THEMES = ["blacksite", "bunker", "ghost", "wastelander"];
 const ThemeContext = createContext(null);
 
 export const ThemeProvider = ({ children }) => {
-  const [theme, setTheme] = useState(() => localStorage.getItem("lgss.theme") || "tactical");
+  const [theme, setTheme] = useState(() => {
+    const stored = localStorage.getItem("lgss.theme");
+    // migrate legacy theme names
+    if (stored && THEMES.includes(stored)) return stored;
+    return "blacksite";
+  });
 
   useEffect(() => {
     document.documentElement.setAttribute("data-theme", theme);

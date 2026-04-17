@@ -11,10 +11,11 @@ import { InputEditor } from "./InputEditor";
 import { useI18n } from "../providers/I18nProvider";
 import { endpoints, api } from "../lib/api";
 
-const STATUS_STYLES = {
-  Running: { color: "var(--success)", bg: "rgba(56,142,60,0.12)" },
-  Stopped: { color: "var(--text-dim)", bg: "var(--surface-2)" },
-  Updating: { color: "var(--warning)", bg: "rgba(251,192,45,0.12)" },
+const STATUS_META = {
+  Running:   { label: "server_status_running",   color: "var(--success)" },
+  Stopped:   { label: "server_status_stopped",   color: "var(--text-muted)" },
+  Updating:  { label: "server_status_updating",  color: "var(--warning)" },
+  Installing:{ label: "installing",              color: "var(--accent)" },
 };
 
 const SECTION_ICONS = {
@@ -38,9 +39,17 @@ const downloadFile = (filename, content) => {
   URL.revokeObjectURL(url);
 };
 
-export const ServerDashboard = ({ server, schema, onChange, onDelete }) => {
+export const ServerDashboard = ({
+  server,
+  servers = [],
+  schema,
+  onChange,
+  onDelete,
+  onBack,
+  onSelectServer,
+}) => {
   const { t } = useI18n();
-  const [activeSection, setActiveSection] = useState(schema?.sections?.[0]?.key || "server");
+  const [activeSection, setActiveSection] = useState(schema?.sections?.[0]?.key || "essentials");
   const [openMap, setOpenMap] = useState({});
   const [draft, setDraft] = useState(server.settings || {});
   const [dirty, setDirty] = useState(false);
@@ -55,7 +64,6 @@ export const ServerDashboard = ({ server, schema, onChange, onDelete }) => {
   }, [server.id, server.settings, server.name]);
 
   useEffect(() => {
-    // Initialize openMap — first panel per section open
     if (!schema?.categories) return;
     const map = {};
     const seenSections = new Set();
@@ -68,12 +76,10 @@ export const ServerDashboard = ({ server, schema, onChange, onDelete }) => {
     setOpenMap(map);
   }, [schema]);
 
-  const statusStyle = STATUS_STYLES[server.status] || STATUS_STYLES.Stopped;
+  const statusMeta = STATUS_META[server.status] || STATUS_META.Stopped;
   const isRunning = server.status === "Running";
 
-  const maxPlayers = useMemo(() => {
-    return draft.srv_general?.["scum.MaxPlayers"] ?? 64;
-  }, [draft]);
+  const maxPlayers = useMemo(() => draft.srv_general?.["scum.MaxPlayers"] ?? 64, [draft]);
 
   const setCategory = (key, value) => {
     setDraft((d) => ({ ...d, [key]: value }));
@@ -127,7 +133,6 @@ export const ServerDashboard = ({ server, schema, onChange, onDelete }) => {
     setBusy(true);
     toast(t("installing"));
     try {
-      // In Electron, trigger real SteamCMD via window.lgss.installServer; fallback to backend simulate.
       if (window?.lgss?.installServer) {
         await window.lgss.installServer({ folderPath: server.folder_path, appId: "3792580" });
       }
@@ -141,7 +146,6 @@ export const ServerDashboard = ({ server, schema, onChange, onDelete }) => {
     setBusy(true);
     try {
       const plan = await endpoints.saveConfig(server.id);
-      // In Electron, write files to disk
       if (window?.lgss?.writeConfigFiles) {
         await window.lgss.writeConfigFiles(plan);
       }
@@ -213,61 +217,116 @@ export const ServerDashboard = ({ server, schema, onChange, onDelete }) => {
   };
 
   return (
-    <div className="flex-1 flex flex-col overflow-hidden" data-testid="server-dashboard">
-      {/* Profile header */}
-      <div className="bg-surface border-b border-brand px-5 py-4 flex items-center gap-4">
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-3">
-            <h2 className="text-lg font-semibold text-brand truncate" data-testid="server-title">{server.name}</h2>
-            <span className="px-2 py-0.5 text-[11px] font-mono uppercase tracking-wider rounded-sm border" style={{ color: statusStyle.color, background: statusStyle.bg, borderColor: statusStyle.color }}>
-              {t(`server_status_${server.status.toLowerCase()}`)}
-            </span>
-            <button className="icon-btn" onClick={() => setRenameOpen(true)} data-testid="rename-server-btn" title={t("rename_server")}>
-              <Icons.Pencil size={14} />
-            </button>
+    <div className="flex-1 flex flex-col overflow-hidden bg-bg" data-testid="server-dashboard">
+      {/* Command breadcrumb + actions */}
+      <div className="bg-bg-deep border-b border-brand px-6 py-4">
+        <div className="flex items-center gap-3 mb-3 text-xs font-mono uppercase tracking-widest">
+          <button
+            onClick={onBack}
+            className="text-dim hover:text-accent-brand transition-colors flex items-center gap-1.5"
+            data-testid="back-to-dashboard-btn"
+          >
+            <Icons.ChevronLeft size={14} /> {t("back_to_dashboard")}
+          </button>
+          <span className="text-muted">/</span>
+          <span className="text-accent-brand">{t("nav_configs")}</span>
+          <span className="text-muted">/</span>
+
+          <div className="relative">
+            <select
+              value={server.id}
+              onChange={(e) => onSelectServer?.(e.target.value)}
+              data-testid="server-switcher"
+              className="bg-surface border border-strong px-3 py-1.5 text-xs font-mono uppercase tracking-wider text-brand cursor-pointer hover:border-accent-brand transition-colors"
+              style={{ appearance: "none", paddingRight: "28px" }}
+            >
+              {servers.map((s) => (
+                <option key={s.id} value={s.id}>{s.name}</option>
+              ))}
+            </select>
+            <Icons.ChevronDown size={12} className="absolute right-2 top-1/2 -translate-y-1/2 text-dim pointer-events-none" />
           </div>
-          <div className="font-mono text-[11px] text-dim mt-1 truncate">{server.folder_path}</div>
         </div>
 
-        <div className="flex items-center gap-2">
-          <div className="text-right pr-3 border-r border-brand">
-            <div className="label-overline">{t("players")}</div>
-            <div className="font-mono text-sm text-brand">0 / {maxPlayers}</div>
+        <div className="flex items-center justify-between gap-4">
+          <div className="flex items-center gap-4 min-w-0">
+            <div
+              className="h-14 w-14 flex items-center justify-center border border-accent-brand relative flex-shrink-0"
+              style={{
+                background: "var(--accent-soft)",
+                clipPath: "polygon(8px 0, 100% 0, calc(100% - 8px) 100%, 0 100%)",
+              }}
+            >
+              <Icons.Server size={22} className="text-accent-brand" />
+            </div>
+            <div className="min-w-0">
+              <div className="flex items-center gap-3 mb-1">
+                <h1 className="heading-stencil text-xl text-brand truncate" data-testid="server-title">
+                  {server.name}
+                </h1>
+                <button
+                  className="icon-btn"
+                  onClick={() => setRenameOpen(true)}
+                  data-testid="rename-server-btn"
+                  title={t("rename_server")}
+                >
+                  <Icons.Pencil size={13} />
+                </button>
+                <div
+                  className="flex items-center gap-1.5 px-2 py-0.5 border font-mono uppercase text-[10px] tracking-widest"
+                  style={{ color: statusMeta.color, borderColor: statusMeta.color, background: "rgba(0,0,0,0.4)" }}
+                  data-testid="server-status-badge"
+                >
+                  <span className="status-led" style={{ background: statusMeta.color }} />
+                  {t(statusMeta.label)}
+                </div>
+              </div>
+              <div className="font-mono text-[11px] text-dim truncate" title={server.folder_path}>
+                {server.folder_path}
+              </div>
+            </div>
           </div>
-          {!server.installed && (
-            <button className="tactical-btn flex items-center gap-2" onClick={handleInstall} disabled={busy} data-testid="server-install-button">
-              <Icons.Download size={14} /> {t("install_server")}
+
+          <div className="flex items-center gap-2 flex-shrink-0">
+            <div className="text-right px-3 py-1 border border-brand bg-surface">
+              <div className="label-overline">{t("players")}</div>
+              <div className="font-mono text-sm text-brand">0 / {maxPlayers}</div>
+            </div>
+            {!server.installed && (
+              <button className="btn-primary flex items-center gap-2" onClick={handleInstall} disabled={busy} data-testid="server-install-button">
+                <Icons.Download size={13} /> {t("install_server")}
+              </button>
+            )}
+            {server.installed && !isRunning && (
+              <button className="btn-primary flex items-center gap-2" onClick={handleStart} disabled={busy} data-testid="server-start-button">
+                <Icons.Play size={13} /> {t("start")}
+              </button>
+            )}
+            {isRunning && (
+              <button className="btn-danger flex items-center gap-2" onClick={handleStop} disabled={busy} data-testid="server-stop-button">
+                <Icons.Square size={13} /> {t("stop")}
+              </button>
+            )}
+            {server.installed && (
+              <button className="btn-secondary flex items-center gap-2" onClick={handleUpdate} disabled={busy || isRunning} data-testid="server-update-button" title={t("update_server")}>
+                <Icons.RefreshCw size={13} />
+              </button>
+            )}
+            <button className="btn-secondary flex items-center gap-2" onClick={handleSaveConfig} disabled={busy} data-testid="save-config-files-btn" title={t("write_config_files")}>
+              <Icons.FileCog size={13} />
             </button>
-          )}
-          {server.installed && !isRunning && (
-            <button className="tactical-btn flex items-center gap-2" onClick={handleStart} disabled={busy} data-testid="server-start-button">
-              <Icons.Play size={14} /> {t("start")}
+            <button className="btn-primary flex items-center gap-2" onClick={handleSave} disabled={!dirty || busy} data-testid="save-settings-btn">
+              <Icons.Save size={13} /> {t("save_settings")}
             </button>
-          )}
-          {isRunning && (
-            <button className="tactical-btn flex items-center gap-2" onClick={handleStop} disabled={busy} data-testid="server-stop-button" style={{ background: "var(--danger)", color: "#fff" }}>
-              <Icons.Square size={14} /> {t("stop")}
+            <button className="icon-btn" onClick={() => { if (window.confirm(t("delete_server_confirm"))) onDelete(server.id); }} title={t("delete_server")} data-testid="delete-server-btn">
+              <Icons.Trash2 size={15} />
             </button>
-          )}
-          {server.installed && (
-            <button className="ghost-btn flex items-center gap-2" onClick={handleUpdate} disabled={busy || isRunning} data-testid="server-update-button" title={t("update_server")}>
-              <Icons.RefreshCw size={14} /> {t("update_server")}
-            </button>
-          )}
-          <button className="ghost-btn flex items-center gap-2" onClick={handleSaveConfig} disabled={busy} data-testid="save-config-files-btn" title={t("write_config_files")}>
-            <Icons.FileCog size={14} /> {t("write_config_files")}
-          </button>
-          <button className="ghost-btn flex items-center gap-2" onClick={handleSave} disabled={!dirty || busy} data-testid="save-settings-btn">
-            <Icons.Save size={14} /> {t("save_settings")}
-          </button>
-          <button className="icon-btn" onClick={() => { if (window.confirm(t("delete_server_confirm"))) onDelete(server.id); }} title={t("delete_server")} data-testid="delete-server-btn">
-            <Icons.Trash2 size={16} />
-          </button>
+          </div>
         </div>
       </div>
 
       {/* Section tabs */}
-      <div className="bg-surface-2 border-b border-brand px-5 py-1 flex items-center gap-1 overflow-x-auto scrollbar-thin">
+      <div className="bg-surface border-b border-brand px-6 flex items-center gap-1 overflow-x-auto scrollbar-thin">
         {sections.map((sec) => {
           const SecIcon = Icons[SECTION_ICONS[sec.key]] || Icons.Square;
           const active = activeSection === sec.key;
@@ -276,21 +335,16 @@ export const ServerDashboard = ({ server, schema, onChange, onDelete }) => {
               key={sec.key}
               onClick={() => setActiveSection(sec.key)}
               data-testid={`section-tab-${sec.key}`}
-              className="flex items-center gap-2 px-4 py-2.5 text-sm transition-colors whitespace-nowrap"
-              style={{
-                color: active ? "var(--text)" : "var(--text-dim)",
-                borderBottom: active ? "2px solid var(--primary)" : "2px solid transparent",
-                marginBottom: "-1px",
-              }}
+              className={`nav-tab flex items-center gap-2 ${active ? "active" : ""}`}
             >
-              <SecIcon size={14} />
-              <span className="font-mono uppercase tracking-wider text-xs">{t(sec.labelKey)}</span>
+              <SecIcon size={13} />
+              <span>{t(sec.labelKey)}</span>
             </button>
           );
         })}
       </div>
 
-      <div className="flex-1 overflow-y-auto scrollbar-thin p-5">
+      <div className="flex-1 overflow-y-auto scrollbar-thin p-6 bg-bg">
         {visibleCategories.map((cat) => {
           const Icon = Icons[cat.icon] || Icons.Settings;
           const badge = cat.exportKey ? cat.exportKey.toUpperCase() : null;
@@ -299,15 +353,15 @@ export const ServerDashboard = ({ server, schema, onChange, onDelete }) => {
               key={cat.key}
               testId={`panel-${cat.key}`}
               title={t(cat.labelKey)}
-              icon={<Icon size={16} className="text-primary-brand" />}
+              icon={<Icon size={15} className="text-accent-brand" />}
               open={!!openMap[cat.key]}
               onToggle={() => setOpenMap((m) => ({ ...m, [cat.key]: !m[cat.key] }))}
               badge={badge}
             >
               {cat.exportKey && cat.renderer !== "user_list" && (
                 <div className="flex justify-end mb-3 gap-2">
-                  <button className="ghost-btn text-xs flex items-center gap-2" onClick={() => handleExport(cat.exportKey)} data-testid={`export-${cat.key}`}>
-                    <Icons.Download size={14} /> {t("export_file")}
+                  <button className="btn-ghost text-xs flex items-center gap-2" onClick={() => handleExport(cat.exportKey)} data-testid={`export-${cat.key}`}>
+                    <Icons.Download size={13} /> {t("export_file")}
                   </button>
                 </div>
               )}
@@ -316,21 +370,21 @@ export const ServerDashboard = ({ server, schema, onChange, onDelete }) => {
           );
         })}
         {visibleCategories.length === 0 && (
-          <div className="text-center text-dim text-sm py-12">{t("loading")}</div>
+          <div className="text-center text-dim text-sm py-12 font-mono uppercase tracking-widest">{t("loading")}</div>
         )}
       </div>
 
       {renameOpen && (
-        <div className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-4" onClick={() => setRenameOpen(false)}>
-          <div className="panel w-full max-w-md" onClick={(e) => e.stopPropagation()} style={{ background: "var(--surface)" }}>
-            <div className="px-4 py-3 border-b border-brand font-mono uppercase text-xs tracking-wider">{t("rename_server")}</div>
-            <div className="px-4 py-4">
-              <label className="label-overline block mb-2">{t("server_name")}</label>
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4" onClick={() => setRenameOpen(false)}>
+          <div className="panel w-full max-w-md corner-brackets" onClick={(e) => e.stopPropagation()} style={{ background: "var(--surface)" }}>
+            <div className="px-5 py-3 border-b border-brand heading-stencil text-sm">{t("rename_server")}</div>
+            <div className="px-5 py-5">
+              <label className="label-accent block mb-2">{t("server_name")}</label>
               <input autoFocus value={newName} onChange={(e) => setNewName(e.target.value)} className="input-field" data-testid="rename-input" />
             </div>
-            <div className="px-4 py-3 border-t border-brand flex justify-end gap-2">
-              <button className="ghost-btn" onClick={() => setRenameOpen(false)}>{t("cancel")}</button>
-              <button className="tactical-btn" onClick={handleRename} data-testid="rename-confirm-btn">{t("save")}</button>
+            <div className="px-5 py-3 border-t border-brand flex justify-end gap-2">
+              <button className="btn-ghost" onClick={() => setRenameOpen(false)}>{t("cancel")}</button>
+              <button className="btn-primary" onClick={handleRename} data-testid="rename-confirm-btn">{t("save")}</button>
             </div>
           </div>
         </div>

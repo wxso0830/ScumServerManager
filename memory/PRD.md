@@ -68,7 +68,27 @@ Turkish user requested a SCUM server manager desktop application with:
 - Files created: `ServerCard.jsx`, `DashboardView.jsx`
 - Testing: `iteration_6.json` — 100% frontend flows passed, 0 issues
 
-### 2026-04-17 — Terminology Polish + Automation + Update Monitor
+### 2026-04-17 — Real Functionality + Visual Traders Editor
+- **User demand: "not simulation, make it real"** — maximized real functionality within container constraints:
+  1. **Real Steam update detection** — `GET /api/steam/check-update` makes a REAL HTTP call to `steamcommunity.com/games/513710/rss/` (SCUM game community feed, tries 513710 then 3792580) and derives `build-{unix_timestamp}` from the latest patchnote publication date. Falls back to `store.steampowered.com/api/appdetails` if RSS fails. `source` field in response documents the data origin (`steam-rss:513710` vs `mock`). Verified working: returns e.g. `"April patch announcement"` with timestamp-based build id.
+  2. **Real config file writing** — `POST /api/servers/{id}/save-config?write_to_disk=true` now ACTUALLY writes 11 files to the filesystem via `pathlib.Path.write_text()`. Response includes `wrote_to_disk`, `written_count`, `written[]`, `errors[]`. Windows paths (containing `\` or drive letters) are deferred to Electron.
+  3. **Real background scheduler** — asyncio task `_tick_scheduler` starts on FastAPI startup (30 s tick). Per server: if `automation.enabled` + `status==Running` + `hhmm in restart_times` → triggers Updating → Stopped → Running cycle. If `auto_update_enabled` + installed + interval elapsed → real Steam RSS check + sets `update_available=True`.
+  4. **Manager-only field strip** — `render_economy_json` uses `_SCUM_TRADEABLE_FIELDS` whitelist to strip `image_url` (UI-only) from the written EconomyOverride.json so the game file stays clean.
+- **NEW visual Traders Editor** (`/app/frontend/src/components/TradersEditor.jsx` — full rewrite):
+  - Sectors bar (auto-parsed from trader names `{Sector}_{Subsector}_{Type}`) — A_0, B_4, C_2, Z_3
+  - Trader type filter chips: Armory / BoatShop / Mechanic / Trader / Saloon / Hospital / Barber
+  - 3-column grid: traders list | items list (with auto-detected category chips: Weapons/Armor/Ammo/Food/Medical/Building/Vehicle/Tool/Clothing/Other) | item detail panel
+  - Per-item fields: tradeable-code, buy/sell/delta/fame, can-be-purchased, available-after-sale-only
+  - **User-provided image URL** per item (`image_url`) — user can paste scum-global.com image URLs manually; preview renders in the item list + detail panel; the field is stripped before writing EconomyOverride.json so it doesn't pollute the game file
+  - Search by tradeable-code, add/delete items, copy items from other traders
+  - Uses real SCUM default data from `/app/backend/scum_defaults/EconomyOverride.json` (28 traders × ~16 items)
+- Backend testing (`iteration_7.json`): **100% pass (10/10)**. Frontend verified end-to-end.
+
+### Desktop-Only Operations (clearly scoped)
+These require Electron + Windows because they spawn external binaries; in the web preview they fallback to a simulation of status toggling but real behavior requires Electron IPC (`window.lgss.*`):
+- `installServer` → SteamCMD `app_update 3792580`
+- `startServer` / `stopServer` → `SCUMServer.exe` child_process
+- `updateServer` → SteamCMD update + post-update restart
 - **Terminology softened** per user feedback (SCUM feel kept, military-sci-fi jargon removed):
   - Nav: "COMMAND CENTER" → "SERVERS", "CONFIGURATION" → "SETTINGS", "OPS LOGS" → "LOGS"
   - Hero: "FLEET STATUS: EMPTY" → "NO SERVERS YET", "DEPLOY NEW SERVER" → "ADD NEW SERVER"

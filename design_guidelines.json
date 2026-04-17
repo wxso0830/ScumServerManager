@@ -1,0 +1,201 @@
+{
+  "project_name": "SCUM Server Manager (LGSSManagers)",
+  "app_type": "hybrid_fullstack",
+  "archetype": "Swiss & High-Contrast (Archetype 4) merged with Performance Pro (Archetype 2)",
+  "theme_strategy": "Multi-theme dark mode desktop application. The aesthetic is tactical, dense, and professional (Control Room grid).",
+  "themes": {
+    "wasteland": {
+      "name": "Wasteland",
+      "mode": "dark",
+      "description": "Gritty military, SCUM-inspired survival aesthetic.",
+      "colors": {
+        "background": "#141512",
+        "surface": "#1E201C",
+        "surface_glass": "rgba(30, 32, 28, 0.7)",
+        "primary": "#D84315",
+        "primary_hover": "#F4511E",
+        "primary_active": "#BF360C",
+        "border": "#2E312B",
+        "border_focus": "#D84315",
+        "text_primary": "#ECEEED",
+        "text_secondary": "#8A9386",
+        "success": "#388E3C",
+        "danger": "#D32F2F",
+        "warning": "#FBC02D",
+        "info": "#0288D1"
+      }
+    },
+    "cyber_neon": {
+      "name": "Cyber Neon",
+      "mode": "dark",
+      "description": "Deep synthwave void with aggressive high-contrast accents.",
+      "colors": {
+        "background": "#050510",
+        "surface": "#0B0C1D",
+        "surface_glass": "rgba(11, 12, 29, 0.8)",
+        "primary": "#CCFF00",
+        "primary_hover": "#D4FF33",
+        "primary_active": "#A3CC00",
+        "border": "#1A1D40",
+        "border_focus": "#CCFF00",
+        "text_primary": "#F2F2F7",
+        "text_secondary": "#7D82B8",
+        "success": "#00FF66",
+        "danger": "#FF0055",
+        "warning": "#FFB800",
+        "info": "#00E5FF"
+      }
+    },
+    "obsidian": {
+      "name": "Obsidian",
+      "mode": "dark",
+      "description": "Ultra-minimal, deep blacks, performance-focused interface.",
+      "colors": {
+        "background": "#0A0A0A",
+        "surface": "#121212",
+        "surface_glass": "rgba(18, 18, 18, 0.8)",
+        "primary": "#007AFF",
+        "primary_hover": "#3395FF",
+        "primary_active": "#0062CC",
+        "border": "#262626",
+        "border_focus": "#007AFF",
+        "text_primary": "#FAFAFA",
+        "text_secondary": "#A3A3A3",
+        "success": "#34C759",
+        "danger": "#FF3B30",
+        "warning": "#FFCC00",
+        "info": "#5AC8FA"
+      }
+    },
+    "amber_crt": {
+      "name": "Amber CRT",
+      "mode": "dark",
+      "description": "Retro terminal aesthetic, deep sepia and glowing amber.",
+      "colors": {
+        "background": "#1A150D",
+        "surface": "#261D12",
+        "surface_glass": "rgba(38, 29, 18, 0.8)",
+        "primary": "#FFB000",
+        "primary_hover": "#FFC133",
+        "primary_active": "#E69E00",
+        "border": "#4D361A",
+        "border_focus": "#FFB000",
+        "text_primary": "#FFE6B3",
+        "text_secondary": "#CC8D00",
+        "success": "#A3E635",
+        "danger": "#EF4444",
+        "warning": "#F59E0B",
+        "info": "#38BDF8"
+      }
+    }
+  },
+  "typography": {
+    "font_families": {
+      "sans": "IBM Plex Sans, sans-serif",
+      "mono": "JetBrains Mono, monospace"
+    },
+    "hierarchy": {
+      "h1": "text-2xl font-bold tracking-tight text-text_primary",
+      "h2": "text-xl font-semibold tracking-tight text-text_primary",
+      "h3": "text-lg font-medium text-text_primary",
+      "h4": "text-base font-medium text-text_primary",
+      "body": "text-sm text-text_secondary leading-relaxed",
+      "label_overline": "text-xs font-mono uppercase tracking-[0.1em] text-text_secondary",
+      "data_value": "text-base font-mono font-medium text-text_primary",
+      "code": "text-sm font-mono text-text_secondary bg-surface border border-border px-1.5 py-0.5 rounded"
+    },
+    "rules": {
+      "headers": "Use sans-serif for module and panel titles. Avoid large hero typography; this is a dense admin tool.",
+      "data": "Use monospace (JetBrains Mono) for IP addresses, disk sizes (GB), ports, player counts, and INI keys.",
+      "buttons": "Uppercase mono or bold sans for primary CTAs (Start/Stop)."
+    }
+  },
+  "spacing_and_layout": {
+    "grid_system": "Control Room Grid (Dense). grid-cols-1 md:grid-cols-3 lg:grid-cols-4. gap-4.",
+    "density": "High. Use p-3 or p-4 inside panels instead of the generous p-8 marketing defaults.",
+    "borders": "Exposed grid style. 1px solid borders (border-border). Avoid soft shadows; use sharp 2px shadows or none.",
+    "border_radius": "Sharp or minimal. rounded-sm (2px) or rounded-md (4px). Never rounded-full or rounded-xl unless it's a status dot.",
+    "sidebar": "Fixed left sidebar (w-64 or w-20 collapsed) holding server profiles. Distinctive top-left '+' button with border-b separation.",
+    "top_bar": "Fixed height (h-14). Acts as Electron drag region (app-region: drag). Contains window controls, global stats, theme/lang picker."
+  },
+  "component_patterns": {
+    "buttons": {
+      "primary": "Solid bg-primary text-background font-bold px-4 py-2 rounded-sm hover:-translate-y-[1px] transition-transform",
+      "secondary": "bg-transparent border border-border text-text_primary px-4 py-2 rounded-sm hover:border-text_secondary hover:text-white transition-colors",
+      "action_icon": "p-2 rounded-sm text-text_secondary hover:bg-surface hover:text-primary transition-colors",
+      "server_start_stop": "Large, prominent button in header. Green state (Start), Red state (Stop), Yellow state (Updating). Use glowing box-shadow for active states."
+    },
+    "collapsible_panels": {
+      "style": "Accordion style. Header has bg-surface, border-b border-border. Chevron right icon rotates 90deg on open. Content area has bg-background p-4.",
+      "categorization": "Group settings logically: 'Sunucu Detayları', 'Dünya/Harita', 'Ekonomi', 'Zombiler', etc."
+    },
+    "inputs": {
+      "text": "bg-surface border border-border rounded-sm px-3 py-1.5 text-sm text-text_primary focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20",
+      "select": "Same as text input. Use custom Shadcn dropdown over native <select>.",
+      "toggle_switch": "Tactical toggle. Square/Sharp edges preferred over round pills."
+    },
+    "progress_bars": {
+      "disk_capacity": "Segmented bar. Height h-3. Free Space (gray/surface), Used OS/Other (dark gray), SCUM Allocation (primary color). Tooltip on hover."
+    },
+    "tabs": {
+      "server_profiles": "Vertical tabs in sidebar. Active state: border-l-2 border-primary bg-surface/50 text-text_primary. Inactive: border-l-2 border-transparent text-text_secondary."
+    }
+  },
+  "animation_guidelines": {
+    "philosophy": "Utilitarian. Fast and predictable. No bouncy physics. No slow fades.",
+    "durations": "150ms for color transitions. 200ms for accordions/collapsibles.",
+    "micro_interactions": "Hover states on all list items and buttons. Start/Stop server buttons should have a slight 'pulse' effect when processing/starting."
+  },
+  "screens": {
+    "1_admin_uac_prompt": {
+      "layout": "Centered modal/window on desktop.",
+      "visuals": "Warning icon (Lucide TriangleAlert). 'Yönetici İzni Gerekli'. Text explaining that LGSSManagers needs admin rights to install and run the SCUM Server.",
+      "actions": "'İzin Ver ve Yeniden Başlat' (Primary), 'Kapat' (Secondary/Ghost)."
+    },
+    "2_disk_selection_wizard": {
+      "layout": "Centered multi-step card layout. 'İlk Kurulum - Disk Seçimi'.",
+      "components": "List of available drives (C:, D:). Each row shows a 'disk_capacity' progress bar. Shows 'SCUM Sunucusu İçin Gerekli: ~30GB'.",
+      "interactions": "Drives with <30GB free space are disabled/dimmed. User selects a drive -> 'İleri' button enables -> App creates 'LGSSManagers' folder on the chosen drive."
+    },
+    "3_empty_main_workspace": {
+      "layout": "Standard shell (Sidebar + Top Bar + Empty Main Content).",
+      "sidebar": "Shows only the large, elevated '+' button at the top ('Yeni Sunucu Ekle').",
+      "main_area": "Centered empty state. Uses the theme-specific background image. 'Sol üstten + butonuna basarak ilk sunucunuzu oluşturun.'",
+      "top_bar": "Global IP, Task Status (Otomatik Yedekleme, Discord Bot - inactive state)."
+    },
+    "4_server_profile_tab": {
+      "layout": "2-column or 3-column Bento grid of collapsible panels.",
+      "header": "Server Name ('Server1'), Status Badge (Running/Stopped/Updating), Start/Stop Button row.",
+      "sidebar": "Active 'Server1' tab highlighted.",
+      "main_area": "Collapsible panels: Administration (Ports, Passwords), World (Max Players, Time Speed), Economy (Loot Multipliers), Vehicles, Puppets (Zombies).",
+      "footer_actions": "'Ayarları Kaydet' (Sticky bottom right or top right header)."
+    }
+  },
+  "testing_attributes": {
+    "rule": "All interactive elements MUST include data-testid. Use kebab-case and role-based naming.",
+    "examples": [
+      "data-testid='uac-allow-button'",
+      "data-testid='disk-select-c-drive'",
+      "data-testid='add-server-profile-button'",
+      "data-testid='server-start-button'",
+      "data-testid='accordion-economy-settings'"
+    ]
+  },
+  "image_urls": {
+    "theme_backgrounds": {
+      "description": "Atmospheric backgrounds to be used in the Empty Main Workspace or Login/Setup screens to establish the theme's mood at low opacity.",
+      "wasteland": "https://static.prod-images.emergentagent.com/jobs/b02552c4-61f7-46f2-90f9-fcfca152dad4/images/15b5596d6e972bb906d853bf773dd021991deed07b5b5db990bfbf2654eb174b.png",
+      "cyber_neon": "https://static.prod-images.emergentagent.com/jobs/b02552c4-61f7-46f2-90f9-fcfca152dad4/images/e13a784e997707255a2c7fdf657a4a357dc91d1ddfc447ff046d8a9277b072f3.png",
+      "obsidian": "https://static.prod-images.emergentagent.com/jobs/b02552c4-61f7-46f2-90f9-fcfca152dad4/images/c7756be6de962358e9ebb4662ea647ffa430fa65681a028d72cd08ab4b8138cd.png",
+      "amber_crt": "https://static.prod-images.emergentagent.com/jobs/b02552c4-61f7-46f2-90f9-fcfca152dad4/images/81a443adf51619e0f11d9bab31b4f7e3a6f8eb0d65214948f6e51495246febcb.png"
+    }
+  },
+  "instructions_to_main_agent": {
+    "architecture": "This is a React frontend built for an Electron shell. Do not use Next.js specific routing or SSR features. Use pure React (Vite/CRA) paradigms. Use .js/.jsx extensions.",
+    "i18n": "Implement i18n support from the start (Turkish and English). Build UI with text lengths in mind (Turkish words can be longer).",
+    "theme_switching": "Implement a context or Zustand store to hold the active theme and inject it via data-theme attribute on the root html/body to switch CSS variables. The themes map to the 4 palettes provided in this JSON.",
+    "ui_library": "Use Shadcn UI components but strip out the soft radii. Inject the tactical CSS rules (rounded-sm, harsh borders) defined in the component_patterns section.",
+    "icons": "Use lucide-react. Standardize sizes (e.g., size={16} for inline, size={20} for sidebar tabs).",
+    "ipc_communication": "Keep Electron IPC calls mockable in the frontend so UI development can proceed independently. Ensure data-testid strings are preserved for E2E testing."
+  }
+}

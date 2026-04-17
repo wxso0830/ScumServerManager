@@ -12,6 +12,7 @@ export const endpoints = {
   getSetup: () => api.get("/setup").then(r => r.data),
   updateSetup: (payload) => api.put("/setup", payload).then(r => r.data),
   resetSetup: () => api.post("/setup/reset").then(r => r.data),
+  getSchema: () => api.get("/settings/schema").then(r => r.data),
   listServers: () => api.get("/servers").then(r => r.data),
   createServer: (payload = {}) => api.post("/servers", payload).then(r => r.data),
   getServer: (id) => api.get(`/servers/${id}`).then(r => r.data),
@@ -20,4 +21,6 @@ export const endpoints = {
   deleteServer: (id) => api.delete(`/servers/${id}`).then(r => r.data),
   startServer: (id) => api.post(`/servers/${id}/start`).then(r => r.data),
   stopServer: (id) => api.post(`/servers/${id}/stop`).then(r => r.data),
+  exportFile: (id, fileKey) => api.get(`/servers/${id}/export/${fileKey}`).then(r => r.data),
+  importFile: (id, fileKey, content) => api.post(`/servers/${id}/import/${fileKey}`, { content }).then(r => r.data),
 };

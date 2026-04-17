@@ -198,7 +198,8 @@ class TestServerCRUD:
         assert "Server1" in server1["folder_path"]
         assert server1["status"] == "Stopped"
         assert "settings" in server1
-        assert "administration" in server1["settings"]
+        # New settings structure uses srv_general instead of administration
+        assert "srv_general" in server1["settings"]
         print(f"✓ Server1 created: {server1['name']}, path={server1['folder_path']}")
         
         # Create second server
@@ -300,11 +301,11 @@ class TestServerSettings:
     
     def test_update_settings_partial(self):
         """Test PUT /api/servers/{id}/settings merges nested category dicts"""
-        # Update only administration settings
+        # Update only srv_general settings (new structure)
         new_settings = {
-            "administration": {
-                "ServerName": "TEST_Updated Server Name",
-                "MaxPlayers": 100
+            "srv_general": {
+                "scum.ServerName": "TEST_Updated Server Name",
+                "scum.MaxPlayers": 100
             }
         }
         response = requests.put(f"{BASE_URL}/api/servers/{self.server_id}/settings", json={"settings": new_settings})
@@ -312,45 +313,42 @@ class TestServerSettings:
         data = response.json()
         
         # Verify updated fields
-        assert data["settings"]["administration"]["ServerName"] == "TEST_Updated Server Name"
-        assert data["settings"]["administration"]["MaxPlayers"] == 100
+        assert data["settings"]["srv_general"]["scum.ServerName"] == "TEST_Updated Server Name"
+        assert data["settings"]["srv_general"]["scum.MaxPlayers"] == 100
         
-        # Verify other fields in administration are preserved
-        assert "ServerPort" in data["settings"]["administration"]
-        assert data["settings"]["administration"]["ServerPort"] == 7042  # default value
+        # Verify other fields in srv_general are preserved (should have many keys from real defaults)
+        assert len(data["settings"]["srv_general"]) > 10, "Other srv_general fields should be preserved"
         
         # Verify other categories are preserved
-        assert "world" in data["settings"]
-        assert "economy" in data["settings"]
-        print(f"✓ Settings partially updated: ServerName={data['settings']['administration']['ServerName']}")
+        assert "srv_world" in data["settings"]
+        assert "srv_features" in data["settings"]
+        print(f"✓ Settings partially updated: ServerName={data['settings']['srv_general']['scum.ServerName']}")
     
     def test_update_settings_multiple_categories(self):
         """Test updating multiple categories at once"""
         new_settings = {
-            "world": {
-                "StartingHour": 12,
-                "TimeOfDayMultiplier": 2.0
+            "srv_world": {
+                "scum.StartTimeOfDay": "12:00:00",
+                "scum.TimeOfDaySpeed": 2.0
             },
-            "economy": {
-                "TradersEnabled": False,
-                "FameOnKill": 100
+            "srv_features": {
+                "scum.QuestsEnabled": False
             }
         }
         response = requests.put(f"{BASE_URL}/api/servers/{self.server_id}/settings", json={"settings": new_settings})
         assert response.status_code == 200
         data = response.json()
         
-        assert data["settings"]["world"]["StartingHour"] == 12
-        assert data["settings"]["world"]["TimeOfDayMultiplier"] == 2.0
-        assert data["settings"]["economy"]["TradersEnabled"] == False
-        assert data["settings"]["economy"]["FameOnKill"] == 100
+        assert data["settings"]["srv_world"]["scum.StartTimeOfDay"] == "12:00:00"
+        assert data["settings"]["srv_world"]["scum.TimeOfDaySpeed"] == 2.0
+        assert data["settings"]["srv_features"]["scum.QuestsEnabled"] == False
         print(f"✓ Multiple categories updated")
     
     def test_update_settings_persistence(self):
         """Test settings are persisted in database"""
         new_settings = {
-            "administration": {
-                "WelcomeMessage": "TEST_Welcome to my server!"
+            "srv_general": {
+                "scum.WelcomeMessage": "TEST_Welcome to my server!"
             }
         }
         requests.put(f"{BASE_URL}/api/servers/{self.server_id}/settings", json={"settings": new_settings})
@@ -358,7 +356,7 @@ class TestServerSettings:
         # Fetch server again
         get_response = requests.get(f"{BASE_URL}/api/servers/{self.server_id}")
         data = get_response.json()
-        assert data["settings"]["administration"]["WelcomeMessage"] == "TEST_Welcome to my server!"
+        assert data["settings"]["srv_general"]["scum.WelcomeMessage"] == "TEST_Welcome to my server!"
         print(f"✓ Settings persisted in database")
 
 

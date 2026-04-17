@@ -2,9 +2,12 @@ import React, { useEffect, useMemo, useState } from "react";
 import * as Icons from "lucide-react";
 import { toast } from "sonner";
 import { Collapsible } from "./Collapsible";
-import { Field } from "./Field";
+import { DynamicFields } from "./DynamicFields";
 import { UserList } from "./UserList";
-import { SETTINGS_SCHEMA } from "../lib/settingsSchema";
+import { RaidTimesEditor } from "./RaidTimesEditor";
+import { NotificationsEditor } from "./NotificationsEditor";
+import { TradersEditor } from "./TradersEditor";
+import { InputEditor } from "./InputEditor";
 import { useI18n } from "../providers/I18nProvider";
 import { endpoints, api } from "../lib/api";
 
@@ -14,9 +17,28 @@ const STATUS_STYLES = {
   Updating: { color: "var(--warning)", bg: "rgba(251,192,45,0.12)" },
 };
 
-export const ServerDashboard = ({ server, onChange, onDelete }) => {
+const SECTION_ICONS = {
+  server: "Server",
+  users: "Users",
+  economy: "Banknote",
+  advanced: "Wrench",
+  client: "Monitor",
+};
+
+const downloadFile = (filename, content) => {
+  const blob = new Blob([content], { type: "text/plain" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(url);
+};
+
+export const ServerDashboard = ({ server, schema, onChange, onDelete }) => {
   const { t } = useI18n();
-  const [openMap, setOpenMap] = useState(() => Object.fromEntries(SETTINGS_SCHEMA.map((c, i) => [c.key, i < 2])));
+  const [activeSection, setActiveSection] = useState(schema?.sections?.[0]?.key || "server");
+  const [openMap, setOpenMap] = useState({});
   const [draft, setDraft] = useState(server.settings || {});
   const [dirty, setDirty] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -29,11 +51,29 @@ export const ServerDashboard = ({ server, onChange, onDelete }) => {
     setNewName(server.name);
   }, [server.id, server.settings, server.name]);
 
+  useEffect(() => {
+    // Initialize openMap — first panel per section open
+    if (!schema?.categories) return;
+    const map = {};
+    const seenSections = new Set();
+    for (const cat of schema.categories) {
+      if (!seenSections.has(cat.section)) {
+        map[cat.key] = true;
+        seenSections.add(cat.section);
+      }
+    }
+    setOpenMap(map);
+  }, [schema]);
+
   const statusStyle = STATUS_STYLES[server.status] || STATUS_STYLES.Stopped;
   const isRunning = server.status === "Running";
 
-  const updateField = (catKey, fieldKey, value) => {
-    setDraft((d) => ({ ...d, [catKey]: { ...(d[catKey] || {}), [fieldKey]: value } }));
+  const maxPlayers = useMemo(() => {
+    return draft.srv_general?.["scum.MaxPlayers"] ?? 64;
+  }, [draft]);
+
+  const setCategory = (key, value) => {
+    setDraft((d) => ({ ...d, [key]: value }));
     setDirty(true);
   };
 
@@ -72,70 +112,63 @@ export const ServerDashboard = ({ server, onChange, onDelete }) => {
     setRenameOpen(false);
   };
 
-  const renderedPanels = useMemo(() => SETTINGS_SCHEMA.map((cat) => {
-    const Icon = Icons[cat.icon] || Icons.Settings;
-    const badge = cat.exportKey ? cat.exportKey.toUpperCase() : null;
-    return (
-      <Collapsible
-        key={cat.key}
-        testId={`panel-${cat.key}`}
-        title={t(cat.labelKey)}
-        icon={<Icon size={16} className="text-primary-brand" />}
-        open={!!openMap[cat.key]}
-        onToggle={() => setOpenMap((m) => ({ ...m, [cat.key]: !m[cat.key] }))}
-        badge={badge}
-      >
-        {cat.renderer === "user_list" ? (
+  const handleExport = async (exportKey) => {
+    if (!exportKey) return;
+    const res = await endpoints.exportFile(server.id, exportKey);
+    downloadFile(res.filename, res.content);
+    toast.success(res.filename);
+  };
+
+  const sections = schema?.sections || [];
+  const visibleCategories = (schema?.categories || []).filter((c) => c.section === activeSection);
+
+  const renderCategoryBody = (cat) => {
+    const value = draft[cat.key];
+    switch (cat.renderer) {
+      case "user_list":
+        return (
           <UserList
-            users={draft[cat.key] || []}
-            onChange={(list) => { setDraft((d) => ({ ...d, [cat.key]: list })); setDirty(true); }}
+            users={value || []}
+            onChange={(list) => setCategory(cat.key, list)}
             commonFlags={cat.commonFlags || []}
             exportKey={cat.exportKey}
             serverId={server.id}
-            testIdPrefix={`${cat.key}`}
+            testIdPrefix={cat.key}
           />
-        ) : (
-          <>
-            {cat.exportKey && (
-              <div className="flex justify-end mb-3 gap-2">
-                <button
-                  className="ghost-btn text-xs flex items-center gap-2"
-                  onClick={async () => {
-                    const res = await api.get(`/servers/${server.id}/export/${cat.exportKey}`);
-                    const blob = new Blob([res.data.content], { type: "text/plain" });
-                    const url = URL.createObjectURL(blob);
-                    const a = document.createElement("a");
-                    a.href = url;
-                    a.download = res.data.filename;
-                    a.click();
-                    URL.revokeObjectURL(url);
-                    toast.success(res.data.filename);
-                  }}
-                  data-testid={`export-${cat.key}`}
-                >
-                  <Icons.Download size={14} /> {t("export_file")}
-                </button>
-              </div>
-            )}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6">
-              {cat.fields.map((f) => (
-                <Field
-                  key={f.key}
-                  field={f}
-                  value={(draft[cat.key] || {})[f.key]}
-                  onChange={(v) => updateField(cat.key, f.key, v)}
-                  testId={`field-${cat.key}-${f.key}`}
-                />
-              ))}
-            </div>
-          </>
-        )}
-      </Collapsible>
-    );
-  }), [draft, openMap, t, server.id]);
+        );
+      case "raid_times":
+        return <RaidTimesEditor entries={value || []} onChange={(list) => setCategory(cat.key, list)} testId={`editor-${cat.key}`} />;
+      case "notifications":
+        return <NotificationsEditor entries={value || []} onChange={(list) => setCategory(cat.key, list)} testId={`editor-${cat.key}`} />;
+      case "traders":
+        return <TradersEditor traders={value || {}} onChange={(obj) => setCategory(cat.key, obj)} testId={`editor-${cat.key}`} />;
+      case "input":
+        return (
+          <InputEditor
+            axis={draft.input_axis || []}
+            action={draft.input_action || []}
+            onChange={({ axis, action }) => {
+              setDraft((d) => ({ ...d, input_axis: axis, input_action: action }));
+              setDirty(true);
+            }}
+            testId={`editor-${cat.key}`}
+          />
+        );
+      case "dynamic":
+      default:
+        return (
+          <DynamicFields
+            values={value || {}}
+            onFieldChange={(k, v) => setCategory(cat.key, { ...(value || {}), [k]: v })}
+            testIdPrefix={`field-${cat.key}`}
+          />
+        );
+    }
+  };
 
   return (
     <div className="flex-1 flex flex-col overflow-hidden" data-testid="server-dashboard">
+      {/* Profile header */}
       <div className="bg-surface border-b border-brand px-5 py-4 flex items-center gap-4">
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-3">
@@ -153,7 +186,7 @@ export const ServerDashboard = ({ server, onChange, onDelete }) => {
         <div className="flex items-center gap-2">
           <div className="text-right pr-3 border-r border-brand">
             <div className="label-overline">{t("players")}</div>
-            <div className="font-mono text-sm text-brand">0 / {(draft.administration?.MaxPlayers) ?? 64}</div>
+            <div className="font-mono text-sm text-brand">0 / {maxPlayers}</div>
           </div>
           {!isRunning ? (
             <button className="tactical-btn flex items-center gap-2" onClick={handleStart} disabled={busy} data-testid="server-start-button">
@@ -173,8 +206,58 @@ export const ServerDashboard = ({ server, onChange, onDelete }) => {
         </div>
       </div>
 
+      {/* Section tabs */}
+      <div className="bg-surface-2 border-b border-brand px-5 py-1 flex items-center gap-1 overflow-x-auto scrollbar-thin">
+        {sections.map((sec) => {
+          const SecIcon = Icons[SECTION_ICONS[sec.key]] || Icons.Square;
+          const active = activeSection === sec.key;
+          return (
+            <button
+              key={sec.key}
+              onClick={() => setActiveSection(sec.key)}
+              data-testid={`section-tab-${sec.key}`}
+              className="flex items-center gap-2 px-4 py-2.5 text-sm transition-colors whitespace-nowrap"
+              style={{
+                color: active ? "var(--text)" : "var(--text-dim)",
+                borderBottom: active ? "2px solid var(--primary)" : "2px solid transparent",
+                marginBottom: "-1px",
+              }}
+            >
+              <SecIcon size={14} />
+              <span className="font-mono uppercase tracking-wider text-xs">{t(sec.labelKey)}</span>
+            </button>
+          );
+        })}
+      </div>
+
       <div className="flex-1 overflow-y-auto scrollbar-thin p-5">
-        {renderedPanels}
+        {visibleCategories.map((cat) => {
+          const Icon = Icons[cat.icon] || Icons.Settings;
+          const badge = cat.exportKey ? cat.exportKey.toUpperCase() : null;
+          return (
+            <Collapsible
+              key={cat.key}
+              testId={`panel-${cat.key}`}
+              title={t(cat.labelKey)}
+              icon={<Icon size={16} className="text-primary-brand" />}
+              open={!!openMap[cat.key]}
+              onToggle={() => setOpenMap((m) => ({ ...m, [cat.key]: !m[cat.key] }))}
+              badge={badge}
+            >
+              {cat.exportKey && cat.renderer !== "user_list" && (
+                <div className="flex justify-end mb-3 gap-2">
+                  <button className="ghost-btn text-xs flex items-center gap-2" onClick={() => handleExport(cat.exportKey)} data-testid={`export-${cat.key}`}>
+                    <Icons.Download size={14} /> {t("export_file")}
+                  </button>
+                </div>
+              )}
+              {renderCategoryBody(cat)}
+            </Collapsible>
+          );
+        })}
+        {visibleCategories.length === 0 && (
+          <div className="text-center text-dim text-sm py-12">{t("loading")}</div>
+        )}
       </div>
 
       {renameOpen && (

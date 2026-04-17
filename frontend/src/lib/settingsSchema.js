@@ -1,295 +1,32 @@
-// SCUM server settings schema. Each category is a list of fields with type/metadata for rendering.
-export const SETTINGS_SCHEMA = [
-  {
-    key: "administration",
-    labelKey: "cat_administration",
-    icon: "ShieldCheck",
-    fields: [
-      { key: "ServerName", label: "Server Name", type: "text" },
-      { key: "ServerDescription", label: "Description", type: "textarea" },
-      { key: "ServerPassword", label: "Server Password", type: "password" },
-      { key: "AdminPassword", label: "Admin Password", type: "password" },
-      { key: "ServerPort", label: "Game Port", type: "number" },
-      { key: "ServerQueryPort", label: "Query Port", type: "number" },
-      { key: "MaxPlayers", label: "Max Players", type: "number", min: 1, max: 128 },
-      { key: "ReservedSlots", label: "Reserved Slots", type: "number", min: 0 },
-      { key: "WelcomeMessage", label: "Welcome Message", type: "text" },
-    ],
-  },
-  {
-    key: "world",
-    labelKey: "cat_world",
-    icon: "Globe",
-    fields: [
-      { key: "StartingHour", label: "Starting Hour", type: "number", min: 0, max: 23 },
-      { key: "TimeOfDayMultiplier", label: "Day Time Multiplier", type: "slider", min: 0.1, max: 10, step: 0.1 },
-      { key: "NightTimeMultiplier", label: "Night Time Multiplier", type: "slider", min: 0.1, max: 10, step: 0.1 },
-      { key: "WeatherRainMultiplier", label: "Rain Multiplier", type: "slider", min: 0, max: 5, step: 0.1 },
-      { key: "TemperatureMultiplier", label: "Temperature Multiplier", type: "slider", min: 0.1, max: 5, step: 0.1 },
-      { key: "RespectLocalTimeForSunrise", label: "Respect Local Time for Sunrise", type: "toggle" },
-    ],
-  },
-  {
-    key: "economy",
-    labelKey: "cat_economy",
-    icon: "Coins",
-    fields: [
-      { key: "TradersEnabled", label: "Traders Enabled", type: "toggle" },
-      { key: "TraderFundsMultiplier", label: "Trader Funds Multiplier", type: "slider", min: 0.1, max: 10, step: 0.1 },
-      { key: "TraderRestockIntervalHours", label: "Restock Interval (hours)", type: "number", min: 1 },
-      { key: "FameOnKill", label: "Fame on Kill", type: "number" },
-      { key: "FameOnDeath", label: "Fame on Death", type: "number" },
-      { key: "CurrencyBalanceLimit", label: "Currency Limit", type: "number" },
-    ],
-  },
-  {
-    key: "loot",
-    labelKey: "cat_loot",
-    icon: "Package",
-    fields: [
-      { key: "LootMultiplier", label: "Global Loot", type: "slider", min: 0.1, max: 10, step: 0.1 },
-      { key: "ItemSpawningMultiplier", label: "Item Spawning", type: "slider", min: 0.1, max: 10, step: 0.1 },
-      { key: "WeaponLootMultiplier", label: "Weapons", type: "slider", min: 0.1, max: 10, step: 0.1 },
-      { key: "AmmoLootMultiplier", label: "Ammo", type: "slider", min: 0.1, max: 10, step: 0.1 },
-      { key: "MedicineLootMultiplier", label: "Medicine", type: "slider", min: 0.1, max: 10, step: 0.1 },
-      { key: "FoodLootMultiplier", label: "Food", type: "slider", min: 0.1, max: 10, step: 0.1 },
-      { key: "ClothingLootMultiplier", label: "Clothing", type: "slider", min: 0.1, max: 10, step: 0.1 },
-    ],
-  },
-  {
-    key: "vehicles",
-    labelKey: "cat_vehicles",
-    icon: "Car",
-    fields: [
-      { key: "VehiclesEnabled", label: "Vehicles Enabled", type: "toggle" },
-      { key: "VehicleSpawnMultiplier", label: "Spawn Rate", type: "slider", min: 0.1, max: 10, step: 0.1 },
-      { key: "VehicleDurabilityMultiplier", label: "Durability", type: "slider", min: 0.1, max: 10, step: 0.1 },
-      { key: "FuelConsumptionMultiplier", label: "Fuel Consumption", type: "slider", min: 0.1, max: 5, step: 0.1 },
-      { key: "AllowVehicleStealing", label: "Allow Stealing", type: "toggle" },
-    ],
-  },
-  {
-    key: "raid_protection",
-    labelKey: "cat_raid_protection",
-    icon: "ShieldAlert",
-    fields: [
-      { key: "BaseRaidingEnabled", label: "Base Raiding Enabled", type: "toggle" },
-      { key: "BaseRaidTimesStart", label: "Raid Start (HH:MM)", type: "text" },
-      { key: "BaseRaidTimesEnd", label: "Raid End (HH:MM)", type: "text" },
-      { key: "BaseDamageMultiplier", label: "Base Damage", type: "slider", min: 0, max: 5, step: 0.1 },
-      { key: "LockpickingEnabled", label: "Lockpicking Enabled", type: "toggle" },
-    ],
-  },
-  {
-    key: "squads",
-    labelKey: "cat_squads",
-    icon: "Users",
-    fields: [
-      { key: "SquadsEnabled", label: "Squads Enabled", type: "toggle" },
-      { key: "SquadMaxSize", label: "Max Squad Size", type: "number", min: 1, max: 32 },
-      { key: "AllowSquadChat", label: "Squad Chat", type: "toggle" },
-      { key: "FriendlyFire", label: "Friendly Fire", type: "toggle" },
-    ],
-  },
-  {
-    key: "weapons",
-    labelKey: "cat_weapons",
-    icon: "Crosshair",
-    fields: [
-      { key: "WeaponDurabilityMultiplier", label: "Durability", type: "slider", min: 0.1, max: 10, step: 0.1 },
-      { key: "AmmoDamageMultiplier", label: "Ammo Damage", type: "slider", min: 0.1, max: 10, step: 0.1 },
-      { key: "RecoilMultiplier", label: "Recoil", type: "slider", min: 0, max: 5, step: 0.1 },
-      { key: "SwayMultiplier", label: "Sway", type: "slider", min: 0, max: 5, step: 0.1 },
-    ],
-  },
-  {
-    key: "zombies_puppets",
-    labelKey: "cat_zombies_puppets",
-    icon: "Skull",
-    fields: [
-      { key: "PuppetsEnabled", label: "Puppets Enabled", type: "toggle" },
-      { key: "PuppetSpawnMultiplier", label: "Spawn Rate", type: "slider", min: 0, max: 10, step: 0.1 },
-      { key: "PuppetDamageMultiplier", label: "Damage", type: "slider", min: 0.1, max: 10, step: 0.1 },
-      { key: "PuppetSenseMultiplier", label: "Senses", type: "slider", min: 0.1, max: 10, step: 0.1 },
-      { key: "PuppetsRunAtNight", label: "Run at Night", type: "toggle" },
-    ],
-  },
-  {
-    key: "players",
-    labelKey: "cat_players",
-    icon: "User",
-    fields: [
-      { key: "PlayerDamageMultiplier", label: "Damage Received", type: "slider", min: 0.1, max: 10, step: 0.1 },
-      { key: "StaminaMultiplier", label: "Stamina", type: "slider", min: 0.1, max: 10, step: 0.1 },
-      { key: "HungerMultiplier", label: "Hunger Rate", type: "slider", min: 0.1, max: 10, step: 0.1 },
-      { key: "ThirstMultiplier", label: "Thirst Rate", type: "slider", min: 0.1, max: 10, step: 0.1 },
-      { key: "StartingFameOnRespawn", label: "Starting Fame on Respawn", type: "number" },
-      { key: "AllowCharacterCreation", label: "Allow Character Creation", type: "toggle" },
-    ],
-  },
-  {
-    key: "network",
-    labelKey: "cat_network",
-    icon: "Network",
-    fields: [
-      { key: "EnableBattlEye", label: "BattlEye Anti-Cheat", type: "toggle" },
-      { key: "EnableRcon", label: "Enable RCON", type: "toggle" },
-      { key: "RconPort", label: "RCON Port", type: "number" },
-      { key: "RconPassword", label: "RCON Password", type: "password" },
-      { key: "EnableAutomaticBackups", label: "Automatic Backups", type: "toggle" },
-      { key: "BackupIntervalMinutes", label: "Backup Interval (min)", type: "number", min: 5 },
-      { key: "BackupsToKeep", label: "Backups to Keep", type: "number", min: 1 },
-    ],
-  },
-  {
-    key: "custom_ini",
-    labelKey: "cat_custom_ini",
-    icon: "FileCode",
-    fields: [
-      { key: "ExtraServerSettings", label: "ServerSettings.ini Extras", type: "textarea", rows: 6 },
-      { key: "ExtraGameSettings", label: "Game.ini Extras", type: "textarea", rows: 6 },
-      { key: "ExtraEngineSettings", label: "Engine.ini Extras", type: "textarea", rows: 6 },
-    ],
-  },
-  {
-    key: "users_admins",
-    labelKey: "cat_users_admins",
-    icon: "ShieldUser",
-    renderer: "user_list",
-    exportKey: "admins",
-    commonFlags: ["godmode", "moderator", "ghost", "muted_listener", "commentator"],
-  },
-  {
-    key: "users_banned",
-    labelKey: "cat_users_banned",
-    icon: "UserX",
-    renderer: "user_list",
-    exportKey: "banned",
-    commonFlags: ["permanent"],
-  },
-  {
-    key: "users_exclusive",
-    labelKey: "cat_users_exclusive",
-    icon: "UserCheck",
-    renderer: "user_list",
-    exportKey: "exclusive",
-    commonFlags: ["vip"],
-  },
-  {
-    key: "economy_override",
-    labelKey: "cat_economy_override",
-    icon: "Banknote",
-    exportKey: "economy",
-    fields: [
-      { key: "economy-reset-time-hours", label: "Economy Reset Time (h)", type: "text" },
-      { key: "prices-randomization-time-hours", label: "Prices Randomization (h)", type: "text" },
-      { key: "tradeable-rotation-time-ingame-hours-min", label: "Rotation Min (ingame h)", type: "text" },
-      { key: "tradeable-rotation-time-ingame-hours-max", label: "Rotation Max (ingame h)", type: "text" },
-      { key: "tradeable-rotation-time-of-day-min", label: "Rotation Time of Day Min", type: "text" },
-      { key: "tradeable-rotation-time-of-day-max", label: "Rotation Time of Day Max", type: "text" },
-      { key: "fully-restock-tradeable-hours", label: "Fully Restock (h)", type: "text" },
-      { key: "trader-funds-change-rate-per-hour-multiplier", label: "Funds Change Rate Mult", type: "text" },
-      { key: "prices-subject-to-player-count", label: "Prices ~ Player Count (0/1)", type: "text" },
-      { key: "gold-price-subject-to-global-multiplier", label: "Gold Price ~ Global Mult (0/1)", type: "text" },
-      { key: "gold-base-price", label: "Gold Base Price", type: "text" },
-      { key: "gold-sale-price-modifier", label: "Gold Sale Price Modifier", type: "text" },
-      { key: "gold-price-change-percentage-step", label: "Gold Price Change % Step", type: "text" },
-      { key: "gold-price-change-per-step", label: "Gold Price Change per Step", type: "text" },
-      { key: "economy-logging", label: "Economy Logging (0/1)", type: "text" },
-      { key: "traders-unlimited-funds", label: "Unlimited Funds (0/1)", type: "text" },
-      { key: "traders-unlimited-stock", label: "Unlimited Stock (0/1)", type: "text" },
-      { key: "global-only-after-player-sale-tradeable-availability-enabled", label: "After-Sale Availability (0/1)", type: "text" },
-      { key: "tradeable-rotation-enabled", label: "Rotation Enabled (0/1)", type: "text" },
-      { key: "enable-fame-point-requirement", label: "Fame Point Requirement (0/1)", type: "text" },
-    ],
-  },
-  {
-    key: "client_game",
-    labelKey: "cat_client_game",
-    icon: "Gamepad2",
-    exportKey: "gameusersettings",
-    fields: [
-      { key: "scum.Language", label: "Language", type: "number" },
-      { key: "scum.NudityCensoring", label: "Nudity Censoring", type: "toggle" },
-      { key: "scum.PINCensoring", label: "PIN Censoring", type: "toggle" },
-      { key: "scum.ShowSimpleTooltipOnHover", label: "Simple Tooltip On Hover", type: "toggle" },
-      { key: "scum.ShowAdditionalItemInfoWithoutHover", label: "Show Item Info w/o Hover", type: "toggle" },
-      { key: "scum.EnableDeena", label: "Enable Deena", type: "toggle" },
-      { key: "scum.AutoStartFirstDeenaTask", label: "Auto Start First Deena Task", type: "toggle" },
-      { key: "scum.SurvivalTipLevel", label: "Survival Tip Level", type: "number" },
-      { key: "scum.ShowAnnouncementMessages", label: "Show Announcements", type: "toggle" },
-      { key: "scum.EnableAirplaneFlightAssist", label: "Airplane Flight Assist", type: "toggle" },
-      { key: "scum.NametagMode", label: "Nametag Mode", type: "number" },
-      { key: "scum.AimDownSightsMode", label: "ADS Mode", type: "toggle" },
-      { key: "scum.AutomaticParachuteOpening", label: "Auto Parachute Open", type: "toggle" },
-    ],
-  },
-  {
-    key: "client_mouse",
-    labelKey: "cat_client_mouse",
-    icon: "Mouse",
-    fields: [
-      { key: "scum.InvertMouseY", label: "Invert Mouse Y", type: "toggle" },
-      { key: "scum.InvertAirplaneMouseY", label: "Invert Airplane Y", type: "toggle" },
-      { key: "scum.MouseSensitivityFP", label: "FP Sensitivity", type: "slider", min: 1, max: 100, step: 1 },
-      { key: "scum.MouseSensitivityTP", label: "TP Sensitivity", type: "slider", min: 1, max: 100, step: 1 },
-      { key: "scum.MouseSensitivityDTS", label: "DTS Sensitivity", type: "slider", min: 1, max: 100, step: 1 },
-      { key: "scum.MouseSensitivityScope", label: "Scope Sensitivity", type: "slider", min: 1, max: 100, step: 1 },
-      { key: "scum.MouseSensitivityLockpicking", label: "Lockpicking Sensitivity", type: "slider", min: 1, max: 100, step: 1 },
-      { key: "scum.MouseSensitivityDrone", label: "Drone Sensitivity", type: "slider", min: 1, max: 100, step: 1 },
-    ],
-  },
-  {
-    key: "client_video",
-    labelKey: "cat_client_video",
-    icon: "Monitor",
-    fields: [
-      { key: "scum.Gamma", label: "Gamma", type: "slider", min: 1, max: 4, step: 0.1 },
-      { key: "scum.FirstPersonFOV", label: "First Person FOV", type: "slider", min: 60, max: 120, step: 1 },
-      { key: "scum.ThirdPersonFOV", label: "Third Person FOV", type: "slider", min: 60, max: 120, step: 1 },
-      { key: "scum.FirstPersonDrivingFOV", label: "FP Driving FOV", type: "slider", min: 60, max: 120, step: 1 },
-      { key: "scum.ThirdPersonDrivingFOV", label: "TP Driving FOV", type: "slider", min: 60, max: 120, step: 1 },
-      { key: "scum.CameraBobbingIntensity", label: "Camera Bobbing", type: "slider", min: 0, max: 1, step: 0.05 },
-    ],
-  },
-  {
-    key: "client_graphics",
-    labelKey: "cat_client_graphics",
-    icon: "Layers",
-    fields: [
-      { key: "scum.RenderScale", label: "Render Scale", type: "slider", min: 0.5, max: 2, step: 0.05 },
-      { key: "scum.DLSSSuperResolution", label: "DLSS Super Resolution", type: "number" },
-      { key: "scum.DLSSFrameGeneration", label: "DLSS Frame Gen", type: "number" },
-      { key: "scum.Reflex", label: "NVIDIA Reflex", type: "number" },
-      { key: "scum.FSR", label: "AMD FSR", type: "number" },
-      { key: "scum.ShadowQuality", label: "Shadow Quality", type: "number" },
-      { key: "scum.PostProcessingQuality", label: "PostProcess Quality", type: "number" },
-      { key: "scum.EffectsQuality", label: "Effects Quality", type: "number" },
-      { key: "scum.TextureQuality", label: "Texture Quality", type: "number" },
-      { key: "scum.ViewDistance", label: "View Distance", type: "number" },
-      { key: "scum.FoliageQuality", label: "Foliage Quality", type: "number" },
-      { key: "scum.FogQuality", label: "Fog Quality", type: "number" },
-      { key: "scum.MotionBlur", label: "Motion Blur", type: "number" },
-      { key: "scum.FilmGrain", label: "Film Grain", type: "toggle" },
-      { key: "scum.CloudsQuality", label: "Clouds Quality", type: "number" },
-    ],
-  },
-  {
-    key: "client_sound",
-    labelKey: "cat_client_sound",
-    icon: "Volume2",
-    fields: [
-      { key: "scum.MasterVolume", label: "Master Volume", type: "slider", min: 0, max: 100, step: 1 },
-      { key: "scum.MusicVolume", label: "Music Volume", type: "slider", min: 0, max: 100, step: 1 },
-      { key: "scum.EffectsVolume", label: "Effects Volume", type: "slider", min: 0, max: 100, step: 1 },
-      { key: "scum.UIVolume", label: "UI Volume", type: "slider", min: 0, max: 100, step: 1 },
-      { key: "scum.VoiceChatVolume", label: "Voice Chat Volume", type: "slider", min: 0, max: 100, step: 1 },
-      { key: "scum.VoicelineVolume", label: "Voiceline Volume", type: "slider", min: 0, max: 100, step: 1 },
-      { key: "scum.SpeakerConfiguration", label: "Speaker Config", type: "number" },
-      { key: "scum.RadioMode", label: "Radio Mode", type: "number" },
-      { key: "scum.PushToTalk", label: "Push To Talk", type: "toggle" },
-      { key: "scum.Enable3DAudio", label: "3D Audio", type: "toggle" },
-      { key: "scum.CardiophobiaMode", label: "Cardiophobia Mode", type: "toggle" },
-    ],
-  },
-];
+// Settings schema is loaded dynamically from backend /api/settings/schema.
+// This file provides the client-side helpers for field type detection + label humanization.
+
+// Remove leading "scum." and convert CamelCase/kebab-case to readable label.
+export const humanizeKey = (key) => {
+  let s = String(key).replace(/^scum\./, "");
+  s = s.replace(/[-_]/g, " ");
+  s = s.replace(/([a-z])([A-Z])/g, "$1 $2");
+  s = s.replace(/\s+/g, " ").trim();
+  return s.replace(/\b\w/g, (c) => c.toUpperCase());
+};
+
+// Detect an appropriate input type from a value.
+export const detectFieldType = (value, key = "") => {
+  if (typeof value === "boolean") return { type: "toggle" };
+  if (typeof value === "number") {
+    const lowerKey = key.toLowerCase();
+    const isMult = lowerKey.includes("multiplier") || lowerKey.endsWith("chance") || lowerKey.includes("scale");
+    if (isMult && value >= 0 && value <= 10) {
+      return { type: "slider", min: 0, max: 10, step: 0.05 };
+    }
+    if (Number.isInteger(value)) return { type: "number", step: 1 };
+    return { type: "number", step: 0.01 };
+  }
+  if (typeof value === "string") {
+    if (/^\d{1,3}:\d{2}(:\d{2})?$/.test(value)) return { type: "text", placeholder: "HH:MM[:SS]" };
+    if (/^-?\d+g$/i.test(value)) return { type: "text", placeholder: "Gold e.g. 1g" };
+    if (value.length > 80) return { type: "textarea" };
+    return { type: "text" };
+  }
+  return { type: "text" };
+};

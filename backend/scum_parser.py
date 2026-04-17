@@ -1,0 +1,263 @@
+"""Parses real SCUM config files into the manager's settings model."""
+from __future__ import annotations
+import json
+import re
+from pathlib import Path
+from typing import Any, Dict, List, Tuple
+
+DEFAULTS_DIR = Path(__file__).parent / "scum_defaults"
+
+_BOOL_TRUE = {"true", "yes"}
+_BOOL_FALSE = {"false", "no"}
+
+
+def _coerce_value(raw: str) -> Any:
+    s = raw.strip()
+    if s == "":
+        return ""
+    lower = s.lower()
+    if lower in _BOOL_TRUE:
+        return True
+    if lower in _BOOL_FALSE:
+        return False
+    # time-like "HH:MM:SS" — keep as string
+    if re.fullmatch(r"\d{1,3}:\d{2}(:\d{2})?", s):
+        return s
+    # price with suffix (e.g. "1g", "2g")
+    if re.fullmatch(r"-?\d+g", s, flags=re.IGNORECASE):
+        return s
+    # float
+    try:
+        if "." in s:
+            return float(s)
+    except ValueError:
+        pass
+    # integer
+    try:
+        return int(s)
+    except ValueError:
+        pass
+    return s
+
+
+def parse_ini_sections(path: Path) -> Dict[str, Dict[str, Any]]:
+    """Parse a simple [Section]\nkey=value INI file (no repeats per key)."""
+    sections: Dict[str, Dict[str, Any]] = {}
+    current: str | None = None
+    with path.open("r", encoding="utf-8", errors="replace") as f:
+        for raw in f:
+            line = raw.strip()
+            if not line or line.startswith((";", "#")):
+                continue
+            if line.startswith("[") and line.endswith("]"):
+                current = line[1:-1]
+                sections.setdefault(current, {})
+                continue
+            if current is None:
+                continue
+            if "=" not in line:
+                continue
+            key, _, val = line.partition("=")
+            sections[current][key.strip()] = _coerce_value(val)
+    return sections
+
+
+def parse_input_ini(path: Path) -> Dict[str, List[str]]:
+    """Input.ini has repeated AxisMappings=... and ActionMappings=... lines. Store as list."""
+    axis: List[str] = []
+    action: List[str] = []
+    with path.open("r", encoding="utf-8", errors="replace") as f:
+        for raw in f:
+            line = raw.strip()
+            if line.startswith("AxisMappings="):
+                axis.append(line[len("AxisMappings="):])
+            elif line.startswith("ActionMappings="):
+                action.append(line[len("ActionMappings="):])
+    return {"AxisMappings": axis, "ActionMappings": action}
+
+
+def parse_user_list_file(path: Path) -> List[Dict[str, Any]]:
+    entries: List[Dict[str, Any]] = []
+    if not path.exists():
+        return entries
+    with path.open("r", encoding="utf-8", errors="replace") as f:
+        for raw in f:
+            line = raw.strip()
+            if not line or line.startswith("#"):
+                continue
+            flags: List[str] = []
+            sid = line
+            if "[" in line and line.endswith("]"):
+                sid, rest = line.split("[", 1)
+                flags = [f.strip() for f in rest[:-1].split(",") if f.strip()]
+            entries.append({"steam_id": sid.strip(), "flags": flags, "note": ""})
+    return entries
+
+
+def load_defaults() -> Dict[str, Any]:
+    """Build the default server-profile settings dict from the real SCUM files."""
+    server_settings_path = DEFAULTS_DIR / "ServerSettings.ini"
+    gameuser_path = DEFAULTS_DIR / "GameUserSettings.ini"
+    input_path = DEFAULTS_DIR / "Input.ini"
+    economy_path = DEFAULTS_DIR / "EconomyOverride.json"
+    raid_path = DEFAULTS_DIR / "RaidTimes.json"
+    notif_path = DEFAULTS_DIR / "Notifications.json"
+    admins_path = DEFAULTS_DIR / "AdminUsers.ini"
+    banned_path = DEFAULTS_DIR / "BannedUsers.ini"
+    exclusive_path = DEFAULTS_DIR / "ExclusiveUsers.ini"
+
+    server_sections = parse_ini_sections(server_settings_path) if server_settings_path.exists() else {}
+    gameuser_sections = parse_ini_sections(gameuser_path) if gameuser_path.exists() else {}
+    input_data = parse_input_ini(input_path) if input_path.exists() else {"AxisMappings": [], "ActionMappings": []}
+
+    economy = {}
+    if economy_path.exists():
+        with economy_path.open("r", encoding="utf-8", errors="replace") as f:
+            economy = json.load(f).get("economy-override", {})
+    economy_flat = {k: v for k, v in economy.items() if not isinstance(v, (dict, list))}
+    traders = economy.get("traders", {}) if isinstance(economy.get("traders"), dict) else {}
+
+    raid_times: List[Dict[str, Any]] = []
+    if raid_path.exists():
+        with raid_path.open("r", encoding="utf-8", errors="replace") as f:
+            raid_times = json.load(f).get("raiding-times", [])
+
+    notifications: List[Dict[str, Any]] = []
+    if notif_path.exists():
+        with notif_path.open("r", encoding="utf-8", errors="replace") as f:
+            notifications = json.load(f).get("Notifications", [])
+
+    return {
+        # Real ServerSettings.ini sections
+        "srv_general": server_sections.get("General", {}),
+        "srv_world": server_sections.get("World", {}),
+        "srv_respawn": server_sections.get("Respawn", {}),
+        "srv_vehicles": server_sections.get("Vehicles", {}),
+        "srv_damage": server_sections.get("Damage", {}),
+        "srv_features": server_sections.get("Features", {}),
+        # Users
+        "users_admins": parse_user_list_file(admins_path),
+        "users_banned": parse_user_list_file(banned_path),
+        "users_exclusive": parse_user_list_file(exclusive_path),
+        # Economy
+        "economy_override": economy_flat,
+        "economy_traders": traders,
+        # Client GameUserSettings
+        "client_game": gameuser_sections.get("Game", {}),
+        "client_mouse": gameuser_sections.get("Mouse", {}),
+        "client_video": gameuser_sections.get("Video", {}),
+        "client_graphics": gameuser_sections.get("Graphics", {}),
+        "client_sound": gameuser_sections.get("Sound", {}),
+        # Raid times / Notifications
+        "raid_times": raid_times,
+        "notifications": notifications,
+        # Input mappings (raw)
+        "input_axis": input_data.get("AxisMappings", []),
+        "input_action": input_data.get("ActionMappings", []),
+        # Free-form INI
+        "custom_ini": {
+            "ExtraServerSettings": "",
+            "ExtraGameSettings": "",
+            "ExtraEngineSettings": "",
+        },
+    }
+
+
+# ---------- EXPORT HELPERS ----------
+def _fmt_value(v: Any) -> str:
+    if isinstance(v, bool):
+        return "True" if v else "False"
+    if isinstance(v, float):
+        return f"{v:.6f}"
+    return str(v)
+
+
+def render_server_settings_ini(settings: Dict[str, Any]) -> str:
+    """Render the 6 server sections back into ServerSettings.ini."""
+    sections = [
+        ("General", settings.get("srv_general", {})),
+        ("World", settings.get("srv_world", {})),
+        ("Respawn", settings.get("srv_respawn", {})),
+        ("Vehicles", settings.get("srv_vehicles", {})),
+        ("Damage", settings.get("srv_damage", {})),
+        ("Features", settings.get("srv_features", {})),
+    ]
+    lines: List[str] = []
+    for name, kv in sections:
+        lines.append(f"[{name}]")
+        for k, v in kv.items():
+            lines.append(f"{k}={_fmt_value(v)}")
+        lines.append("")
+    return "\n".join(lines)
+
+
+def render_gameusersettings_ini(settings: Dict[str, Any]) -> str:
+    sections = [
+        ("Game", settings.get("client_game", {})),
+        ("Mouse", settings.get("client_mouse", {})),
+        ("Video", settings.get("client_video", {})),
+        ("Graphics", settings.get("client_graphics", {})),
+        ("Sound", settings.get("client_sound", {})),
+    ]
+    lines: List[str] = []
+    for name, kv in sections:
+        lines.append(f"[{name}]")
+        for k, v in kv.items():
+            lines.append(f"{k}={_fmt_value(v)}")
+        lines.append("")
+    return "\n".join(lines)
+
+
+def render_input_ini(settings: Dict[str, Any]) -> str:
+    lines = ["[/Script/Engine.InputSettings]"]
+    for m in settings.get("input_axis", []):
+        lines.append(f"AxisMappings={m}")
+    for m in settings.get("input_action", []):
+        lines.append(f"ActionMappings={m}")
+    lines.append("")
+    return "\n".join(lines)
+
+
+def render_raid_times_json(settings: Dict[str, Any]) -> str:
+    return json.dumps({"raiding-times": settings.get("raid_times", [])}, indent=2)
+
+
+def render_notifications_json(settings: Dict[str, Any]) -> str:
+    return json.dumps({"Notifications": settings.get("notifications", [])}, indent=2)
+
+
+def render_economy_json(settings: Dict[str, Any]) -> str:
+    data = dict(settings.get("economy_override", {}))
+    traders = settings.get("economy_traders", {})
+    if traders:
+        data["traders"] = traders
+    return json.dumps({"economy-override": data}, indent=2)
+
+
+def render_user_list(entries: List[Dict[str, Any]]) -> str:
+    lines: List[str] = []
+    for e in entries:
+        sid = str(e.get("steam_id", "")).strip()
+        if not sid:
+            continue
+        flags = [f for f in e.get("flags", []) if f]
+        if flags:
+            lines.append(f"{sid}[{','.join(flags)}]")
+        else:
+            lines.append(sid)
+    return "\n".join(lines) + ("\n" if lines else "")
+
+
+def parse_user_list_text(text: str) -> List[Dict[str, Any]]:
+    entries: List[Dict[str, Any]] = []
+    for raw in text.splitlines():
+        line = raw.strip()
+        if not line or line.startswith(("#", ";")):
+            continue
+        flags: List[str] = []
+        sid = line
+        if "[" in line and line.endswith("]"):
+            sid, rest = line.split("[", 1)
+            flags = [f.strip() for f in rest[:-1].split(",") if f.strip()]
+        entries.append({"steam_id": sid.strip(), "flags": flags, "note": ""})
+    return entries

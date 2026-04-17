@@ -18,16 +18,19 @@ const Shell = () => {
   const [setup, setSetup] = useState(null);
   const [servers, setServers] = useState([]);
   const [activeId, setActiveId] = useState(null);
+  const [schema, setSchema] = useState(null);
 
   const load = useCallback(async () => {
-    const [adminRes, setupRes, serverList] = await Promise.all([
+    const [adminRes, setupRes, serverList, schemaRes] = await Promise.all([
       endpoints.adminCheck().catch(() => ({ is_admin: false })),
       endpoints.getSetup(),
       endpoints.listServers(),
+      endpoints.getSchema().catch(() => null),
     ]);
     setIsAdmin(adminRes.is_admin);
     setSetup(setupRes);
     setServers(serverList);
+    setSchema(schemaRes);
     if (!setupRes.is_admin_confirmed) {
       setPhase("admin");
     } else if (!setupRes.completed) {
@@ -117,7 +120,7 @@ const Shell = () => {
       <div className="flex-1 flex overflow-hidden">
         <Sidebar servers={servers} activeId={activeId} onSelect={setActiveId} onAdd={handleAddServer} managerPath={setup?.manager_path} />
         {active ? (
-          <ServerDashboard server={active} onChange={handleServerChange} onDelete={handleDelete} />
+          <ServerDashboard server={active} schema={schema} onChange={handleServerChange} onDelete={handleDelete} />
         ) : (
           <EmptyWorkspace onAdd={handleAddServer} />
         )}

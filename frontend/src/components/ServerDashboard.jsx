@@ -18,9 +18,12 @@ const STATUS_STYLES = {
 };
 
 const SECTION_ICONS = {
-  server: "Server",
-  users: "Users",
+  essentials: "Zap",
+  gameplay: "Gamepad",
+  world: "Globe",
   economy: "Banknote",
+  security: "Shield",
+  users: "Users",
   advanced: "Wrench",
   client: "Monitor",
 };
@@ -123,13 +126,14 @@ export const ServerDashboard = ({ server, schema, onChange, onDelete }) => {
   const visibleCategories = (schema?.categories || []).filter((c) => c.section === activeSection);
 
   const renderCategoryBody = (cat) => {
-    const value = draft[cat.key];
+    const sourceKey = cat.sourceKey || cat.key;
+    const value = draft[sourceKey];
     switch (cat.renderer) {
       case "user_list":
         return (
           <UserList
             users={value || []}
-            onChange={(list) => setCategory(cat.key, list)}
+            onChange={(list) => setCategory(sourceKey, list)}
             commonFlags={cat.commonFlags || []}
             exportKey={cat.exportKey}
             serverId={server.id}
@@ -137,11 +141,11 @@ export const ServerDashboard = ({ server, schema, onChange, onDelete }) => {
           />
         );
       case "raid_times":
-        return <RaidTimesEditor entries={value || []} onChange={(list) => setCategory(cat.key, list)} testId={`editor-${cat.key}`} />;
+        return <RaidTimesEditor entries={value || []} onChange={(list) => setCategory(sourceKey, list)} testId={`editor-${cat.key}`} />;
       case "notifications":
-        return <NotificationsEditor entries={value || []} onChange={(list) => setCategory(cat.key, list)} testId={`editor-${cat.key}`} />;
+        return <NotificationsEditor entries={value || []} onChange={(list) => setCategory(sourceKey, list)} testId={`editor-${cat.key}`} />;
       case "traders":
-        return <TradersEditor traders={value || {}} onChange={(obj) => setCategory(cat.key, obj)} testId={`editor-${cat.key}`} />;
+        return <TradersEditor traders={value || {}} onChange={(obj) => setCategory(sourceKey, obj)} testId={`editor-${cat.key}`} />;
       case "input":
         return (
           <InputEditor
@@ -159,7 +163,8 @@ export const ServerDashboard = ({ server, schema, onChange, onDelete }) => {
         return (
           <DynamicFields
             values={value || {}}
-            onFieldChange={(k, v) => setCategory(cat.key, { ...(value || {}), [k]: v })}
+            fieldKeys={cat.fieldKeys}
+            onFieldChange={(k, v) => setCategory(sourceKey, { ...(value || {}), [k]: v })}
             testIdPrefix={`field-${cat.key}`}
           />
         );

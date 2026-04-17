@@ -5,10 +5,10 @@ import { useI18n } from "../providers/I18nProvider";
 import { endpoints } from "../lib/api";
 
 const themeLabels = {
-  wasteland: "theme_wasteland",
-  cyber_neon: "theme_cyber_neon",
   obsidian: "theme_obsidian",
-  amber_crt: "theme_amber_crt",
+  midnight_ops: "theme_midnight_ops",
+  forest_camo: "theme_forest_camo",
+  blood_moon: "theme_blood_moon",
 };
 
 const Popover = ({ open, onClose, children }) => {

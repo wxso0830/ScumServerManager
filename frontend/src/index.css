@@ -10,48 +10,6 @@
 }
 
 /* ========== THEMES ========== */
-[data-theme="wasteland"] {
-  --bg: #141512;
-  --surface: #1E201C;
-  --surface-2: #262922;
-  --glass: rgba(30, 32, 28, 0.75);
-  --primary: #D84315;
-  --primary-hover: #F4511E;
-  --primary-active: #BF360C;
-  --primary-soft: rgba(216, 67, 21, 0.12);
-  --border: #2E312B;
-  --border-strong: #3A3E36;
-  --border-focus: #D84315;
-  --text: #ECEEED;
-  --text-dim: #8A9386;
-  --success: #388E3C;
-  --danger: #D32F2F;
-  --warning: #FBC02D;
-  --info: #0288D1;
-  --bg-image: url('https://static.prod-images.emergentagent.com/jobs/b02552c4-61f7-46f2-90f9-fcfca152dad4/images/15b5596d6e972bb906d853bf773dd021991deed07b5b5db990bfbf2654eb174b.png');
-}
-
-[data-theme="cyber_neon"] {
-  --bg: #050510;
-  --surface: #0B0C1D;
-  --surface-2: #121433;
-  --glass: rgba(11, 12, 29, 0.85);
-  --primary: #CCFF00;
-  --primary-hover: #D4FF33;
-  --primary-active: #A3CC00;
-  --primary-soft: rgba(204, 255, 0, 0.1);
-  --border: #1A1D40;
-  --border-strong: #272A55;
-  --border-focus: #CCFF00;
-  --text: #F2F2F7;
-  --text-dim: #7D82B8;
-  --success: #00FF66;
-  --danger: #FF0055;
-  --warning: #FFB800;
-  --info: #00E5FF;
-  --bg-image: url('https://static.prod-images.emergentagent.com/jobs/b02552c4-61f7-46f2-90f9-fcfca152dad4/images/e13a784e997707255a2c7fdf657a4a357dc91d1ddfc447ff046d8a9277b072f3.png');
-}
-
 [data-theme="obsidian"] {
   --bg: #0A0A0A;
   --surface: #121212;
@@ -73,25 +31,70 @@
   --bg-image: url('https://static.prod-images.emergentagent.com/jobs/b02552c4-61f7-46f2-90f9-fcfca152dad4/images/c7756be6de962358e9ebb4662ea647ffa430fa65681a028d72cd08ab4b8138cd.png');
 }
 
-[data-theme="amber_crt"] {
-  --bg: #1A150D;
-  --surface: #261D12;
-  --surface-2: #33261A;
-  --glass: rgba(38, 29, 18, 0.85);
-  --primary: #FFB000;
-  --primary-hover: #FFC133;
-  --primary-active: #E69E00;
-  --primary-soft: rgba(255, 176, 0, 0.12);
-  --border: #4D361A;
-  --border-strong: #5F4422;
-  --border-focus: #FFB000;
-  --text: #FFE6B3;
-  --text-dim: #CC8D00;
-  --success: #A3E635;
-  --danger: #EF4444;
-  --warning: #F59E0B;
-  --info: #38BDF8;
-  --bg-image: url('https://static.prod-images.emergentagent.com/jobs/b02552c4-61f7-46f2-90f9-fcfca152dad4/images/81a443adf51619e0f11d9bab31b4f7e3a6f8eb0d65214948f6e51495246febcb.png');
+/* Midnight Ops — tactical dark blue, SCUM military feel */
+[data-theme="midnight_ops"] {
+  --bg: #07101A;
+  --surface: #0D1B2A;
+  --surface-2: #15263A;
+  --glass: rgba(13, 27, 42, 0.85);
+  --primary: #4CC9F0;
+  --primary-hover: #76D5F5;
+  --primary-active: #2AA8D0;
+  --primary-soft: rgba(76, 201, 240, 0.12);
+  --border: #1E3A52;
+  --border-strong: #2A4B68;
+  --border-focus: #4CC9F0;
+  --text: #EAF6FC;
+  --text-dim: #7BA6BF;
+  --success: #5EEAD4;
+  --danger: #F87171;
+  --warning: #FACC15;
+  --info: #60A5FA;
+  --bg-image: none;
+}
+
+/* Forest Camo — olive/khaki, survival military */
+[data-theme="forest_camo"] {
+  --bg: #10140C;
+  --surface: #1A1F13;
+  --surface-2: #242B1A;
+  --glass: rgba(26, 31, 19, 0.85);
+  --primary: #A3B86C;
+  --primary-hover: #B8CE7E;
+  --primary-active: #879B57;
+  --primary-soft: rgba(163, 184, 108, 0.14);
+  --border: #2F3A23;
+  --border-strong: #3F4C30;
+  --border-focus: #A3B86C;
+  --text: #E8EDD5;
+  --text-dim: #8A9672;
+  --success: #86BE5E;
+  --danger: #D96A5A;
+  --warning: #D9B64B;
+  --info: #6FA4B2;
+  --bg-image: none;
+}
+
+/* Blood Moon — dark red + gold, gritty and intense */
+[data-theme="blood_moon"] {
+  --bg: #0F0608;
+  --surface: #1A0B0F;
+  --surface-2: #261218;
+  --glass: rgba(26, 11, 15, 0.85);
+  --primary: #E63946;
+  --primary-hover: #F04F5B;
+  --primary-active: #C52E3B;
+  --primary-soft: rgba(230, 57, 70, 0.14);
+  --border: #3A1A21;
+  --border-strong: #4D232D;
+  --border-focus: #E63946;
+  --text: #F5E9E3;
+  --text-dim: #A08078;
+  --success: #6EB273;
+  --danger: #FF5252;
+  --warning: #F7B32B;
+  --info: #5BADDE;
+  --bg-image: none;
 }
 
 /* Shadcn token bridge */

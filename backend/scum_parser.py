@@ -137,8 +137,11 @@ def load_defaults() -> Dict[str, Any]:
         "srv_features": server_sections.get("Features", {}),
         # Users
         "users_admins": parse_user_list_file(admins_path),
+        "users_server_admins": parse_user_list_file(DEFAULTS_DIR / "ServerSettingsAdminUsers.ini"),
         "users_banned": parse_user_list_file(banned_path),
         "users_exclusive": parse_user_list_file(exclusive_path),
+        "users_whitelisted": parse_user_list_file(DEFAULTS_DIR / "WhitelistedUsers.ini"),
+        "users_silenced": parse_user_list_file(DEFAULTS_DIR / "SilencedUsers.ini"),
         # Economy
         "economy_override": economy_flat,
         "economy_traders": traders,

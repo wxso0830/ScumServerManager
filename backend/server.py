@@ -86,8 +86,29 @@ class ServerProfile(BaseModel):
     installed: bool = False
     steam_app_id: str = "3792580"
     public_ip: Optional[str] = None
+    installed_build_id: Optional[str] = None
+    update_available: bool = False
     created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
     settings: Dict[str, Any] = Field(default_factory=dict)
+    automation: Dict[str, Any] = Field(default_factory=lambda: {
+        "enabled": False,
+        "restart_times": [],          # ["06:00", "12:00", "18:00", "00:00"]
+        "pre_warning_minutes": [15, 10, 5, 4, 3, 2, 1],
+        "final_message_duration": 10,
+        "auto_update_enabled": False,
+        "update_check_interval_min": 360,  # 6 hours default per user preference
+        "bilingual": True,  # write TR+EN like the user's own template
+    })
+
+
+class AutomationUpdate(BaseModel):
+    enabled: Optional[bool] = None
+    restart_times: Optional[List[str]] = None
+    pre_warning_minutes: Optional[List[int]] = None
+    final_message_duration: Optional[int] = None
+    auto_update_enabled: Optional[bool] = None
+    update_check_interval_min: Optional[int] = None
+    bilingual: Optional[bool] = None
 
 
 class ServerCreate(BaseModel):
@@ -342,8 +363,17 @@ async def complete_server_update(server_id: str):
     doc = await db.servers.find_one({"id": server_id}, {"_id": 0})
     if not doc:
         raise HTTPException(status_code=404, detail="Server not found")
-    await db.servers.update_one({"id": server_id}, {"$set": {"status": "Stopped"}})
+    # Pull latest known Steam build and set it as installed
+    meta = await db.app_meta.find_one({"_id": STEAM_LATEST_KEY}, {"_id": 0}) or {}
+    build_id = meta.get("build_id") or doc.get("installed_build_id") or f"build-{int(datetime.now(timezone.utc).timestamp())}"
+    await db.servers.update_one({"id": server_id}, {"$set": {
+        "status": "Stopped",
+        "installed_build_id": build_id,
+        "update_available": False,
+    }})
     doc["status"] = "Stopped"
+    doc["installed_build_id"] = build_id
+    doc["update_available"] = False
     return ServerProfile(**doc)
 
 
@@ -355,10 +385,168 @@ async def install_server(server_id: str):
     doc = await db.servers.find_one({"id": server_id}, {"_id": 0})
     if not doc:
         raise HTTPException(status_code=404, detail="Server not found")
-    await db.servers.update_one({"id": server_id}, {"$set": {"installed": True, "status": "Stopped"}})
+    # Record a pseudo build id for the install (real value comes from Electron/Steam)
+    build_id = f"build-{int(datetime.now(timezone.utc).timestamp())}"
+    await db.servers.update_one({"id": server_id}, {"$set": {
+        "installed": True,
+        "status": "Stopped",
+        "installed_build_id": build_id,
+        "update_available": False,
+    }})
     doc["installed"] = True
     doc["status"] = "Stopped"
+    doc["installed_build_id"] = build_id
+    doc["update_available"] = False
     return ServerProfile(**doc)
+
+
+# ---------- AUTOMATION (auto-restart + auto-update) ----------
+def _fmt_restart_message(minutes_left: int, bilingual: bool) -> str:
+    """Build a bilingual TR+EN restart warning matching the user's template."""
+    if minutes_left == 1:
+        tr = "1 dakika sonra otomatik olarak yeniden başlatılacaktır. (Klavyeyi bırakın)"
+        en = "It will automatically restart after 1 minutes. (Release the keyboard)"
+    elif minutes_left == 0:
+        tr = "1 DAKİKA SONRA GÖRÜŞÜRÜZ"
+        en = "SEE YOU IN 1 MINUTE"
+    else:
+        tr = f"Otomatik yeniden başlatmaya {minutes_left} dakika kaldı."
+        en = f"{minutes_left} minutes remaining until automatic restart."
+    if bilingual:
+        return f"{tr}   /   {en}"
+    return tr
+
+
+def _minus_minutes(hhmm: str, m: int) -> str:
+    """Subtract m minutes from HH:MM and wrap around 24h."""
+    h, mi = [int(x) for x in hhmm.split(":")[:2]]
+    total = (h * 60 + mi - m) % (24 * 60)
+    return f"{total // 60:02d}:{total % 60:02d}"
+
+
+def _generate_notifications_from_schedule(automation: Dict[str, Any]) -> List[Dict[str, Any]]:
+    times: List[str] = [t for t in (automation.get("restart_times") or []) if t]
+    pre: List[int] = sorted(set([int(x) for x in (automation.get("pre_warning_minutes") or [])]), reverse=True)
+    final_dur = int(automation.get("final_message_duration") or 10)
+    bilingual = bool(automation.get("bilingual", True))
+    if not times:
+        return []
+    out: List[Dict[str, Any]] = []
+    for m in pre:
+        stamps = sorted({_minus_minutes(t, m) for t in times})
+        out.append({
+            "day": "Everyday",
+            "time": stamps,
+            "duration": "15",
+            "message": _fmt_restart_message(m, bilingual),
+        })
+    # Final "see you" message at the exact restart time
+    final_times = sorted(set(times))
+    out.append({
+        "day": "Everyday",
+        "time": final_times,
+        "duration": str(final_dur),
+        "message": _fmt_restart_message(0, bilingual),
+    })
+    return out
+
+
+@api_router.put("/servers/{server_id}/automation", response_model=ServerProfile)
+async def update_automation(server_id: str, payload: AutomationUpdate):
+    doc = await db.servers.find_one({"id": server_id}, {"_id": 0})
+    if not doc:
+        raise HTTPException(status_code=404, detail="Server not found")
+    automation = {**(doc.get("automation") or {})}
+    for k, v in payload.model_dump(exclude_none=True).items():
+        automation[k] = v
+    await db.servers.update_one({"id": server_id}, {"$set": {"automation": automation}})
+    doc["automation"] = automation
+    return ServerProfile(**doc)
+
+
+@api_router.post("/servers/{server_id}/automation/generate-notifications", response_model=ServerProfile)
+async def generate_notifications(server_id: str):
+    """Regenerate the Notifications.json entries from the current automation schedule
+    and write them into the server's settings.notifications list. Frontend calls
+    this to sync the schedule with the actual config the game reads."""
+    doc = await db.servers.find_one({"id": server_id}, {"_id": 0})
+    if not doc:
+        raise HTTPException(status_code=404, detail="Server not found")
+    automation = doc.get("automation") or {}
+    generated = _generate_notifications_from_schedule(automation)
+    settings = {**(doc.get("settings") or {})}
+    settings["notifications"] = generated
+    await db.servers.update_one({"id": server_id}, {"$set": {"settings": settings}})
+    doc["settings"] = settings
+    return ServerProfile(**doc)
+
+
+@api_router.post("/servers/{server_id}/post-install", response_model=ServerProfile)
+async def server_post_install(server_id: str):
+    """Called after SteamCMD install finishes. Seeds a helpful default
+    Notifications.json template (2x daily restarts) so new admins have a starting point."""
+    doc = await db.servers.find_one({"id": server_id}, {"_id": 0})
+    if not doc:
+        raise HTTPException(status_code=404, detail="Server not found")
+    settings = {**(doc.get("settings") or {})}
+    if not settings.get("notifications"):
+        # Seed with sane template mirroring the user's own config pattern
+        settings["notifications"] = _generate_notifications_from_schedule({
+            "restart_times": ["06:00", "18:00"],
+            "pre_warning_minutes": [15, 10, 5, 4, 3, 2, 1],
+            "final_message_duration": 10,
+            "bilingual": True,
+        })
+        await db.servers.update_one({"id": server_id}, {"$set": {"settings": settings}})
+        doc["settings"] = settings
+    return ServerProfile(**doc)
+
+
+# ---------- STEAM UPDATE CHECK ----------
+class SteamUpdateInfo(BaseModel):
+    app_id: str
+    latest_build_id: str
+    checked_at: str
+    change_notes: Optional[str] = ""
+
+
+STEAM_APP_ID = "3792580"
+STEAM_LATEST_KEY = "steam-latest-manifest"
+
+
+@api_router.get("/steam/check-update")
+async def steam_check_update():
+    """Check Steam for the latest SCUM server build.
+    In Electron this calls SteamCMD `app_info_print 3792580` for real.
+    In web preview we return a mock value persisted to mongo so UI can exercise the flow."""
+    doc = await db.app_meta.find_one({"_id": STEAM_LATEST_KEY}, {"_id": 0})
+    latest = (doc or {}).get("build_id") or f"build-{int(datetime.now(timezone.utc).timestamp())}"
+    checked_at = datetime.now(timezone.utc).isoformat()
+    # Mark servers whose installed build differs as update_available
+    servers = await db.servers.find({"installed": True}, {"_id": 0}).to_list(500)
+    for s in servers:
+        needs_update = s.get("installed_build_id") and s["installed_build_id"] != latest
+        if needs_update != bool(s.get("update_available")):
+            await db.servers.update_one({"id": s["id"]}, {"$set": {"update_available": needs_update}})
+    return {"app_id": STEAM_APP_ID, "latest_build_id": latest, "checked_at": checked_at, "change_notes": (doc or {}).get("notes", "")}
+
+
+class SteamPublishBuild(BaseModel):
+    build_id: str
+    notes: Optional[str] = ""
+
+
+@api_router.post("/steam/publish-build")
+async def steam_publish_build(payload: SteamPublishBuild):
+    """Admin/simulation endpoint: pretends a new Steam build has been published.
+    Used in web preview to exercise the update-available flow without real SteamCMD."""
+    await db.app_meta.update_one(
+        {"_id": STEAM_LATEST_KEY},
+        {"$set": {"build_id": payload.build_id, "notes": payload.notes, "published_at": datetime.now(timezone.utc).isoformat()}},
+        upsert=True,
+    )
+    await db.servers.update_many({"installed": True, "installed_build_id": {"$ne": payload.build_id}}, {"$set": {"update_available": True}})
+    return {"ok": True, "latest_build_id": payload.build_id}
 
 
 @api_router.post("/servers/{server_id}/save-config")
@@ -534,6 +722,7 @@ async def get_settings_schema():
             {"key": "security", "labelKey": "sec_security"},
             {"key": "users", "labelKey": "sec_users"},
             {"key": "advanced", "labelKey": "sec_advanced"},
+            {"key": "automation", "labelKey": "sec_automation"},
             {"key": "client", "labelKey": "sec_client"},
         ],
         "categories": [
@@ -731,6 +920,10 @@ async def get_settings_schema():
              "renderer": "input", "exportKey": "input"},
             {"key": "advanced_custom_ini", "labelKey": "cat_advanced_custom_ini", "icon": "FileCode", "section": "advanced",
              "renderer": "dynamic", "sourceKey": "custom_ini", "exportKey": None},
+
+            # ------ AUTOMATION ------
+            {"key": "automation_main", "labelKey": "cat_automation_main", "icon": "Clock", "section": "automation",
+             "renderer": "automation"},
 
             # ------ CLIENT DEFAULTS ------
             {"key": "client_game", "labelKey": "cat_client_game", "icon": "Gamepad2", "section": "client",

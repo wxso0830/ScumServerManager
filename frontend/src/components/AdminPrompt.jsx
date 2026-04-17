@@ -23,7 +23,7 @@ export const AdminPrompt = ({ onAccept, onDecline }) => {
           <div className="flex items-center gap-2">
             <Terminal size={14} className="text-accent-brand" />
             <span className="font-mono text-[11px] uppercase tracking-[0.3em] text-accent-brand">
-              {t("admin_prompt_title")}<span className="cursor-blink"></span>
+              {t("admin_prompt_title")}
             </span>
           </div>
           <button onClick={onDecline} className="icon-btn" data-testid="admin-prompt-close" aria-label="close">
@@ -36,12 +36,12 @@ export const AdminPrompt = ({ onAccept, onDecline }) => {
             <ShieldAlert size={30} className="text-accent-brand" />
           </div>
           <div>
-            <div className="label-accent mb-2">PRIVILEGE ESCALATION REQUIRED</div>
+            <div className="label-accent mb-2">{t("admin_prompt_title").toUpperCase()}</div>
             <p className="text-base leading-relaxed text-brand">
               {t("admin_prompt_body")}
             </p>
             <p className="mt-3 font-mono text-[11px] text-muted uppercase tracking-widest">
-              LGSS Managers → SCUM Server Control
+              LGSS Manager → SCUM Server Control
             </p>
           </div>
         </div>

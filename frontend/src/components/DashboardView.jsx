@@ -1,15 +1,19 @@
-import React, { useMemo } from "react";
-import { Plus, ShieldAlert, Server, Play, Square, Activity } from "lucide-react";
+import React, { useMemo, useState } from "react";
+import { Plus, ShieldAlert, Server, Play, Square, Activity, RefreshCw } from "lucide-react";
 import { useI18n } from "../providers/I18nProvider";
 import { toast } from "sonner";
 import { ServerCard } from "./ServerCard";
+import { ConfirmModal } from "./ConfirmModal";
 import { endpoints, api } from "../lib/api";
 
 export const DashboardView = ({ servers, managerPath, onAdd, onOpen, onChange, onDelete, onRefresh }) => {
   const { t } = useI18n();
+  const [confirmDel, setConfirmDel] = useState(null); // server object or null
+  const [checking, setChecking] = useState(false);
 
   const running = useMemo(() => servers.filter((s) => s.status === "Running").length, [servers]);
   const stopped = useMemo(() => servers.filter((s) => s.status !== "Running").length, [servers]);
+  const updatesPending = useMemo(() => servers.filter((s) => s.update_available).length, [servers]);
 
   const handleInstall = async (server) => {
     toast(t("installing"));
@@ -18,7 +22,8 @@ export const DashboardView = ({ servers, managerPath, onAdd, onOpen, onChange, o
         await window.lgss.installServer({ folderPath: server.folder_path, appId: "3792580" });
       }
       const updated = await endpoints.installServer(server.id);
-      onChange(updated);
+      const seeded = await endpoints.postInstall(updated.id).catch(() => updated);
+      onChange(seeded);
       toast.success(t("install_complete"));
     } catch (e) { toast.error(String(e.message || e)); }
   };
@@ -53,8 +58,19 @@ export const DashboardView = ({ servers, managerPath, onAdd, onOpen, onChange, o
     } catch (e) { toast.error(String(e.message || e)); }
   };
 
-  const confirmDelete = (id) => {
-    if (window.confirm(t("delete_server_confirm"))) onDelete(id);
+  const requestDelete = (id) => {
+    const server = servers.find((s) => s.id === id);
+    if (server) setConfirmDel(server);
+  };
+
+  const handleCheckUpdate = async () => {
+    setChecking(true);
+    try {
+      const info = await endpoints.steamCheckUpdate();
+      toast.success(`${t("latest_build")}: ${info.latest_build_id.slice(0, 20)}`);
+      onRefresh?.();
+    } catch (e) { toast.error(String(e.message || e)); }
+    finally { setChecking(false); }
   };
 
   return (
@@ -73,13 +89,24 @@ export const DashboardView = ({ servers, managerPath, onAdd, onOpen, onChange, o
         />
         <div className="relative px-8 py-8 flex items-end justify-between gap-6">
           <div>
-            <div className="label-accent mb-2">{t("nav_fleet")} · COMMAND CENTER</div>
+            <div className="label-accent mb-2">{t("nav_fleet")}</div>
             <h1 className="heading-stencil text-3xl lg:text-4xl">
-              <span className="cursor-blink">{t("nav_dashboard")}</span>
+              {t("nav_dashboard")}
             </h1>
             <p className="text-dim text-sm mt-2 max-w-lg">
               {t("deploy_subtitle")}
             </p>
+            {servers.length > 0 && (
+              <button
+                onClick={handleCheckUpdate}
+                disabled={checking}
+                className="mt-4 btn-ghost flex items-center gap-2"
+                data-testid="dashboard-check-update-btn"
+              >
+                <RefreshCw size={12} className={checking ? "animate-spin" : ""} />
+                {t("check_now")}
+              </button>
+            )}
           </div>
 
           {/* Big stat tiles */}
@@ -138,12 +165,23 @@ export const DashboardView = ({ servers, managerPath, onAdd, onOpen, onChange, o
                 onStop={handleStop}
                 onUpdate={handleUpdate}
                 onInstall={handleInstall}
-                onDelete={confirmDelete}
+                onDelete={requestDelete}
               />
             ))}
           </div>
         </div>
       )}
+
+      <ConfirmModal
+        open={!!confirmDel}
+        title={t("confirm_delete_title")}
+        body={t("confirm_delete_body", { name: confirmDel?.name || "" })}
+        confirmLabel={t("confirm_yes_delete")}
+        cancelLabel={t("cancel")}
+        onCancel={() => setConfirmDel(null)}
+        onConfirm={() => { const id = confirmDel?.id; setConfirmDel(null); if (id) onDelete(id); }}
+        testId="dashboard-delete-modal"
+      />
     </div>
   );
 };
@@ -174,7 +212,7 @@ const EmptyFleet = ({ onAdd, t }) => (
         <span className="cbr-bl" />
         <Server size={36} className="text-accent-brand" />
       </div>
-      <div className="label-accent mb-2">FLEET STATUS: EMPTY</div>
+      <div className="label-accent mb-2">{t("empty_workspace_title").toUpperCase()}</div>
       <h2 className="heading-stencil text-2xl mb-3">{t("empty_workspace_title")}</h2>
       <p className="text-dim text-sm leading-relaxed mb-8">{t("no_servers_subtitle")}</p>
       <button onClick={onAdd} data-testid="empty-add-server-button" className="btn-primary inline-flex items-center gap-2">

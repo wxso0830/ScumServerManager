@@ -28,4 +28,9 @@ export const endpoints = {
   saveConfig: (id) => api.post(`/servers/${id}/save-config`).then(r => r.data),
   getAppVersion: () => api.get("/app/version").then(r => r.data),
   applyManagerUpdate: () => api.post("/app/apply-update").then(r => r.data),
+  updateAutomation: (id, payload) => api.put(`/servers/${id}/automation`, payload).then(r => r.data),
+  generateNotifications: (id) => api.post(`/servers/${id}/automation/generate-notifications`).then(r => r.data),
+  postInstall: (id) => api.post(`/servers/${id}/post-install`).then(r => r.data),
+  steamCheckUpdate: () => api.get("/steam/check-update").then(r => r.data),
+  steamPublishBuild: (build_id, notes = "") => api.post("/steam/publish-build", { build_id, notes }).then(r => r.data),
 };

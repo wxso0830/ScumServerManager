@@ -127,10 +127,10 @@ export const ServerCard = ({ server, onOpen, onStart, onStop, onUpdate, onInstal
 
         {server.installed && (
           <button
-            className="btn-secondary flex items-center justify-center gap-2 px-3"
+            className={`btn-secondary flex items-center justify-center gap-2 px-3 ${server.update_available ? "update-pulse" : ""}`}
             onClick={(e) => { e.stopPropagation(); onUpdate?.(server); }}
             disabled={busy || isRunning}
-            title={t("update_server")}
+            title={server.update_available ? "Update available" : "Update"}
             data-testid={`card-update-${server.folder_name}`}
           >
             <RefreshCw size={13} />

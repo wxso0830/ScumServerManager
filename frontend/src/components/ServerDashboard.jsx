@@ -8,6 +8,8 @@ import { RaidTimesEditor } from "./RaidTimesEditor";
 import { NotificationsEditor } from "./NotificationsEditor";
 import { TradersEditor } from "./TradersEditor";
 import { InputEditor } from "./InputEditor";
+import { AutomationEditor } from "./AutomationEditor";
+import { ConfirmModal } from "./ConfirmModal";
 import { useI18n } from "../providers/I18nProvider";
 import { endpoints, api } from "../lib/api";
 
@@ -26,6 +28,7 @@ const SECTION_ICONS = {
   security: "Shield",
   users: "Users",
   advanced: "Wrench",
+  automation: "Clock",
   client: "Monitor",
 };
 
@@ -56,6 +59,7 @@ export const ServerDashboard = ({
   const [busy, setBusy] = useState(false);
   const [renameOpen, setRenameOpen] = useState(false);
   const [newName, setNewName] = useState(server.name);
+  const [confirmDelOpen, setConfirmDelOpen] = useState(false);
 
   useEffect(() => {
     setDraft(server.settings || {});
@@ -137,7 +141,9 @@ export const ServerDashboard = ({
         await window.lgss.installServer({ folderPath: server.folder_path, appId: "3792580" });
       }
       const updated = await endpoints.installServer(server.id);
-      onChange(updated);
+      // Seed Notifications.json template post-install
+      const seeded = await endpoints.postInstall(updated.id).catch(() => updated);
+      onChange(seeded);
       toast.success(t("install_complete"));
     } finally { setBusy(false); }
   };
@@ -203,6 +209,8 @@ export const ServerDashboard = ({
             testId={`editor-${cat.key}`}
           />
         );
+      case "automation":
+        return <AutomationEditor server={server} onChange={onChange} />;
       case "dynamic":
       default:
         return (
@@ -308,7 +316,13 @@ export const ServerDashboard = ({
               </button>
             )}
             {server.installed && (
-              <button className="btn-secondary flex items-center gap-2" onClick={handleUpdate} disabled={busy || isRunning} data-testid="server-update-button" title={t("update_server")}>
+              <button
+                className={`btn-secondary flex items-center gap-2 ${server.update_available ? "update-pulse" : ""}`}
+                onClick={handleUpdate}
+                disabled={busy || isRunning}
+                data-testid="server-update-button"
+                title={server.update_available ? t("update_available_label") : t("update_server")}
+              >
                 <Icons.RefreshCw size={13} />
               </button>
             )}
@@ -318,7 +332,7 @@ export const ServerDashboard = ({
             <button className="btn-primary flex items-center gap-2" onClick={handleSave} disabled={!dirty || busy} data-testid="save-settings-btn">
               <Icons.Save size={13} /> {t("save_settings")}
             </button>
-            <button className="icon-btn" onClick={() => { if (window.confirm(t("delete_server_confirm"))) onDelete(server.id); }} title={t("delete_server")} data-testid="delete-server-btn">
+            <button className="icon-btn" onClick={() => setConfirmDelOpen(true)} title={t("delete_server")} data-testid="delete-server-btn">
               <Icons.Trash2 size={15} />
             </button>
           </div>
@@ -389,6 +403,29 @@ export const ServerDashboard = ({
           </div>
         </div>
       )}
+
+      <ConfirmModal
+        open={confirmDelOpen}
+        title={t("confirm_delete_title")}
+        body={t("confirm_delete_body", { name: server.name })}
+        confirmLabel={t("confirm_yes_delete")}
+        cancelLabel={t("cancel")}
+        onCancel={() => setConfirmDelOpen(false)}
+        onConfirm={() => { setConfirmDelOpen(false); onDelete(server.id); }}
+        testId="delete-server-modal"
+      />
+
+      <style>{`
+        @keyframes update-pulse-border {
+          0%, 100% { border-color: var(--accent); box-shadow: 0 0 0 0 rgba(255,140,0,0); }
+          50%      { border-color: var(--accent-hover); box-shadow: 0 0 14px 2px rgba(255,140,0,0.35); }
+        }
+        .update-pulse {
+          border-color: var(--accent) !important;
+          color: var(--accent) !important;
+          animation: update-pulse-border 1.4s ease-in-out infinite;
+        }
+      `}</style>
     </div>
   );
 };

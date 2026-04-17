@@ -68,6 +68,33 @@ Turkish user requested a SCUM server manager desktop application with:
 - Files created: `ServerCard.jsx`, `DashboardView.jsx`
 - Testing: `iteration_6.json` — 100% frontend flows passed, 0 issues
 
+### 2026-04-17 — Terminology Polish + Automation + Update Monitor
+- **Terminology softened** per user feedback (SCUM feel kept, military-sci-fi jargon removed):
+  - Nav: "COMMAND CENTER" → "SERVERS", "CONFIGURATION" → "SETTINGS", "OPS LOGS" → "LOGS"
+  - Hero: "FLEET STATUS: EMPTY" → "NO SERVERS YET", "DEPLOY NEW SERVER" → "ADD NEW SERVER"
+  - Status: "TACTICAL MODE" removed, "NETWORK LIVE" → "ONLINE", "OPS READY" → "Ready"
+  - Removed cursor-blink terminal effects & `BLACKSITE OPS` subtitle
+- **Bug fixed: server delete** — `window.confirm()` is blocked inside iframe preview. Replaced with new `ConfirmModal.jsx` component (hazard-stripe Yes,Delete button).
+- **NEW — Notifications.json generator** matching user's personal template:
+  - `POST /api/servers/{id}/post-install` seeds an 8-entry TR+EN default after install (06:00/18:00 restarts with 15/10/5/4/3/2/1 min warnings + final "SEE YOU IN 1 MINUTE" message exactly like user's own config)
+  - `POST /api/servers/{id}/automation/generate-notifications` regenerates from the user's custom schedule
+  - Restart times, pre-warnings and final message duration all configurable per server
+- **NEW — Automation section** (`/app/frontend/src/components/AutomationEditor.jsx`):
+  - Auto-Restart toggle
+  - Restart Times list with add/remove
+  - Quick templates: "Every 6 Hours" / "Twice Daily (06:00/18:00)"
+  - Pre-warning intervals (comma-separated), final message duration, bilingual toggle
+  - Auto Update toggle with update-check interval (default 360 min = 6h per user preference)
+  - Live preview of generated Notifications.json
+- **NEW — Steam update detection** (mocked in preview, Electron wires to real SteamCMD `app_info_print 3792580`):
+  - `GET /api/steam/check-update` returns latest build id and marks mismatched servers `update_available=True`
+  - `POST /api/steam/publish-build` (admin/mock) to simulate a new Steam build
+  - Server Cards + Settings update button **pulse amber** (`update-pulse` CSS keyframe) when `server.update_available`
+  - "Check Now" button on dashboard and per-server automation panel
+- New endpoints added to `api.js`: `updateAutomation`, `generateNotifications`, `postInstall`, `steamCheckUpdate`, `steamPublishBuild`
+- Backend model extended: `ServerProfile.automation` + `installed_build_id` + `update_available`
+- Backend & frontend tested end-to-end: install → post-install → 8 seeded notifications → automation update → regenerate → publish-build → update_available pulses ✅
+
 ## Prioritized Backlog
 ### P1
 - Live WebSocket log tail viewer (Electron → WebSocket → Ops Logs view)

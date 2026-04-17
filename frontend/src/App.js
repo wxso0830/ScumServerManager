@@ -127,7 +127,7 @@ const Shell = () => {
     return (
       <div className="h-full w-full flex items-center justify-center bg-bg-deep">
         <div className="text-center">
-          <div className="font-mono text-[11px] uppercase tracking-[0.3em] text-accent-brand mb-2 cursor-blink">
+          <div className="font-mono text-[11px] uppercase tracking-[0.3em] text-accent-brand mb-2">
             {t("initializing")}
           </div>
           <div className="text-dim text-xs font-mono">{t("loading")}</div>
@@ -139,7 +139,6 @@ const Shell = () => {
   if (phase === "declined") {
     return (
       <div className="h-full w-full flex flex-col items-center justify-center p-8 text-center bg-bg-deep" data-testid="declined-screen">
-        <div className="label-accent mb-2">ACCESS DENIED</div>
         <h1 className="heading-stencil text-2xl">{t("close")}</h1>
         <p className="text-dim text-sm mt-3 max-w-md">{t("admin_prompt_body")}</p>
         <button className="btn-primary mt-6" onClick={() => setPhase("admin")} data-testid="retry-admin-btn">
@@ -211,7 +210,6 @@ const Shell = () => {
 const NoServerSelected = ({ t, onGoDashboard }) => (
   <div className="flex-1 flex items-center justify-center bg-bg" data-testid="no-server-selected">
     <div className="text-center">
-      <div className="label-accent mb-2">NO TARGET SELECTED</div>
       <h2 className="heading-stencil text-xl mb-4">{t("command_select_server")}</h2>
       <button className="btn-primary" onClick={onGoDashboard}>
         {t("back_to_dashboard")}
@@ -223,13 +221,12 @@ const NoServerSelected = ({ t, onGoDashboard }) => (
 const LogsView = ({ t }) => (
   <div className="flex-1 flex items-center justify-center bg-bg font-mono" data-testid="logs-view">
     <div className="text-center max-w-lg p-8 border border-brand panel corner-brackets">
-      <div className="label-accent mb-3">OPERATION LOGS</div>
       <h2 className="heading-stencil text-xl mb-3">{t("nav_logs")}</h2>
       <p className="text-dim text-xs leading-relaxed uppercase tracking-widest">
         Live server output will appear here once operations begin.
       </p>
       <div className="mt-6 bg-bg-deep border border-brand px-4 py-3 text-left font-mono text-[11px] text-success">
-        $ lgss-manager --ready<span className="cursor-blink"></span>
+        $ lgss-manager --ready
       </div>
     </div>
   </div>

@@ -83,7 +83,7 @@ export const DiskSelectionWizard = ({ onComplete }) => {
         <div className="px-6 py-3 border-b border-brand flex items-center gap-3 bg-bg-deep">
           <Terminal size={16} className="text-accent-brand" />
           <div className="font-mono text-[11px] uppercase tracking-[0.3em] text-accent-brand">
-            {t("initializing")}<span className="cursor-blink"></span>
+            {t("initializing")}
           </div>
           <div className="flex-1" />
           <div className="font-mono text-[10px] uppercase tracking-widest text-muted">STEP 01 / 01</div>

@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import {
   Palette, Languages, Check, Play, Download, Wrench, ShieldCheck, ShieldAlert,
-  RotateCcw, Activity, Server, HardDrive, Wifi, Terminal, LayoutDashboard, SlidersHorizontal, ScrollText,
+  RotateCcw, Activity, Server, HardDrive, Terminal, LayoutDashboard, SlidersHorizontal, ScrollText,
 } from "lucide-react";
 import { useTheme } from "../providers/ThemeProvider";
 import { useI18n } from "../providers/I18nProvider";
@@ -98,7 +98,7 @@ export const TopBar = ({
               SCUM SERVER MANAGER
             </div>
             <div className="font-mono text-[9px] tracking-[0.22em] text-accent-brand mt-1">
-              v1.0.0 · BLACKSITE OPS
+              v1.0.0
             </div>
           </div>
         </div>
@@ -261,11 +261,6 @@ export const TopBar = ({
           <span className="uppercase tracking-widest text-[10px]">
             {isAdmin ? t("admin_confirmed") : t("admin_not_confirmed")}
           </span>
-        </div>
-
-        <div className="flex items-center gap-2">
-          <Wifi size={12} className="text-success" />
-          <span className="text-muted uppercase tracking-widest">{t("tactical_mode")}</span>
         </div>
       </div>
     </header>

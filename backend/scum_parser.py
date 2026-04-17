@@ -123,9 +123,8 @@ def load_defaults() -> Dict[str, Any]:
             raid_times = json.load(f).get("raiding-times", [])
 
     notifications: List[Dict[str, Any]] = []
-    if notif_path.exists():
-        with notif_path.open("r", encoding="utf-8", errors="replace") as f:
-            notifications = json.load(f).get("Notifications", [])
+    # NOTE: Notifications.json is a manager-generated, user-personal file.
+    # Left empty by default; populated via /api/servers/{id}/post-install or /generate-notifications.
 
     return {
         # Real ServerSettings.ini sections

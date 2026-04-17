@@ -9,12 +9,11 @@ import { TopBar } from "./components/TopBar";
 import { Sidebar } from "./components/Sidebar";
 import { EmptyWorkspace } from "./components/EmptyWorkspace";
 import { ServerDashboard } from "./components/ServerDashboard";
-import { SplashScreen } from "./components/SplashScreen";
 import { endpoints } from "./lib/api";
 
 const Shell = () => {
   const { t } = useI18n();
-  const [phase, setPhase] = useState("splash"); // splash | loading | admin | setup | workspace | declined
+  const [phase, setPhase] = useState("loading"); // loading | admin | setup | workspace | declined
   const [isAdmin, setIsAdmin] = useState(false);
   const [setup, setSetup] = useState(null);
   const [servers, setServers] = useState([]);
@@ -45,9 +44,7 @@ const Shell = () => {
     }
   }, []);
 
-  useEffect(() => {
-    if (phase !== "splash") load();
-  }, [load, phase]);
+  useEffect(() => { load(); }, [load]);
 
   const handleAdminAccept = async () => {
     const s = await endpoints.updateSetup({ is_admin_confirmed: true });
@@ -106,10 +103,6 @@ const Shell = () => {
     const list = await endpoints.listServers();
     setServers(list);
   };
-
-  if (phase === "splash") {
-    return <SplashScreen onDone={() => setPhase("loading")} />;
-  }
 
   if (phase === "loading") {
     return <div className="h-full w-full flex items-center justify-center text-dim font-mono text-sm">{t("loading")}</div>;

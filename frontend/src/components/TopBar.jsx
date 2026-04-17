@@ -6,10 +6,10 @@ import { endpoints } from "../lib/api";
 import { toast } from "sonner";
 
 const themeLabels = {
-  obsidian: "theme_obsidian",
-  midnight_ops: "theme_midnight_ops",
-  forest_camo: "theme_forest_camo",
-  blood_moon: "theme_blood_moon",
+  tactical: "theme_tactical",
+  ghost: "theme_ghost",
+  jungle: "theme_jungle",
+  wastelander: "theme_wastelander",
 };
 
 const Popover = ({ open, onClose, children }) => {

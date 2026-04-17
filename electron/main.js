@@ -111,6 +111,38 @@ ipcMain.handle('lgss:open-folder', async (_evt, folderPath) => {
   return { ok: true };
 });
 
+// SteamCMD install of SCUM dedicated server (AppID 3792580)
+ipcMain.handle('lgss:install-server', async (_evt, { folderPath, appId = '3792580' }) => {
+  const steamcmd = process.env.STEAMCMD_PATH || 'steamcmd.exe';
+  fs.mkdirSync(folderPath, { recursive: true });
+  return new Promise((resolve, reject) => {
+    const args = [
+      '+force_install_dir', `"${folderPath}"`,
+      '+login', 'anonymous',
+      '+app_update', String(appId), 'validate',
+      '+quit',
+    ];
+    const child = spawn(steamcmd, args, { shell: true });
+    let buf = '';
+    child.stdout.on('data', (d) => { buf += d.toString(); });
+    child.stderr.on('data', (d) => { buf += d.toString(); });
+    child.on('close', (code) => {
+      if (code === 0) resolve({ ok: true, log: buf });
+      else reject(new Error(`SteamCMD exited with code ${code}: ${buf.slice(-500)}`));
+    });
+  });
+});
+
+// Write config files to SCUM/Saved/Config/WindowsServer
+ipcMain.handle('lgss:write-config-files', async (_evt, plan) => {
+  const { config_dir, files } = plan;
+  fs.mkdirSync(config_dir, { recursive: true });
+  for (const f of files) {
+    fs.writeFileSync(f.path, f.content, 'utf-8');
+  }
+  return { ok: true, written: files.length };
+});
+
 // Start/Stop SCUM server via SteamCMD + SCUMServer.exe
 // This assumes SteamCMD is available or user has already installed the server files.
 ipcMain.handle('lgss:start-server', async (_evt, { serverFolder, port, queryPort, maxPlayers }) => {

@@ -1,10 +1,10 @@
 import React, { createContext, useContext, useEffect, useMemo, useState } from "react";
 
-const THEMES = ["obsidian", "midnight_ops", "forest_camo", "blood_moon"];
+const THEMES = ["tactical", "ghost", "jungle", "wastelander"];
 const ThemeContext = createContext(null);
 
 export const ThemeProvider = ({ children }) => {
-  const [theme, setTheme] = useState(() => localStorage.getItem("lgss.theme") || "obsidian");
+  const [theme, setTheme] = useState(() => localStorage.getItem("lgss.theme") || "tactical");
 
   useEffect(() => {
     document.documentElement.setAttribute("data-theme", theme);

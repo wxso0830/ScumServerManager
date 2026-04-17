@@ -83,6 +83,8 @@ class ServerProfile(BaseModel):
     folder_name: str
     folder_path: str
     status: str = "Stopped"
+    installed: bool = False
+    steam_app_id: str = "3792580"
     public_ip: Optional[str] = None
     created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
     settings: Dict[str, Any] = Field(default_factory=dict)
@@ -242,8 +244,9 @@ async def create_server(payload: ServerCreate):
     folder_name = f"Server{idx}"
     name = payload.name or folder_name
     manager_path = setup_doc["manager_path"]
-    sep = "\\" if "\\" in manager_path else "/"
-    folder_path = f"{manager_path}{sep}{folder_name}"
+    sep = "\\" if ("\\" in manager_path or (len(manager_path) >= 2 and manager_path[1] == ":")) else "/"
+    # LGSSManagers/Servers/ServerN/ per user's new spec
+    folder_path = f"{manager_path}{sep}Servers{sep}{folder_name}"
     profile = ServerProfile(
         name=name,
         folder_name=folder_name,
@@ -342,6 +345,48 @@ async def complete_server_update(server_id: str):
     await db.servers.update_one({"id": server_id}, {"$set": {"status": "Stopped"}})
     doc["status"] = "Stopped"
     return ServerProfile(**doc)
+
+
+@api_router.post("/servers/{server_id}/install", response_model=ServerProfile)
+async def install_server(server_id: str):
+    """Download SCUM server files via SteamCMD (AppID 3792580).
+    In web preview this is simulated — marks the server 'installed'.
+    Real SteamCMD execution happens in Electron main process."""
+    doc = await db.servers.find_one({"id": server_id}, {"_id": 0})
+    if not doc:
+        raise HTTPException(status_code=404, detail="Server not found")
+    await db.servers.update_one({"id": server_id}, {"$set": {"installed": True, "status": "Stopped"}})
+    doc["installed"] = True
+    doc["status"] = "Stopped"
+    return ServerProfile(**doc)
+
+
+@api_router.post("/servers/{server_id}/save-config")
+async def save_server_config(server_id: str):
+    """Render all manager settings into actual SCUM config files at:
+    {folder_path}/SCUM/Saved/Config/WindowsServer/
+    Returns the files (path + content) the Electron shell should write."""
+    doc = await db.servers.find_one({"id": server_id}, {"_id": 0})
+    if not doc:
+        raise HTTPException(status_code=404, detail="Server not found")
+    settings = doc.get("settings", {})
+    folder = doc["folder_path"]
+    sep = "\\" if ("\\" in folder or (len(folder) >= 2 and folder[1] == ":")) else "/"
+    config_dir = f"{folder}{sep}SCUM{sep}Saved{sep}Config{sep}WindowsServer"
+    files = [
+        {"path": f"{config_dir}{sep}ServerSettings.ini", "content": render_server_settings_ini(settings)},
+        {"path": f"{config_dir}{sep}AdminUsers.ini", "content": render_user_list(settings.get("users_admins", []))},
+        {"path": f"{config_dir}{sep}ServerSettingsAdminUsers.ini", "content": render_user_list(settings.get("users_server_admins", []))},
+        {"path": f"{config_dir}{sep}BannedUsers.ini", "content": render_user_list(settings.get("users_banned", []))},
+        {"path": f"{config_dir}{sep}WhitelistedUsers.ini", "content": render_user_list(settings.get("users_whitelisted", []))},
+        {"path": f"{config_dir}{sep}ExclusiveUsers.ini", "content": render_user_list(settings.get("users_exclusive", []))},
+        {"path": f"{config_dir}{sep}SilencedUsers.ini", "content": render_user_list(settings.get("users_silenced", []))},
+        {"path": f"{config_dir}{sep}EconomyOverride.json", "content": render_economy_json(settings)},
+        {"path": f"{config_dir}{sep}RaidTimes.json", "content": render_raid_times_json(settings)},
+        {"path": f"{config_dir}{sep}Notifications.json", "content": render_notifications_json(settings)},
+        {"path": f"{config_dir}{sep}Input.ini", "content": render_input_ini(settings)},
+    ]
+    return {"config_dir": config_dir, "files": files, "count": len(files)}
 
 
 # ---------- MANAGER VERSION / SELF-UPDATE ----------

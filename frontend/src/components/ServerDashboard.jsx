@@ -114,13 +114,38 @@ export const ServerDashboard = ({ server, schema, onChange, onDelete }) => {
       const updated = await endpoints.updateServer(server.id);
       onChange(updated);
       toast.success(t("update_server"));
-      // Simulate completion after 1.5s in web preview
       setTimeout(async () => {
         try {
           const done = await api.post(`/servers/${server.id}/update/complete`);
           onChange(done.data);
         } catch (_) {}
       }, 1500);
+    } finally { setBusy(false); }
+  };
+
+  const handleInstall = async () => {
+    setBusy(true);
+    toast(t("installing"));
+    try {
+      // In Electron, trigger real SteamCMD via window.lgss.installServer; fallback to backend simulate.
+      if (window?.lgss?.installServer) {
+        await window.lgss.installServer({ folderPath: server.folder_path, appId: "3792580" });
+      }
+      const updated = await endpoints.installServer(server.id);
+      onChange(updated);
+      toast.success(t("install_complete"));
+    } finally { setBusy(false); }
+  };
+
+  const handleSaveConfig = async () => {
+    setBusy(true);
+    try {
+      const plan = await endpoints.saveConfig(server.id);
+      // In Electron, write files to disk
+      if (window?.lgss?.writeConfigFiles) {
+        await window.lgss.writeConfigFiles(plan);
+      }
+      toast.success(t("config_written", { path: plan.config_dir }));
     } finally { setBusy(false); }
   };
 
@@ -209,17 +234,28 @@ export const ServerDashboard = ({ server, schema, onChange, onDelete }) => {
             <div className="label-overline">{t("players")}</div>
             <div className="font-mono text-sm text-brand">0 / {maxPlayers}</div>
           </div>
-          {!isRunning ? (
+          {!server.installed && (
+            <button className="tactical-btn flex items-center gap-2" onClick={handleInstall} disabled={busy} data-testid="server-install-button">
+              <Icons.Download size={14} /> {t("install_server")}
+            </button>
+          )}
+          {server.installed && !isRunning && (
             <button className="tactical-btn flex items-center gap-2" onClick={handleStart} disabled={busy} data-testid="server-start-button">
               <Icons.Play size={14} /> {t("start")}
             </button>
-          ) : (
-            <button className="tactical-btn flex items-center gap-2" onClick={handleStop} disabled={busy} data-testid="server-stop-button" style={{ background: "var(--danger)" }}>
+          )}
+          {isRunning && (
+            <button className="tactical-btn flex items-center gap-2" onClick={handleStop} disabled={busy} data-testid="server-stop-button" style={{ background: "var(--danger)", color: "#fff" }}>
               <Icons.Square size={14} /> {t("stop")}
             </button>
           )}
-          <button className="ghost-btn flex items-center gap-2" onClick={handleUpdate} disabled={busy || isRunning} data-testid="server-update-button" title={t("update_server")}>
-            <Icons.Download size={14} /> {t("update_server")}
+          {server.installed && (
+            <button className="ghost-btn flex items-center gap-2" onClick={handleUpdate} disabled={busy || isRunning} data-testid="server-update-button" title={t("update_server")}>
+              <Icons.RefreshCw size={14} /> {t("update_server")}
+            </button>
+          )}
+          <button className="ghost-btn flex items-center gap-2" onClick={handleSaveConfig} disabled={busy} data-testid="save-config-files-btn" title={t("write_config_files")}>
+            <Icons.FileCog size={14} /> {t("write_config_files")}
           </button>
           <button className="ghost-btn flex items-center gap-2" onClick={handleSave} disabled={!dirty || busy} data-testid="save-settings-btn">
             <Icons.Save size={14} /> {t("save_settings")}

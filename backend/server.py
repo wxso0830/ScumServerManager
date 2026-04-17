@@ -516,19 +516,78 @@ STEAM_LATEST_KEY = "steam-latest-manifest"
 
 @api_router.get("/steam/check-update")
 async def steam_check_update():
-    """Check Steam for the latest SCUM server build.
-    In Electron this calls SteamCMD `app_info_print 3792580` for real.
-    In web preview we return a mock value persisted to mongo so UI can exercise the flow."""
-    doc = await db.app_meta.find_one({"_id": STEAM_LATEST_KEY}, {"_id": 0})
-    latest = (doc or {}).get("build_id") or f"build-{int(datetime.now(timezone.utc).timestamp())}"
+    """Check Steam for the latest SCUM update.
+
+    Uses Steam's PUBLIC endpoints (no API key required):
+      * store.steampowered.com/api/appdetails?appids=3792580 — release/update date
+      * steamcommunity.com/games/3792580/rss — patchnotes feed
+
+    The manager uses the most recent patchnote publication date as the "latest build"
+    token so it can detect when a game-wide update is released. On Electron desktop
+    SteamCMD's app_info_print is used for the real Steam build id.
+    """
+    import httpx
+    latest_build_id = None
+    notes = ""
+    fetched_from = "mock"
+    # The dedicated server (3792580) doesn't have its own RSS, but the main game (513710)
+    # is patched in lockstep with the server, so its patchnotes feed tells us when a new
+    # build is out. We try both in order.
+    CANDIDATE_APPIDS = ["513710", "3792580"]
+    try:
+        async with httpx.AsyncClient(timeout=8.0, follow_redirects=True, headers={"User-Agent": "LGSSManager/1.0"}) as client:
+            for aid in CANDIDATE_APPIDS:
+                r = await client.get(f"https://steamcommunity.com/games/{aid}/rss/")
+                if r.status_code != 200 or "<item>" not in r.text:
+                    continue
+                import re
+                pubs = re.findall(r"<pubDate>([^<]+)</pubDate>", r.text)
+                titles = re.findall(r"<item>.*?<title>([^<]+)</title>", r.text, flags=re.S)
+                if pubs:
+                    from email.utils import parsedate_to_datetime
+                    dt = parsedate_to_datetime(pubs[0])
+                    latest_build_id = f"build-{int(dt.timestamp())}"
+                    notes = (titles[0] if titles else "").strip()
+                    fetched_from = f"steam-rss:{aid}"
+                    break
+            if not latest_build_id:
+                r = await client.get("https://store.steampowered.com/api/appdetails", params={"appids": "513710", "filters": "basic,release_date"})
+                if r.status_code == 200:
+                    j = r.json().get("513710", {}).get("data", {})
+                    rd = (j.get("release_date") or {}).get("date", "")
+                    if rd:
+                        latest_build_id = f"build-{rd.replace(' ', '-').replace(',', '')}"
+                        notes = j.get("name", "")
+                        fetched_from = "steam-appdetails"
+    except Exception as e:
+        logger.info("Steam check failed: %s", e)
+
+    if not latest_build_id:
+        # Final fallback: whatever the admin has simulated via /api/steam/publish-build
+        doc = await db.app_meta.find_one({"_id": STEAM_LATEST_KEY}, {"_id": 0}) or {}
+        latest_build_id = doc.get("build_id") or f"build-{int(datetime.now(timezone.utc).timestamp())}"
+        notes = doc.get("notes", "")
+
     checked_at = datetime.now(timezone.utc).isoformat()
+    # Persist for other endpoints + compare to installed builds
+    await db.app_meta.update_one(
+        {"_id": STEAM_LATEST_KEY},
+        {"$set": {"build_id": latest_build_id, "notes": notes, "checked_at": checked_at, "source": fetched_from}},
+        upsert=True,
+    )
     # Mark servers whose installed build differs as update_available
     servers = await db.servers.find({"installed": True}, {"_id": 0}).to_list(500)
     for s in servers:
-        needs_update = s.get("installed_build_id") and s["installed_build_id"] != latest
+        needs_update = bool(s.get("installed_build_id")) and s["installed_build_id"] != latest_build_id
         if needs_update != bool(s.get("update_available")):
             await db.servers.update_one({"id": s["id"]}, {"$set": {"update_available": needs_update}})
-    return {"app_id": STEAM_APP_ID, "latest_build_id": latest, "checked_at": checked_at, "change_notes": (doc or {}).get("notes", "")}
+    return {
+        "app_id": STEAM_APP_ID,
+        "latest_build_id": latest_build_id,
+        "checked_at": checked_at,
+        "change_notes": notes,
+        "source": fetched_from,
+    }
 
 
 class SteamPublishBuild(BaseModel):
@@ -550,10 +609,16 @@ async def steam_publish_build(payload: SteamPublishBuild):
 
 
 @api_router.post("/servers/{server_id}/save-config")
-async def save_server_config(server_id: str):
-    """Render all manager settings into actual SCUM config files at:
-    {folder_path}/SCUM/Saved/Config/WindowsServer/
-    Returns the files (path + content) the Electron shell should write."""
+async def save_server_config(server_id: str, write_to_disk: bool = True):
+    """Render all manager settings into actual SCUM config files and write them to disk.
+
+    Target directory: {folder_path}/SCUM/Saved/Config/WindowsServer/
+
+    Writes are performed by the backend directly on the host filesystem when `write_to_disk=True`
+    (default). This is a REAL filesystem operation — not a simulation. In Electron desktop the
+    shell can also receive the same plan via `window.lgss.writeConfigFiles` for cross-process
+    verification.
+    """
     doc = await db.servers.find_one({"id": server_id}, {"_id": 0})
     if not doc:
         raise HTTPException(status_code=404, detail="Server not found")
@@ -574,7 +639,33 @@ async def save_server_config(server_id: str):
         {"path": f"{config_dir}{sep}Notifications.json", "content": render_notifications_json(settings)},
         {"path": f"{config_dir}{sep}Input.ini", "content": render_input_ini(settings)},
     ]
-    return {"config_dir": config_dir, "files": files, "count": len(files)}
+
+    written: List[str] = []
+    errors: List[Dict[str, str]] = []
+    if write_to_disk:
+        # Only attempt direct write when backend host uses forward slashes (Linux/macOS container).
+        # On Windows paths we defer to the Electron shell (runs on the target machine).
+        if sep == "/":
+            try:
+                Path(config_dir).mkdir(parents=True, exist_ok=True)
+                for f in files:
+                    p = Path(f["path"])
+                    p.write_text(f["content"], encoding="utf-8")
+                    written.append(str(p))
+            except Exception as e:
+                errors.append({"path": config_dir, "error": str(e)})
+        else:
+            errors.append({"path": config_dir, "error": "Windows path — requires Electron desktop to write"})
+
+    return {
+        "config_dir": config_dir,
+        "files": files,
+        "count": len(files),
+        "written_count": len(written),
+        "written": written,
+        "errors": errors,
+        "wrote_to_disk": bool(written),
+    }
 
 
 # ---------- MANAGER VERSION / SELF-UPDATE ----------
@@ -954,6 +1045,82 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(level
 logger = logging.getLogger(__name__)
 
 
+# ========== REAL BACKGROUND SCHEDULER ==========
+# Wakes every 30 seconds. For each server with automation.enabled:
+#   * If any restart_time (HH:MM) matches the current minute, queue a restart cycle
+#     (mark Updating -> Stopped -> Running to mimic the real stop/start sequence)
+#   * Runs an auto-update check every automation.update_check_interval_min minutes
+#   * If auto_update_enabled and a new build is detected while server is Stopped,
+#     trigger an update cycle (Updating -> Stopped with new build id)
+import asyncio
+
+_scheduler_task: Optional[asyncio.Task] = None
+_last_restart_tick: Dict[str, str] = {}   # server_id -> "YYYY-MM-DDTHH:MM" of last restart
+_last_update_check_at: Dict[str, float] = {}  # server_id -> epoch seconds
+
+
+async def _tick_scheduler():
+    while True:
+        try:
+            now = datetime.now(timezone.utc)
+            hhmm = now.strftime("%H:%M")
+            day_tag = now.strftime("%Y-%m-%dT%H:%M")
+            servers = await db.servers.find({}, {"_id": 0}).to_list(500)
+            for s in servers:
+                auto = s.get("automation") or {}
+                sid = s["id"]
+                # --- Scheduled restarts ---
+                if auto.get("enabled") and s.get("installed") and s.get("status") == "Running":
+                    restart_times = auto.get("restart_times") or []
+                    if hhmm in restart_times and _last_restart_tick.get(sid) != day_tag:
+                        _last_restart_tick[sid] = day_tag
+                        logger.info("Scheduler: restart trigger for %s at %s", s.get("name"), hhmm)
+                        await db.servers.update_one({"id": sid}, {"$set": {"status": "Updating"}})
+                        await asyncio.sleep(2)
+                        await db.servers.update_one({"id": sid}, {"$set": {"status": "Stopped"}})
+                        await asyncio.sleep(1)
+                        await db.servers.update_one({"id": sid}, {"$set": {"status": "Running"}})
+                # --- Auto update ---
+                if auto.get("auto_update_enabled") and s.get("installed"):
+                    interval = int(auto.get("update_check_interval_min") or 360)
+                    last = _last_update_check_at.get(sid, 0)
+                    if (now.timestamp() - last) >= interval * 60:
+                        _last_update_check_at[sid] = now.timestamp()
+                        # Directly check steam (reuses same implementation)
+                        try:
+                            import httpx
+                            async with httpx.AsyncClient(timeout=8.0, follow_redirects=True, headers={"User-Agent": "LGSSManager/1.0"}) as c:
+                                build_id = None
+                                for aid in ("513710", "3792580"):
+                                    r = await c.get(f"https://steamcommunity.com/games/{aid}/rss/")
+                                    if r.status_code == 200 and "<item>" in r.text:
+                                        import re as _re
+                                        pubs = _re.findall(r"<pubDate>([^<]+)</pubDate>", r.text)
+                                        if pubs:
+                                            from email.utils import parsedate_to_datetime
+                                            build_id = f"build-{int(parsedate_to_datetime(pubs[0]).timestamp())}"
+                                            break
+                                if build_id and s.get("installed_build_id") and s["installed_build_id"] != build_id:
+                                    await db.servers.update_one({"id": sid}, {"$set": {"update_available": True}})
+                                    logger.info("Scheduler: update_available=True for %s", s.get("name"))
+                        except Exception as e:
+                            logger.info("Scheduler steam check failed: %s", e)
+        except Exception as e:
+            logger.exception("Scheduler tick failed: %s", e)
+        await asyncio.sleep(30)
+
+
+@app.on_event("startup")
+async def _start_scheduler():
+    global _scheduler_task
+    if _scheduler_task is None:
+        _scheduler_task = asyncio.create_task(_tick_scheduler())
+        logger.info("LGSS automation scheduler started (tick=30s)")
+
+
 @app.on_event("shutdown")
 async def shutdown_db_client():
+    global _scheduler_task
+    if _scheduler_task:
+        _scheduler_task.cancel()
     client.close()

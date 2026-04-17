@@ -228,11 +228,33 @@ def render_notifications_json(settings: Dict[str, Any]) -> str:
     return json.dumps({"Notifications": settings.get("notifications", [])}, indent=2)
 
 
+# Fields SCUM recognizes per tradeable entry. Anything else (e.g. `image_url` for the manager UI)
+# is stripped before writing EconomyOverride.json so the game file stays clean.
+_SCUM_TRADEABLE_FIELDS = {
+    "tradeable-code",
+    "base-purchase-price",
+    "base-sell-price",
+    "delta-price",
+    "can-be-purchased",
+    "required-famepoints",
+    "available-after-sale-only",
+}
+
+
 def render_economy_json(settings: Dict[str, Any]) -> str:
     data = dict(settings.get("economy_override", {}))
     traders = settings.get("economy_traders", {})
     if traders:
-        data["traders"] = traders
+        clean: Dict[str, Any] = {}
+        for trader_name, items in traders.items():
+            if isinstance(items, list):
+                clean[trader_name] = [
+                    {k: v for k, v in it.items() if k in _SCUM_TRADEABLE_FIELDS}
+                    for it in items if isinstance(it, dict)
+                ]
+            else:
+                clean[trader_name] = items
+        data["traders"] = clean
     return json.dumps({"economy-override": data}, indent=2)
 
 

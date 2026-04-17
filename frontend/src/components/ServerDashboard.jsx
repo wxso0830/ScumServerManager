@@ -155,7 +155,13 @@ export const ServerDashboard = ({
       if (window?.lgss?.writeConfigFiles) {
         await window.lgss.writeConfigFiles(plan);
       }
-      toast.success(t("config_written", { path: plan.config_dir }));
+      if (plan.wrote_to_disk) {
+        toast.success(`${plan.written_count}/${plan.count} ${t("files_written")} → ${plan.config_dir}`);
+      } else if (plan.errors?.length) {
+        toast.error(plan.errors[0].error || "Write failed");
+      } else {
+        toast.success(t("config_written", { path: plan.config_dir }));
+      }
     } finally { setBusy(false); }
   };
 

@@ -2,8 +2,7 @@
 // Full standalone bundle: spawns portable MongoDB + PyInstaller-packaged backend
 // + loads the React frontend. Zero dependencies on the target machine.
 
-const { app, BrowserWindow, Menu, ipcMain, dialog, shell } = require('electron');
-Menu.setApplicationMenu(null);
+const { app, BrowserWindow, ipcMain, dialog, shell, globalShortcut } = require('electron');
 const path = require('path');
 const fs = require('fs');
 const http = require('http');
@@ -255,11 +254,31 @@ function createWindow() {
     },
   });
   mainWindow.setMenuBarVisibility(false);
-  mainWindow.removeMenu();
 
   const startUrl = process.env.ELECTRON_START_URL
     || `file://${path.join(getResourcesBase(), 'frontend', 'build', 'index.html')}`;
-  mainWindow.loadURL(startUrl);
+
+  // Retry load until the dev server (or file) is reachable
+  let loadAttempts = 0;
+  const tryLoad = () => {
+    loadAttempts += 1;
+    mainWindow.loadURL(startUrl).catch((err) => {
+      console.warn(`[window] loadURL failed (attempt ${loadAttempts}): ${err.message}`);
+      if (loadAttempts < 30) setTimeout(tryLoad, 1500);
+    });
+  };
+  tryLoad();
+
+  mainWindow.webContents.on('did-fail-load', (_e, code, desc, url) => {
+    console.warn(`[window] did-fail-load ${code} ${desc} ${url}`);
+    if (loadAttempts < 30) setTimeout(tryLoad, 1500);
+  });
+
+  mainWindow.webContents.on('did-finish-load', () => {
+    console.log('[window] did-finish-load');
+    closeSplash();
+    mainWindow.show();
+  });
 
   mainWindow.once('ready-to-show', () => { closeSplash(); mainWindow.show(); });
   if (process.env.ELECTRON_START_URL) mainWindow.webContents.openDevTools({ mode: 'detach' });
@@ -286,6 +305,27 @@ app.whenReady().then(async () => {
   }
 
   createWindow();
+
+  // Enable DevTools & reload shortcuts (normally gone because we hide the menu)
+  globalShortcut.register('F12', () => {
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.webContents.toggleDevTools();
+    }
+  });
+  globalShortcut.register('CommandOrControl+Shift+I', () => {
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.webContents.toggleDevTools();
+    }
+  });
+  globalShortcut.register('CommandOrControl+R', () => {
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.webContents.reload();
+    }
+  });
+});
+
+app.on('will-quit', () => {
+  try { globalShortcut.unregisterAll(); } catch (_) {}
 });
 
 app.on('before-quit', shutdownChildren);

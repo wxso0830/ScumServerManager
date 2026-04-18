@@ -38,6 +38,14 @@ function mongoDbPath() { return getUserDataDir('mongo-db'); }
 
 // ---------- Admin elevation ----------
 async function requireAdminOrExit() {
+  // In dev mode (run via `npm run dev` with ELECTRON_START_URL set), skip
+  // elevation entirely — the mock disk/filesystem calls do not need admin.
+  // Production installer sets `requestedExecutionLevel: requireAdministrator`
+  // in package.json so Windows itself handles UAC for the packaged .exe.
+  if (process.env.ELECTRON_START_URL) {
+    console.log('[admin] dev mode — skipping admin elevation check');
+    return;
+  }
   try {
     const isElevated = (await import('is-elevated')).default;
     const elevated = await isElevated();

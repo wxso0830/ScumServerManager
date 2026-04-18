@@ -114,13 +114,22 @@ const Shell = () => {
   };
 
   const handleOpenServer = (server) => {
+    if (!server.installed) {
+      toast.error(t("install_required_title"));
+      return;
+    }
     setActiveId(server.id);
     setView("configs");
   };
 
   const handleNavigate = (key) => {
-    if (key === "configs" && !activeId && servers.length > 0) {
-      setActiveId(servers[0].id);
+    if (key === "configs") {
+      const target = servers.find((s) => s.id === activeId && s.installed) || servers.find((s) => s.installed);
+      if (!target) {
+        toast.error(t("install_required_title"));
+        return;
+      }
+      setActiveId(target.id);
     }
     setView(key);
   };

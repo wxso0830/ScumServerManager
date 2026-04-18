@@ -33,6 +33,20 @@ export const endpoints = {
   postInstall: (id) => api.post(`/servers/${id}/post-install`).then(r => r.data),
   steamCheckUpdate: () => api.get("/steam/check-update").then(r => r.data),
   steamPublishBuild: (build_id, notes = "") => api.post("/steam/publish-build", { build_id, notes }).then(r => r.data),
+  restartServer: (id) => api.post(`/servers/${id}/restart`).then(r => r.data),
+  stopAllServers: () => api.post("/servers/bulk/stop-all").then(r => r.data),
+  restartAllServers: () => api.post("/servers/bulk/restart-all").then(r => r.data),
+  importBulk: (id, entries) => {
+    // entries: [{ file_key, file: File }]
+    const fd = new FormData();
+    const keys = [];
+    for (const e of entries) {
+      fd.append("files", e.file);
+      keys.push(e.file_key);
+    }
+    fd.append("file_keys", keys.join(","));
+    return api.post(`/servers/${id}/import-bulk`, fd, { headers: { "Content-Type": "multipart/form-data" } }).then(r => r.data);
+  },
   listEvents: (id, params = {}) => api.get(`/servers/${id}/events`, { params }).then(r => r.data),
   eventStats: (id, days = 0) => api.get(`/servers/${id}/events/stats`, { params: { days } }).then(r => r.data),
   clearEvents: (id) => api.delete(`/servers/${id}/events`).then(r => r.data),

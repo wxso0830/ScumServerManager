@@ -1,4 +1,4 @@
-from fastapi import FastAPI, APIRouter, HTTPException, UploadFile, File
+from fastapi import FastAPI, APIRouter, HTTPException, UploadFile, File, Form
 from dotenv import load_dotenv
 from starlette.middleware.cors import CORSMiddleware
 from motor.motor_asyncio import AsyncIOMotorClient
@@ -1112,11 +1112,26 @@ async def import_server_file(server_id: str, file_key: str, payload: Dict[str, A
     doc = await db.servers.find_one({"id": server_id}, {"_id": 0})
     if not doc:
         raise HTTPException(status_code=404, detail="Server not found")
-    settings = {**doc.get("settings", {})}
+    try:
+        settings = _apply_file_to_settings(doc.get("settings", {}), file_key, text)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    await db.servers.update_one({"id": server_id}, {"$set": {"settings": settings}})
+    doc["settings"] = settings
+    return ServerProfile(**doc)
+
+
+def _apply_file_to_settings(current: Dict[str, Any], file_key: str, text: str) -> Dict[str, Any]:
+    """Pure function: take current settings + file key + raw text, return updated settings.
+    Raises ValueError if the file cannot be parsed. Used by both single-file and bulk import."""
+    settings = {**current}
     if file_key in USER_LIST_IMPORT_MAP:
         settings[USER_LIST_IMPORT_MAP[file_key]] = parse_user_list_text(text)
     elif file_key == "economy":
-        data = json_lib.loads(text)
+        try:
+            data = json_lib.loads(text)
+        except json_lib.JSONDecodeError as e:
+            raise ValueError(f"Invalid JSON: {e}") from e
         overrides = data.get("economy-override", data)
         settings["economy_override"] = {k: v for k, v in overrides.items() if not isinstance(v, (dict, list))}
         traders = overrides.get("traders")
@@ -1126,6 +1141,8 @@ async def import_server_file(server_id: str, file_key: str, payload: Dict[str, A
         tmp_path = Path("/tmp/_gus.ini")
         tmp_path.write_text(text, encoding="utf-8")
         sects = parse_ini_sections(tmp_path)
+        if not sects:
+            raise ValueError("No [Section] headers found — not a valid GameUserSettings.ini")
         for sect, dest in (("Game", "client_game"), ("Mouse", "client_mouse"), ("Video", "client_video"), ("Graphics", "client_graphics"), ("Sound", "client_sound")):
             if sect in sects:
                 settings[dest] = sects[sect]
@@ -1133,14 +1150,24 @@ async def import_server_file(server_id: str, file_key: str, payload: Dict[str, A
         tmp_path = Path("/tmp/_ss.ini")
         tmp_path.write_text(text, encoding="utf-8")
         sects = parse_ini_sections(tmp_path)
+        if not sects:
+            raise ValueError("No [Section] headers found — not a valid ServerSettings.ini")
+        if "General" not in sects:
+            raise ValueError("Missing [General] section — does not look like a SCUM ServerSettings.ini")
         for sect, dest in (("General", "srv_general"), ("World", "srv_world"), ("Respawn", "srv_respawn"), ("Vehicles", "srv_vehicles"), ("Damage", "srv_damage"), ("Features", "srv_features")):
             if sect in sects:
                 settings[dest] = sects[sect]
     elif file_key == "raid_times":
-        data = json_lib.loads(text)
+        try:
+            data = json_lib.loads(text)
+        except json_lib.JSONDecodeError as e:
+            raise ValueError(f"Invalid JSON: {e}") from e
         settings["raid_times"] = data.get("raiding-times", [])
     elif file_key == "notifications":
-        data = json_lib.loads(text)
+        try:
+            data = json_lib.loads(text)
+        except json_lib.JSONDecodeError as e:
+            raise ValueError(f"Invalid JSON: {e}") from e
         settings["notifications"] = data.get("Notifications", [])
     elif file_key == "input":
         tmp_path = Path("/tmp/_in.ini")
@@ -1149,10 +1176,108 @@ async def import_server_file(server_id: str, file_key: str, payload: Dict[str, A
         settings["input_axis"] = parsed["AxisMappings"]
         settings["input_action"] = parsed["ActionMappings"]
     else:
-        raise HTTPException(status_code=400, detail="Unknown file_key")
-    await db.servers.update_one({"id": server_id}, {"$set": {"settings": settings}})
-    doc["settings"] = settings
+        raise ValueError(f"Unknown file_key: {file_key}")
+    return settings
+
+
+IMPORT_FILE_KEYS = [
+    "server_settings", "gameusersettings", "economy", "raid_times",
+    "notifications", "input", "admins", "server_admins",
+    "banned", "whitelisted", "exclusive", "silenced",
+]
+
+
+@api_router.post("/servers/{server_id}/import-bulk")
+async def import_server_files_bulk(
+    server_id: str,
+    files: List[UploadFile] = File(...),
+    file_keys: str = Form(...),  # comma-separated keys parallel to files
+):
+    """Import multiple SCUM config files at once. Files not uploaded keep their current values.
+
+    `file_keys` is a comma-separated list of IMPORT_FILE_KEYS in the same order as `files`.
+    Returns per-file result: { imported, errored, results: [{file_key, filename, ok, error}] }.
+    """
+    doc = await db.servers.find_one({"id": server_id}, {"_id": 0})
+    if not doc:
+        raise HTTPException(status_code=404, detail="Server not found")
+    keys = [k.strip() for k in (file_keys or "").split(",") if k.strip()]
+    if len(keys) != len(files):
+        raise HTTPException(status_code=400, detail=f"file_keys count ({len(keys)}) must equal files count ({len(files)})")
+
+    settings = {**doc.get("settings", {})}
+    results: List[Dict[str, Any]] = []
+    imported = 0
+    errored = 0
+    for fk, up in zip(keys, files):
+        try:
+            raw = await up.read()
+            # Try UTF-8 first, fall back to UTF-16 (SCUM's own logs use this)
+            try:
+                text = raw.decode("utf-8-sig")
+            except UnicodeDecodeError:
+                text = raw.decode("utf-16", errors="replace")
+            if fk not in IMPORT_FILE_KEYS:
+                raise ValueError(f"Unsupported file_key '{fk}'")
+            settings = _apply_file_to_settings(settings, fk, text)
+            results.append({"file_key": fk, "filename": up.filename, "ok": True, "error": None})
+            imported += 1
+        except Exception as e:
+            results.append({"file_key": fk, "filename": up.filename, "ok": False, "error": str(e)})
+            errored += 1
+
+    if imported:
+        await db.servers.update_one({"id": server_id}, {"$set": {"settings": settings}})
+        doc["settings"] = settings
+    return {
+        "server_id": server_id,
+        "imported": imported,
+        "errored": errored,
+        "results": results,
+        "server": ServerProfile(**doc).model_dump(),
+    }
+
+
+# ---------- RESTART / BULK POWER ACTIONS ----------
+@api_router.post("/servers/{server_id}/restart", response_model=ServerProfile)
+async def restart_server(server_id: str):
+    """Stop -> Start cycle. In Electron this sequences SCUMServer.exe."""
+    doc = await db.servers.find_one({"id": server_id}, {"_id": 0})
+    if not doc:
+        raise HTTPException(status_code=404, detail="Server not found")
+    if not doc.get("installed"):
+        raise HTTPException(status_code=400, detail="Server not installed")
+    await db.servers.update_one({"id": server_id}, {"$set": {"status": "Updating"}})
+    await asyncio.sleep(0.4)
+    await db.servers.update_one({"id": server_id}, {"$set": {"status": "Stopped"}})
+    await asyncio.sleep(0.3)
+    await db.servers.update_one({"id": server_id}, {"$set": {"status": "Running"}})
+    doc["status"] = "Running"
     return ServerProfile(**doc)
+
+
+@api_router.post("/servers/bulk/stop-all")
+async def stop_all_servers():
+    servers = await db.servers.find({"installed": True, "status": "Running"}, {"_id": 0}).to_list(500)
+    for s in servers:
+        await db.servers.update_one({"id": s["id"]}, {"$set": {"status": "Stopped"}})
+    return {"stopped": len(servers)}
+
+
+@api_router.post("/servers/bulk/restart-all")
+async def restart_all_servers():
+    servers = await db.servers.find({"installed": True}, {"_id": 0}).to_list(500)
+    affected = 0
+    for s in servers:
+        if s.get("status") == "Running":
+            await db.servers.update_one({"id": s["id"]}, {"$set": {"status": "Stopped"}})
+            await asyncio.sleep(0.2)
+            await db.servers.update_one({"id": s["id"]}, {"$set": {"status": "Running"}})
+            affected += 1
+        elif s.get("status") == "Stopped":
+            await db.servers.update_one({"id": s["id"]}, {"$set": {"status": "Running"}})
+            affected += 1
+    return {"restarted": affected}
 
 
 # ---------- SCHEMA METADATA (FUNCTIONAL GROUPING) ----------

@@ -142,6 +142,8 @@ export const ServerCard = ({ server, onOpen, onStart, onStop, onUpdate, onInstal
           onClick={(e) => { e.stopPropagation(); onOpen?.(server); }}
           data-testid={`card-open-${server.folder_name}`}
           title={t("nav_configs")}
+          disabled={!server.installed}
+          style={!server.installed ? { opacity: 0.35, cursor: "not-allowed" } : undefined}
         >
           <Settings size={13} />
         </button>

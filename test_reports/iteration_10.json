@@ -1,0 +1,121 @@
+{
+  "summary": "Completed comprehensive testing of LGSS SCUM Server Manager Iteration 10 - Install Gate, Power Buttons, and Import-Bulk Modal. All 13 backend API tests passed (100%). Frontend testing verified: Install gate blocking Settings access, TopBar power buttons (Start All, Restart All, Stop All, Update All), per-server Restart button, Import/Export modal with 12 file rows, server switcher with disabled uninstalled servers, inline export buttons removed.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_lgss_iteration10_power_import.py",
+    "/app/test_reports/pytest/pytest_iteration10.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "POST /api/servers/{id}/restart correctly returns 400 with 'Server not installed' for uninstalled servers",
+    "POST /api/servers/bulk/stop-all only affects installed servers with status=Running",
+    "POST /api/servers/bulk/restart-all restarts all installed servers (both Running and Stopped)",
+    "POST /api/servers/{id}/import-bulk handles multipart/form-data with parallel file_keys validation",
+    "Import validation returns per-row errors (ok=false, error message) without crashing the endpoint",
+    "Files not included in import correctly keep their current defaults (verified with notifications/raid_times)",
+    "ServerCard Settings gear button has opacity 0.35 and disabled attribute when server not installed",
+    "TopBar buttons in correct order: Start All → Restart All → Stop All → Update All",
+    "Inline export buttons removed from category panels - now only in Import/Export modal",
+    "Server switcher shows uninstalled servers as 'ServerN · (not installed)' with disabled=true"
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_lgss_iteration10_power_import.py"
+  ],
+  "success_rate": {
+    "backend": "100% (13/13 tests passed)",
+    "frontend": "100% (all flows verified)"
+  },
+  "test_credentials": "No authentication required",
+  "seed_data_creation": "Tests use POST /api/setup/reset to clear state. PUT /api/setup with {is_admin_confirmed:true, selected_disk:'/', manager_path:'/tmp/LGSSManagers', completed:true} to setup. Sample files for import testing: /app/backend/scum_defaults/ServerSettings.ini (valid INI), /app/backend/scum_defaults/EconomyOverride.json (valid JSON)",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Iteration 10 adds: (1) Install Gate - Settings access blocked until server installed, gear button disabled with opacity 0.35, (2) TopBar power buttons: Start All, Restart All, Stop All, Update All in that order, (3) Per-server Restart button appears when server is Running, (4) Import/Export modal with 12 file rows (ServerSettings.ini, GameUserSettings.ini, EconomyOverride.json, RaidTimes.json, Notifications.json, Input.ini, AdminUsers.ini, ServerSettingsAdminUsers.ini, BannedUsers.ini, WhitelistedUsers.ini, ExclusiveUsers.ini, SilencedUsers.ini), (5) Inline export buttons removed from category panels. Key data-testids: card-open-{folder}, card-install-{folder}, server-restart-button, start-all-btn, restart-all-btn, stop-all-btn, update-all-servers-btn, open-import-export-btn, import-export-modal, import-choose-{key}, import-input-{key}, export-{key}, import-run-btn, import-error-{key}. Server switcher shows uninstalled servers as disabled with '(not installed)' suffix.",
+  "features_verified": {
+    "backend": {
+      "restart_server": {
+        "endpoint": "POST /api/servers/{id}/restart",
+        "installed_server": "Returns ServerProfile with status=Running",
+        "uninstalled_server": "Returns HTTP 400 with 'Server not installed'"
+      },
+      "stop_all_servers": {
+        "endpoint": "POST /api/servers/bulk/stop-all",
+        "returns": "{stopped: N}",
+        "behavior": "Sets status=Stopped on all Running installed servers"
+      },
+      "restart_all_servers": {
+        "endpoint": "POST /api/servers/bulk/restart-all",
+        "returns": "{restarted: N}",
+        "behavior": "Restarts all installed servers (Running→Running, Stopped→Running)"
+      },
+      "import_bulk": {
+        "endpoint": "POST /api/servers/{id}/import-bulk",
+        "content_type": "multipart/form-data",
+        "params": "files (multiple), file_keys (comma-separated)",
+        "returns": "{imported, errored, results: [{file_key, filename, ok, error}], server: ServerProfile}",
+        "validation": {
+          "file_keys_mismatch": "HTTP 400 if count differs",
+          "invalid_file_key": "ok=false with 'Unsupported file_key' error",
+          "wrong_file_type": "ok=false with 'Invalid JSON' error for INI→JSON"
+        },
+        "unchanged_files": "Files not uploaded keep current defaults"
+      },
+      "export_all_12_keys": {
+        "endpoint": "GET /api/servers/{id}/export/{file_key}",
+        "keys": ["server_settings", "gameusersettings", "economy", "raid_times", "notifications", "input", "admins", "server_admins", "banned", "whitelisted", "exclusive", "silenced"],
+        "returns": "{filename, content}"
+      }
+    },
+    "frontend": {
+      "install_gate": {
+        "settings_gear_disabled": "opacity 0.35, disabled attribute when !server.installed",
+        "install_button_primary": "[data-testid='card-install-{folder}'] is primary action",
+        "click_does_nothing": "Clicking disabled gear stays on dashboard"
+      },
+      "topbar_power_buttons": {
+        "order": "Start All → Restart All → Stop All → Update All",
+        "testids": ["start-all-btn", "restart-all-btn", "stop-all-btn", "update-all-servers-btn"],
+        "stop_all_disabled": "Disabled when no servers Running"
+      },
+      "restart_button": {
+        "testid": "[data-testid='server-restart-button']",
+        "visibility": "Only visible when server status=Running",
+        "position": "Between Start and Stop buttons in ServerDashboard header"
+      },
+      "import_export_modal": {
+        "open_button": "[data-testid='open-import-export-btn']",
+        "modal": "[data-testid='import-export-modal']",
+        "file_rows": "12 rows with import-choose-{key}, import-input-{key}, export-{key}",
+        "run_import": "[data-testid='import-run-btn']",
+        "error_display": "[data-testid='import-error-{key}'] shows validation errors"
+      },
+      "server_switcher": {
+        "testid": "[data-testid='server-switcher']",
+        "uninstalled_format": "ServerN · (not installed)",
+        "uninstalled_disabled": "disabled=true on option element"
+      },
+      "inline_exports_removed": {
+        "verified": "No export buttons found outside modal",
+        "old_pattern": "export-{category} buttons removed from category panels"
+      }
+    },
+    "regression": {
+      "dashboard_view": "Working - server cards, add button",
+      "configs_view": "Working - server dashboard, settings panels",
+      "logs_view": "Working - event feed",
+      "players_view": "Working - player table",
+      "delete_confirm_modal": "Working - custom modal with Cancel/Yes Delete buttons"
+    }
+  },
+  "mocked_apis": {
+    "note": "NO MOCKED APIs. All features are REAL: restart/stop-all/restart-all endpoints, import-bulk multipart handling, file validation.",
+    "list": []
+  }
+}

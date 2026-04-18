@@ -11,6 +11,7 @@ import { InputEditor } from "./InputEditor";
 import { AutomationEditor } from "./AutomationEditor";
 import { DiscordSettings } from "./DiscordSettings";
 import { ConfirmModal } from "./ConfirmModal";
+import { ImportExportModal } from "./ImportExportModal";
 import { useI18n } from "../providers/I18nProvider";
 import { endpoints, api } from "../lib/api";
 
@@ -61,6 +62,7 @@ export const ServerDashboard = ({
   const [renameOpen, setRenameOpen] = useState(false);
   const [newName, setNewName] = useState(server.name);
   const [confirmDelOpen, setConfirmDelOpen] = useState(false);
+  const [importExportOpen, setImportExportOpen] = useState(false);
 
   useEffect(() => {
     setDraft(server.settings || {});
@@ -235,6 +237,11 @@ export const ServerDashboard = ({
 
   return (
     <div className="flex-1 flex flex-col overflow-hidden bg-bg" data-testid="server-dashboard">
+      {!server.installed && (
+        <InstallGate server={server} onBack={onBack} onInstall={handleInstall} busy={busy} t={t} />
+      )}
+      {server.installed && (
+      <>
       {/* Command breadcrumb + actions */}
       <div className="bg-bg-deep border-b border-brand px-6 py-4">
         <div className="flex items-center gap-3 mb-3 text-xs font-mono uppercase tracking-widest">
@@ -258,7 +265,9 @@ export const ServerDashboard = ({
               style={{ appearance: "none", paddingRight: "28px" }}
             >
               {servers.map((s) => (
-                <option key={s.id} value={s.id}>{s.name}</option>
+                <option key={s.id} value={s.id} disabled={!s.installed}>
+                  {s.name}{!s.installed ? " · (not installed)" : ""}
+                </option>
               ))}
             </select>
             <Icons.ChevronDown size={12} className="absolute right-2 top-1/2 -translate-y-1/2 text-dim pointer-events-none" />
@@ -320,6 +329,11 @@ export const ServerDashboard = ({
               </button>
             )}
             {isRunning && (
+              <button className="btn-secondary flex items-center gap-2" onClick={async () => { setBusy(true); try { const u = await endpoints.restartServer(server.id); onChange(u); toast.success(t("restart")); } catch(e){ toast.error(String(e.response?.data?.detail||e.message)); } finally { setBusy(false); } }} disabled={busy} data-testid="server-restart-button" title={t("restart")}>
+                <Icons.RotateCw size={13} />
+              </button>
+            )}
+            {isRunning && (
               <button className="btn-danger flex items-center gap-2" onClick={handleStop} disabled={busy} data-testid="server-stop-button">
                 <Icons.Square size={13} /> {t("stop")}
               </button>
@@ -335,6 +349,9 @@ export const ServerDashboard = ({
                 <Icons.RefreshCw size={13} />
               </button>
             )}
+            <button className="btn-secondary flex items-center gap-2" onClick={() => setImportExportOpen(true)} data-testid="open-import-export-btn" title={t("import_export")}>
+              <Icons.FileUp size={13} /> {t("import_export")}
+            </button>
             <button className="btn-secondary flex items-center gap-2" onClick={handleSaveConfig} disabled={busy} data-testid="save-config-files-btn" title={t("write_config_files")}>
               <Icons.FileCog size={13} />
             </button>
@@ -381,13 +398,6 @@ export const ServerDashboard = ({
               onToggle={() => setOpenMap((m) => ({ ...m, [cat.key]: !m[cat.key] }))}
               badge={badge}
             >
-              {cat.exportKey && cat.renderer !== "user_list" && (
-                <div className="flex justify-end mb-3 gap-2">
-                  <button className="btn-ghost text-xs flex items-center gap-2" onClick={() => handleExport(cat.exportKey)} data-testid={`export-${cat.key}`}>
-                    <Icons.Download size={13} /> {t("export_file")}
-                  </button>
-                </div>
-              )}
               {renderCategoryBody(cat)}
             </Collapsible>
           );
@@ -396,6 +406,15 @@ export const ServerDashboard = ({
           <div className="text-center text-dim text-sm py-12 font-mono uppercase tracking-widest">{t("loading")}</div>
         )}
       </div>
+      </>
+      )}
+
+      <ImportExportModal
+        open={importExportOpen}
+        onClose={() => setImportExportOpen(false)}
+        server={server}
+        onImported={(updated) => { onChange(updated); setDraft(updated.settings || {}); setDirty(false); }}
+      />
 
       {renameOpen && (
         <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4" onClick={() => setRenameOpen(false)}>
@@ -438,3 +457,36 @@ export const ServerDashboard = ({
     </div>
   );
 };
+
+const InstallGate = ({ server, onBack, onInstall, busy, t }) => (
+  <div className="flex-1 flex items-center justify-center p-8 bg-bg-deep" data-testid="install-gate">
+    <div className="relative w-full max-w-xl panel corner-brackets-full" style={{ background: "var(--surface)" }}>
+      <span className="cbr-tr" />
+      <span className="cbr-bl" />
+      <div className="px-5 py-3 border-b border-brand flex items-center gap-2 bg-bg-deep">
+        <Icons.Lock size={14} className="text-accent-brand" />
+        <span className="font-mono text-[11px] uppercase tracking-[0.3em] text-accent-brand">
+          {t("install_required_title")}
+        </span>
+      </div>
+      <div className="px-6 py-8 flex gap-5 items-start">
+        <div className="h-16 w-16 flex items-center justify-center shrink-0 border-2 border-accent-brand bg-accent-soft">
+          <Icons.Download size={28} className="text-accent-brand" />
+        </div>
+        <div>
+          <h2 className="heading-stencil text-lg mb-2">{server.name}</h2>
+          <p className="text-sm leading-relaxed text-brand">{t("install_required_body")}</p>
+          <p className="mt-3 font-mono text-[11px] text-muted break-all">{server.folder_path}</p>
+        </div>
+      </div>
+      <div className="flex items-center justify-end gap-3 px-4 py-3 border-t border-brand bg-bg-deep">
+        <button onClick={onBack} className="btn-ghost" data-testid="install-gate-back">
+          {t("go_back")}
+        </button>
+        <button onClick={onInstall} disabled={busy} className="btn-primary flex items-center gap-2" data-testid="install-gate-install">
+          <Icons.Download size={13} /> {t("install_server")}
+        </button>
+      </div>
+    </div>
+  </div>
+);

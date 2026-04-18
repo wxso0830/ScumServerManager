@@ -9,8 +9,11 @@
     "start": "electron .",
     "dev": "cross-env ELECTRON_START_URL=http://localhost:3000 electron .",
     "build:frontend": "cd ../frontend && yarn build",
-    "dist": "npm run build:frontend && electron-builder --win nsis",
-    "dist:portable": "npm run build:frontend && electron-builder --win portable"
+    "build:backend": "cd ../backend && powershell -ExecutionPolicy Bypass -File build.ps1",
+    "build:all": "npm run build:backend && npm run build:frontend",
+    "dist": "npm run build:all && electron-builder --win nsis",
+    "dist:portable": "npm run build:all && electron-builder --win portable",
+    "dist:only": "electron-builder --win nsis"
   },
   "dependencies": {
     "is-elevated": "^4.0.0",
@@ -29,22 +32,33 @@
     },
     "files": [
       "main.js",
-      "preload.js",
-      "../frontend/build/**/*"
+      "preload.js"
     ],
     "extraResources": [
       {
-        "from": "../backend",
+        "from": "../frontend/build",
+        "to": "frontend/build"
+      },
+      {
+        "from": "../backend/dist",
         "to": "backend",
-        "filter": ["**/*", "!__pycache__/**", "!.venv/**", "!*.pyc"]
+        "filter": ["lgss-backend.exe"]
+      },
+      {
+        "from": "../backend/scum_defaults",
+        "to": "backend/scum_defaults"
+      },
+      {
+        "from": "../mongodb-portable",
+        "to": "mongodb",
+        "filter": ["bin/mongod.exe"]
       }
     ],
     "win": {
       "target": [
         { "target": "nsis", "arch": ["x64"] }
       ],
-      "requestedExecutionLevel": "requireAdministrator",
-      "icon": "icon.ico"
+      "requestedExecutionLevel": "requireAdministrator"
     },
     "nsis": {
       "oneClick": false,

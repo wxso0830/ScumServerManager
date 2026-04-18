@@ -1,7 +1,6 @@
 // LGSS Managers - Electron main process
-// Packages the full stack: spawns Python FastAPI backend, loads the
-// React frontend build, and exposes native OS + SteamCMD capabilities
-// to the renderer via preload IPC.
+// Full standalone bundle: spawns portable MongoDB + PyInstaller-packaged backend
+// + loads the React frontend. Zero dependencies on the target machine.
 
 const { app, BrowserWindow, ipcMain, dialog, shell } = require('electron');
 const path = require('path');
@@ -11,11 +10,31 @@ const { spawn, execFile } = require('child_process');
 const os = require('os');
 
 let mainWindow;
-let backendProcess = null;
 let splashWindow = null;
+let backendProcess = null;
+let mongodProcess = null;
+
 const BACKEND_PORT = Number(process.env.BACKEND_PORT || 8001);
 const BACKEND_HOST = '127.0.0.1';
 const BACKEND_URL = `http://${BACKEND_HOST}:${BACKEND_PORT}`;
+const MONGO_PORT = 27017;
+const MONGO_HOST = '127.0.0.1';
+
+function getResourcesBase() {
+  // Packaged: files are under process.resourcesPath
+  // Dev: files are under project root
+  if (app.isPackaged) return process.resourcesPath;
+  return path.join(__dirname, '..');
+}
+
+function getUserDataDir(sub = 'logs') {
+  const dir = path.join(app.getPath('userData'), sub);
+  fs.mkdirSync(dir, { recursive: true });
+  return dir;
+}
+
+function logDir() { return getUserDataDir('logs'); }
+function mongoDbPath() { return getUserDataDir('mongo-db'); }
 
 // ---------- Admin elevation ----------
 async function requireAdminOrExit() {
@@ -46,35 +65,84 @@ async function requireAdminOrExit() {
   }
 }
 
-// ---------- Backend auto-spawn ----------
-function getBackendDir() {
-  // Packaged app: resources/backend/  |  Dev: ../backend
-  if (app.isPackaged) {
-    return path.join(process.resourcesPath, 'backend');
+// ---------- MongoDB portable spawn ----------
+function getMongodExe() {
+  const base = getResourcesBase();
+  // Packaged layout:  resources/mongodb/bin/mongod.exe
+  // Dev layout:       ../mongodb/bin/mongod.exe  OR system mongod
+  const bundled = path.join(base, 'mongodb', 'bin', 'mongod.exe');
+  if (fs.existsSync(bundled)) return bundled;
+  return null; // caller falls back to system service
+}
+
+async function isMongoReachable() {
+  return new Promise((resolve) => {
+    const sock = require('net').createConnection({ host: MONGO_HOST, port: MONGO_PORT });
+    sock.setTimeout(800);
+    sock.once('connect', () => { sock.destroy(); resolve(true); });
+    sock.once('timeout', () => { sock.destroy(); resolve(false); });
+    sock.once('error', () => resolve(false));
+  });
+}
+
+async function spawnMongodIfNeeded() {
+  if (await isMongoReachable()) {
+    console.log('[mongo] existing mongod detected on 27017, reusing.');
+    return;
   }
-  return path.join(__dirname, '..', 'backend');
+  const mongod = getMongodExe();
+  if (!mongod) {
+    console.warn('[mongo] no bundled mongod.exe and no system mongo service.');
+    return; // backend will error; user will see message
+  }
+
+  const dbpath = mongoDbPath();
+  const out = fs.openSync(path.join(logDir(), 'mongod.out.log'), 'a');
+  const err = fs.openSync(path.join(logDir(), 'mongod.err.log'), 'a');
+
+  console.log(`[mongo] spawning portable: ${mongod} --dbpath ${dbpath}`);
+  mongodProcess = spawn(mongod, [
+    '--dbpath', dbpath,
+    '--port', String(MONGO_PORT),
+    '--bind_ip', MONGO_HOST,
+  ], { stdio: ['ignore', out, err], windowsHide: true });
+
+  mongodProcess.on('exit', (code, sig) => {
+    console.log(`[mongo] exited code=${code} sig=${sig}`);
+    mongodProcess = null;
+  });
+
+  // wait up to 15s for mongod to listen
+  const deadline = Date.now() + 15000;
+  while (Date.now() < deadline) {
+    if (await isMongoReachable()) return;
+    await new Promise(r => setTimeout(r, 400));
+  }
+  throw new Error('MongoDB 15sn içinde başlamadı. mongod.err.log kontrol edin.');
 }
 
-function getPythonExecutable() {
-  // Priority: explicit env -> venv in backend/ -> system python
-  if (process.env.LGSS_PYTHON) return process.env.LGSS_PYTHON;
+// ---------- Backend spawn (PyInstaller in prod, venv in dev) ----------
+function getBackendCommand() {
+  const base = getResourcesBase();
 
-  const backendDir = getBackendDir();
+  // Packaged: resources/backend/lgss-backend.exe  (PyInstaller frozen)
+  const frozenExe = path.join(base, 'backend', 'lgss-backend.exe');
+  if (fs.existsSync(frozenExe)) return { cmd: frozenExe, args: [], cwd: path.dirname(frozenExe) };
+
+  // Dev: use venv python -m uvicorn
+  const backendDir = path.join(base, 'backend');
   const winVenv = path.join(backendDir, '.venv', 'Scripts', 'python.exe');
-  const unixVenv = path.join(backendDir, '.venv', 'bin', 'python');
-  if (fs.existsSync(winVenv)) return winVenv;
-  if (fs.existsSync(unixVenv)) return unixVenv;
+  const python = fs.existsSync(winVenv) ? winVenv
+    : (process.env.LGSS_PYTHON || (process.platform === 'win32' ? 'python.exe' : 'python3'));
 
-  return process.platform === 'win32' ? 'python.exe' : 'python3';
+  return {
+    cmd: python,
+    args: ['-m', 'uvicorn', 'server:app', '--host', BACKEND_HOST, '--port', String(BACKEND_PORT)],
+    cwd: backendDir,
+  };
 }
 
-function getUserDataDir() {
-  const dir = path.join(app.getPath('userData'), 'logs');
-  fs.mkdirSync(dir, { recursive: true });
-  return dir;
-}
-
-function waitForBackend(timeoutMs = 45000) {
+function waitForBackend(timeoutMs = 60000) {
   const deadline = Date.now() + timeoutMs;
   return new Promise((resolve, reject) => {
     const tick = () => {
@@ -87,7 +155,7 @@ function waitForBackend(timeoutMs = 45000) {
       req.setTimeout(1500, () => { req.destroy(); retry(); });
     };
     const retry = () => {
-      if (Date.now() > deadline) return reject(new Error('Backend hazır olmadı (45s timeout)'));
+      if (Date.now() > deadline) return reject(new Error('Backend hazır olmadı (60s timeout)'));
       setTimeout(tick, 700);
     };
     tick();
@@ -96,74 +164,57 @@ function waitForBackend(timeoutMs = 45000) {
 
 function spawnBackend() {
   if (backendProcess) return;
-  const backendDir = getBackendDir();
-  const python = getPythonExecutable();
+  const { cmd, args, cwd } = getBackendCommand();
+  if (!fs.existsSync(cwd)) throw new Error(`Backend klasörü bulunamadı: ${cwd}`);
 
-  if (!fs.existsSync(backendDir)) {
-    throw new Error(`Backend klasörü bulunamadı: ${backendDir}`);
-  }
+  const out = fs.openSync(path.join(logDir(), 'backend.out.log'), 'a');
+  const err = fs.openSync(path.join(logDir(), 'backend.err.log'), 'a');
 
-  const logDir = getUserDataDir();
-  const outLog = fs.openSync(path.join(logDir, 'backend.out.log'), 'a');
-  const errLog = fs.openSync(path.join(logDir, 'backend.err.log'), 'a');
+  console.log(`[backend] spawning: ${cmd} ${args.join(' ')} (cwd=${cwd})`);
 
-  const args = [
-    '-m', 'uvicorn',
-    'server:app',
-    '--host', BACKEND_HOST,
-    '--port', String(BACKEND_PORT),
-  ];
-
-  console.log(`[backend] spawning: ${python} ${args.join(' ')} (cwd=${backendDir})`);
-
-  backendProcess = spawn(python, args, {
-    cwd: backendDir,
-    stdio: ['ignore', outLog, errLog],
+  backendProcess = spawn(cmd, args, {
+    cwd,
+    stdio: ['ignore', out, err],
     env: {
       ...process.env,
       PYTHONUNBUFFERED: '1',
-      MONGO_URL: process.env.MONGO_URL || 'mongodb://localhost:27017',
+      MONGO_URL: process.env.MONGO_URL || `mongodb://${MONGO_HOST}:${MONGO_PORT}`,
       DB_NAME: process.env.DB_NAME || 'lgss_manager',
       CORS_ORIGINS: process.env.CORS_ORIGINS || '*',
+      PORT: String(BACKEND_PORT),
+      HOST: BACKEND_HOST,
     },
     windowsHide: true,
     detached: false,
   });
 
-  backendProcess.on('exit', (code, signal) => {
-    console.log(`[backend] exited code=${code} signal=${signal}`);
+  backendProcess.on('exit', (code, sig) => {
+    console.log(`[backend] exited code=${code} sig=${sig}`);
     backendProcess = null;
   });
-
-  backendProcess.on('error', (err) => {
-    console.error('[backend] spawn error:', err.message);
-  });
+  backendProcess.on('error', (e) => console.error('[backend] error:', e.message));
 }
 
-function killBackend() {
-  if (!backendProcess) return;
+function killChild(proc, name) {
+  if (!proc) return;
   try {
     if (process.platform === 'win32') {
-      // Ensure child tree is killed on Windows
-      execFile('taskkill', ['/pid', String(backendProcess.pid), '/f', '/t']);
+      execFile('taskkill', ['/pid', String(proc.pid), '/f', '/t']);
     } else {
-      backendProcess.kill('SIGTERM');
+      proc.kill('SIGTERM');
     }
-  } catch (e) {
-    console.warn('[backend] kill failed:', e.message);
-  }
-  backendProcess = null;
+  } catch (e) { console.warn(`[${name}] kill failed:`, e.message); }
 }
 
-// ---------- Splash (while backend boots) ----------
-function showSplash() {
+function shutdownChildren() {
+  killChild(backendProcess, 'backend'); backendProcess = null;
+  killChild(mongodProcess, 'mongo');    mongodProcess = null;
+}
+
+// ---------- Splash ----------
+function showSplash(status = 'Arka plan servisleri başlatılıyor...') {
   splashWindow = new BrowserWindow({
-    width: 520,
-    height: 300,
-    frame: false,
-    resizable: false,
-    alwaysOnTop: true,
-    transparent: false,
+    width: 520, height: 300, frame: false, resizable: false, alwaysOnTop: true,
     backgroundColor: '#141512',
     webPreferences: { nodeIntegration: false, contextIsolation: true },
   });
@@ -178,7 +229,7 @@ function showSplash() {
     @keyframes slide{0%{margin-left:-40%}100%{margin-left:100%}}
   </style></head><body>
     <div class="logo">LGSS MANAGER</div>
-    <div class="sub">Arka plan servisleri başlatılıyor...</div>
+    <div class="sub">${status}</div>
     <div class="bar"><span></span></div>
   </body></html>`;
   splashWindow.loadURL('data:text/html;charset=utf-8,' + encodeURIComponent(html));
@@ -192,12 +243,8 @@ function closeSplash() {
 // ---------- Main window ----------
 function createWindow() {
   mainWindow = new BrowserWindow({
-    width: 1600,
-    height: 960,
-    minWidth: 1100,
-    minHeight: 680,
-    backgroundColor: '#141512',
-    show: false,
+    width: 1600, height: 960, minWidth: 1100, minHeight: 680,
+    backgroundColor: '#141512', show: false,
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true,
@@ -206,31 +253,29 @@ function createWindow() {
   });
 
   const startUrl = process.env.ELECTRON_START_URL
-    || `file://${path.join(__dirname, '..', 'frontend', 'build', 'index.html')}`;
+    || `file://${path.join(getResourcesBase(), 'frontend', 'build', 'index.html')}`;
   mainWindow.loadURL(startUrl);
 
-  mainWindow.once('ready-to-show', () => {
-    closeSplash();
-    mainWindow.show();
-  });
-
+  mainWindow.once('ready-to-show', () => { closeSplash(); mainWindow.show(); });
   if (process.env.ELECTRON_START_URL) mainWindow.webContents.openDevTools({ mode: 'detach' });
 }
 
-// ---------- App lifecycle ----------
+// ---------- Lifecycle ----------
 app.whenReady().then(async () => {
   await requireAdminOrExit();
   showSplash();
 
   try {
+    await spawnMongodIfNeeded();
     spawnBackend();
     await waitForBackend();
   } catch (err) {
     closeSplash();
     dialog.showErrorBox(
-      'Backend başlatılamadı',
-      `${err.message}\n\nPython 3.11+ kurulu olduğundan ve backend klasöründe requirements-minimal.txt paketlerinin yüklü olduğundan emin olun.\n\nLog: ${getUserDataDir()}`
+      'Başlatma hatası',
+      `${err.message}\n\nLog klasörü: ${logDir()}`
     );
+    shutdownChildren();
     app.exit(1);
     return;
   }
@@ -238,11 +283,8 @@ app.whenReady().then(async () => {
   createWindow();
 });
 
-app.on('before-quit', killBackend);
-app.on('window-all-closed', () => {
-  killBackend();
-  if (process.platform !== 'darwin') app.quit();
-});
+app.on('before-quit', shutdownChildren);
+app.on('window-all-closed', () => { shutdownChildren(); if (process.platform !== 'darwin') app.quit(); });
 app.on('activate', () => { if (BrowserWindow.getAllWindows().length === 0) createWindow(); });
 
 // ---------- IPC: real OS operations ----------
@@ -330,9 +372,9 @@ ipcMain.handle('lgss:stop-server', async (_evt, { pid }) => {
   try { process.kill(pid); return { ok: true }; } catch (e) { return { ok: false, error: e.message }; }
 });
 
-// Backend status + log path exposure (for diagnostics in UI)
 ipcMain.handle('lgss:backend-info', async () => ({
   running: !!backendProcess,
   url: BACKEND_URL,
-  logsDir: getUserDataDir(),
+  logsDir: logDir(),
+  mongoRunning: !!mongodProcess || (await isMongoReachable()),
 }));

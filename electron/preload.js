@@ -8,5 +8,6 @@ contextBridge.exposeInMainWorld('lgss', {
   writeConfigFiles: (plan) => ipcRenderer.invoke('lgss:write-config-files', plan),
   startServer: (opts) => ipcRenderer.invoke('lgss:start-server', opts),
   stopServer: (opts) => ipcRenderer.invoke('lgss:stop-server', opts),
+  backendInfo: () => ipcRenderer.invoke('lgss:backend-info'),
   isElectron: true,
 });

@@ -817,7 +817,111 @@ async def server_event_stats(server_id: str, days: int = 0):
 @api_router.delete("/servers/{server_id}/events")
 async def clear_server_events(server_id: str):
     res = await db.server_events.delete_many({"server_id": server_id})
+    await db.server_players.delete_many({"server_id": server_id})
     return {"deleted": res.deleted_count}
+
+
+# ---------- PLAYERS REGISTRY ----------
+@api_router.get("/servers/{server_id}/players")
+async def list_players(server_id: str, online: Optional[bool] = None, search: Optional[str] = None):
+    """Aggregate unique players across all ingested events for this server.
+
+    For each steam_id we compute: first_seen, last_seen, last_name (most recent display name),
+    is_online (last login event is connect without a subsequent disconnect), total event count,
+    admin_flag (has ever executed an admin command), fame_delta_total, trade_amount_total,
+    plus per-type event counts.
+    """
+    pipeline = [
+        {"$match": {"server_id": server_id, "steam_id": {"$nin": [None, ""]}}},
+        {"$sort": {"ts": 1}},
+        {"$group": {
+            "_id": "$steam_id",
+            "first_seen": {"$first": "$ts"},
+            "last_seen": {"$last": "$ts"},
+            "last_name": {"$last": "$player_name"},
+            "last_action": {"$last": "$action"},
+            "last_event_type": {"$last": "$type"},
+            "total_events": {"$sum": 1},
+            "types": {"$push": "$type"},
+            "fame_delta": {"$sum": {"$ifNull": ["$delta", 0]}},
+            "trade_amount": {"$sum": {"$cond": [{"$eq": ["$type", "economy"]}, {"$ifNull": ["$amount", 0]}, 0]}},
+            "is_admin_invoker": {"$max": {"$cond": [{"$eq": ["$type", "admin"]}, 1, 0]}},
+        }},
+    ]
+    rows = await db.server_events.aggregate(pipeline).to_list(5000)
+    # Also track kills scored (kill events where this sid is killer_steam_id)
+    kills_pipe = [
+        {"$match": {"server_id": server_id, "type": "kill", "killer_steam_id": {"$nin": [None, ""]}}},
+        {"$group": {"_id": "$killer_steam_id", "kills": {"$sum": 1}}},
+    ]
+    kills_map = {r["_id"]: r["kills"] for r in await db.server_events.aggregate(kills_pipe).to_list(5000)}
+    deaths_pipe = [
+        {"$match": {"server_id": server_id, "type": "kill", "victim_steam_id": {"$nin": [None, ""]}}},
+        {"$group": {"_id": "$victim_steam_id", "deaths": {"$sum": 1}}},
+    ]
+    deaths_map = {r["_id"]: r["deaths"] for r in await db.server_events.aggregate(deaths_pipe).to_list(5000)}
+
+    players: List[Dict[str, Any]] = []
+    for r in rows:
+        types = r.pop("types", [])
+        by_type: Dict[str, int] = {}
+        for t in types:
+            by_type[t] = by_type.get(t, 0) + 1
+        is_online = bool(r.get("last_event_type") == "login" and r.get("last_action") in ("logged_in", "connected"))
+        sid = r.pop("_id")
+        player = {
+            "steam_id": sid,
+            "name": r.get("last_name") or sid,
+            "first_seen": r.get("first_seen"),
+            "last_seen": r.get("last_seen"),
+            "is_online": is_online,
+            "total_events": r.get("total_events", 0),
+            "fame_delta": int(r.get("fame_delta") or 0),
+            "trade_amount": int(r.get("trade_amount") or 0),
+            "is_admin_invoker": bool(r.get("is_admin_invoker")),
+            "kills": int(kills_map.get(sid, 0)),
+            "deaths": int(deaths_map.get(sid, 0)),
+            "by_type": by_type,
+            # Counts that require SCUM SaveFiles DB parsing are NOT available from logs alone.
+            # Reported as None so the UI can render "—" rather than a misleading 0.
+            "flag_count": None,
+            "vehicle_count": None,
+        }
+        players.append(player)
+
+    # Filters
+    if online is not None:
+        players = [p for p in players if p["is_online"] == online]
+    if search:
+        q = search.lower()
+        players = [p for p in players if q in (p["name"] or "").lower() or q in p["steam_id"]]
+
+    # Sort: online players first, then by last_seen descending
+    players.sort(key=lambda p: (0 if p["is_online"] else 1, p["last_seen"] or ""), reverse=False)
+    # Secondary: most-recent last_seen first (descending within each group)
+    players.sort(key=lambda p: (0 if p["is_online"] else 1, -(datetime.fromisoformat(p["last_seen"]).timestamp() if p["last_seen"] else 0)))
+
+    return {
+        "server_id": server_id,
+        "count": len(players),
+        "online_count": sum(1 for p in players if p["is_online"]),
+        "players": players,
+    }
+
+
+@api_router.get("/servers/{server_id}/players/{steam_id}")
+async def get_player_detail(server_id: str, steam_id: str, limit: int = 50):
+    """Return a single player's summary + their last N events."""
+    # Reuse aggregator
+    agg = await list_players(server_id, search=steam_id)
+    player = next((p for p in agg["players"] if p["steam_id"] == steam_id), None)
+    if not player:
+        raise HTTPException(status_code=404, detail="Player not found in event history")
+    recent = await db.server_events.find(
+        {"server_id": server_id, "$or": [{"steam_id": steam_id}, {"killer_steam_id": steam_id}, {"victim_steam_id": steam_id}]},
+        {"_id": 0},
+    ).sort("ts", -1).limit(max(1, min(int(limit or 50), 200))).to_list(200)
+    return {"player": player, "recent_events": recent}
 
 
 @api_router.get("/servers/{server_id}/discord", response_model=DiscordWebhookConfig)

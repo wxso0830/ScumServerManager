@@ -9,6 +9,7 @@ import { TopBar } from "./components/TopBar";
 import { DashboardView } from "./components/DashboardView";
 import { ServerDashboard } from "./components/ServerDashboard";
 import { LogsView } from "./components/LogsView";
+import { PlayersView } from "./components/PlayersView";
 import { endpoints } from "./lib/api";
 
 const Shell = () => {
@@ -203,6 +204,7 @@ const Shell = () => {
         )}
 
         {view === "logs" && <LogsView servers={servers} />}
+        {view === "players" && <PlayersView servers={servers} />}
       </div>
     </div>
   );

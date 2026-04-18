@@ -2,7 +2,8 @@
 // Full standalone bundle: spawns portable MongoDB + PyInstaller-packaged backend
 // + loads the React frontend. Zero dependencies on the target machine.
 
-const { app, BrowserWindow, ipcMain, dialog, shell } = require('electron');
+const { app, BrowserWindow, Menu, ipcMain, dialog, shell } = require('electron');
+Menu.setApplicationMenu(null);
 const path = require('path');
 const fs = require('fs');
 const http = require('http');
@@ -245,12 +246,16 @@ function createWindow() {
   mainWindow = new BrowserWindow({
     width: 1600, height: 960, minWidth: 1100, minHeight: 680,
     backgroundColor: '#141512', show: false,
+    title: 'LGSS Manager',
+    autoHideMenuBar: true,
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true,
       nodeIntegration: false,
     },
   });
+  mainWindow.setMenuBarVisibility(false);
+  mainWindow.removeMenu();
 
   const startUrl = process.env.ELECTRON_START_URL
     || `file://${path.join(getResourcesBase(), 'frontend', 'build', 'index.html')}`;

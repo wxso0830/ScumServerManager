@@ -86,6 +86,22 @@ Turkish user requested a SCUM server manager desktop application with:
 
 ### Desktop-Only Operations (clearly scoped)
 
+### 2026-04-18 — Install Gate + Power Buttons + Import Modal
+User feedback: (1) settings access must be locked behind install, (2) add restart & bulk buttons, (3) replace scattered Export buttons with an import-focused workflow. Delivered:
+
+- **Install gate**: `ServerCard` ⚙ disabled when `!server.installed` (35% opacity + `cursor: not-allowed`). `ServerDashboard` renders a dedicated `<InstallGate>` screen if opened for an uninstalled server. Configs server-switcher disables uninstalled entries with `· (not installed)` suffix. `App.handleNavigate('configs')` auto-picks first installed server or toasts 'Download Server Files First'.
+- **Power buttons**:
+  - New `POST /api/servers/{id}/restart` (Stop → Start cycle; 400 if not installed)
+  - `POST /api/servers/bulk/stop-all` and `POST /api/servers/bulk/restart-all`
+  - TopBar: START ALL + RESTART ALL + STOP ALL + UPDATE SERVERS (4 global actions). Stop All disabled when no server is Running.
+  - Per-server RESTART button appears inline between Start and Stop when running.
+- **Import / Export modal** (replaces scattered inline Export buttons):
+  - New `POST /api/servers/{id}/import-bulk` (multipart) accepts N files + parallel comma-separated file_keys, validates each, returns per-row {ok, error} results, and merges all successful files into settings. Files not uploaded stay at current values. Shared `_apply_file_to_settings` helper reused by both single and bulk endpoints; all parsers now raise `ValueError` on bad input (captured per-row).
+  - `IMPORT_FILE_KEYS` supports all 12 SCUM config files (ServerSettings, GameUserSettings, Economy, RaidTimes, Notifications, Input, Admins, ServerAdmins, Banned, Whitelisted, Exclusive, Silenced).
+  - `ImportExportModal.jsx`: 12-row table with per-row file picker + per-row Export download + per-row colored status (Ready / OK / error with full backend message).
+  - Old inline per-category Export buttons removed from `ServerDashboard`.
+- **Testing**: `iteration_10.json` — **100% pass (13/13 backend + frontend)**, 0 issues, 0 regressions.
+
 ### 2026-04-18 — Players Registry (Online/All + Detail Modal)
 User requested a player tracking system per server with Online/All tabs, first-seen/last-seen timestamps, flag count, vehicle count, and detail view with recent events. Delivered:
 

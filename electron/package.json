@@ -1,0 +1,57 @@
+{
+  "name": "lgss-manager-shell",
+  "version": "1.0.0",
+  "description": "LGSS Managers - SCUM Dedicated Server Manager (Electron desktop shell)",
+  "main": "main.js",
+  "author": "LGSS",
+  "license": "MIT",
+  "scripts": {
+    "start": "electron .",
+    "dev": "cross-env ELECTRON_START_URL=http://localhost:3000 electron .",
+    "build:frontend": "cd ../frontend && yarn build",
+    "dist": "npm run build:frontend && electron-builder --win nsis",
+    "dist:portable": "npm run build:frontend && electron-builder --win portable"
+  },
+  "dependencies": {
+    "is-elevated": "^4.0.0",
+    "sudo-prompt": "^9.2.1"
+  },
+  "devDependencies": {
+    "cross-env": "^7.0.3",
+    "electron": "^32.2.0",
+    "electron-builder": "^25.1.8"
+  },
+  "build": {
+    "appId": "com.lgss.managers",
+    "productName": "LGSS Manager",
+    "directories": {
+      "output": "../dist"
+    },
+    "files": [
+      "main.js",
+      "preload.js",
+      "../frontend/build/**/*"
+    ],
+    "extraResources": [
+      {
+        "from": "../backend",
+        "to": "backend",
+        "filter": ["**/*", "!__pycache__/**", "!.venv/**", "!*.pyc"]
+      }
+    ],
+    "win": {
+      "target": [
+        { "target": "nsis", "arch": ["x64"] }
+      ],
+      "requestedExecutionLevel": "requireAdministrator",
+      "icon": "icon.ico"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "LGSS Manager"
+    }
+  }
+}

@@ -86,6 +86,21 @@ Turkish user requested a SCUM server manager desktop application with:
 
 ### Desktop-Only Operations (clearly scoped)
 
+### 2026-04-18 — Players Registry (Online/All + Detail Modal)
+User requested a player tracking system per server with Online/All tabs, first-seen/last-seen timestamps, flag count, vehicle count, and detail view with recent events. Delivered:
+
+- **Backend aggregator** (no extra collection, computed on the fly from `server_events`):
+  - `GET /servers/{id}/players?online=<bool>&search=<str>` — returns unique players with first_seen, last_seen, is_online (derived from last login event + action), total_events, kills, deaths, trade_amount, fame_delta, is_admin_invoker (ever executed admin command), by_type counts, flag_count=null, vehicle_count=null
+  - `GET /servers/{id}/players/{steam_id}?limit=N` — single player summary + their last N events (as killer, victim, or actor)
+  - `DELETE /servers/{id}/events` now also clears `server_players`
+- **Frontend `PlayersView.jsx`** — new top-level nav tab PLAYERS (between Settings and Logs):
+  - Header: server switcher + search (matches name or Steam ID) + refresh (auto-every 15 s)
+  - Tabs: Online / All Players with live counts
+  - Table: STATUS (LED + online/offline), PLAYER (name + Admin badge if ever ran admin command), STEAM ID, FIRST SEEN, LAST SEEN (absolute + relative), EVENTS, K/D, TRADE, FLAGS, VEHICLES
+  - Click row → Detail modal with 8 stat tiles (First Seen, Last Seen, Events, K/D, Trade, Fame Change, Flags, Vehicles) + Recent Events timeline
+  - Info strip at bottom clearly marks FLAGS / VEHICLES as requiring SCUM SaveFiles DB parsing (future roadmap) — reported as "—" not a misleading 0
+- **Testing**: `iteration_9.json` — **100% pass (15/15 backend + frontend)**, 0 issues, 0 regressions.
+
 ### 2026-04-18 — RCON Alternative: Log Parser + Event Feed + Discord Webhooks
 Research outcome: SCUM has no RCON/API. Community bots (Prisoner Bot, scum_discord_bot_os, Scummy, SCUM-bot) all implement the same pattern — **parse the server's log files** from `SCUM/Saved/SaveFiles/Logs/` (UTF-16 LE with BOM) and relay to Discord. Implemented this pattern natively in the manager:
 

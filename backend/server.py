@@ -1,4 +1,4 @@
-from fastapi import FastAPI, APIRouter, HTTPException
+from fastapi import FastAPI, APIRouter, HTTPException, UploadFile, File
 from dotenv import load_dotenv
 from starlette.middleware.cors import CORSMiddleware
 from motor.motor_asyncio import AsyncIOMotorClient
@@ -10,7 +10,7 @@ from pathlib import Path
 from pydantic import BaseModel, Field, ConfigDict
 from typing import List, Dict, Any, Optional
 import uuid
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from scum_parser import (
     load_defaults,
     render_server_settings_ini,
@@ -608,6 +608,259 @@ async def steam_publish_build(payload: SteamPublishBuild):
     return {"ok": True, "latest_build_id": payload.build_id}
 
 
+# ---------- LOG INGESTION / EVENTS / DISCORD ----------
+from scum_logs import parse_log_text, detect_log_type, read_log_file, LOG_TYPE_ORDER  # noqa: E402
+
+
+class DiscordWebhookConfig(BaseModel):
+    admin: Optional[str] = ""
+    chat: Optional[str] = ""
+    login: Optional[str] = ""
+    kill: Optional[str] = ""
+    economy: Optional[str] = ""
+    violation: Optional[str] = ""
+    fame: Optional[str] = ""
+    raid: Optional[str] = ""
+    mention_role_id: Optional[str] = ""  # pinged on violation events
+
+
+def _event_to_discord_embed(ev: Dict[str, Any]) -> Dict[str, Any]:
+    palette = {
+        "admin":     (0xFF8C00, "🛠 Admin"),
+        "chat":      (0x00C9FF, "💬 Chat"),
+        "login":     (0x22D36F, "🔐 Login"),
+        "kill":      (0xE53935, "💀 Kill"),
+        "economy":   (0xFFD166, "💰 Trade"),
+        "violation": (0xD32F2F, "🚨 Violation"),
+        "fame":      (0x9B59B6, "🏆 Fame"),
+        "raid":      (0x607D8B, "⚔ Raid"),
+    }
+    color, title = palette.get(ev.get("type", ""), (0x8B9A46, f"· {ev.get('type','event').upper()}"))
+    player = ev.get("player_name") or ev.get("killer_name") or "-"
+    desc_lines: List[str] = []
+    if ev["type"] == "admin":
+        desc_lines.append(f"**{player}** ran `{ev.get('command','?')}` {ev.get('args','')}")
+    elif ev["type"] == "chat":
+        desc_lines.append(f"[{ev.get('channel','?')}] **{player}**: {ev.get('message','')}")
+    elif ev["type"] == "login":
+        desc_lines.append(f"**{player}** {ev.get('action','?')}")
+    elif ev["type"] == "kill":
+        desc_lines.append(f"**{ev.get('killer_name','?')}** killed **{ev.get('victim_name','?')}** with `{ev.get('weapon','?')}` · {ev.get('distance_m',0):.0f}m")
+    elif ev["type"] == "economy":
+        desc_lines.append(f"**{player}** {ev.get('action','?')} {ev.get('quantity',1)}× `{ev.get('item_code','?')}` for {ev.get('amount',0)} @ {ev.get('trader','?')}")
+    elif ev["type"] == "violation":
+        desc_lines.append(f"⚠ **{player}** — {ev.get('description','')}")
+    elif ev["type"] == "fame":
+        d = ev.get("delta", 0)
+        desc_lines.append(f"**{player}** {'gained' if d >= 0 else 'lost'} {abs(d)} fame")
+    else:
+        desc_lines.append(ev.get("raw", ""))
+    return {
+        "embeds": [{
+            "title": title,
+            "description": "\n".join(desc_lines)[:1800],
+            "color": color,
+            "timestamp": ev.get("ts"),
+            "footer": {"text": f"Server {ev.get('server_id','')[:8]} · {ev.get('source_file','')}"},
+        }]
+    }
+
+
+async def _forward_to_discord(webhooks: Dict[str, Any], events: List[Dict[str, Any]]) -> int:
+    sent = 0
+    if not webhooks:
+        return 0
+    import httpx
+    # Group by event type so we issue one request per type (respect Discord rate limit).
+    async with httpx.AsyncClient(timeout=8.0) as client:
+        for ev in events:
+            hook = (webhooks.get(ev.get("type")) or "").strip()
+            if not hook or not hook.startswith("https://discord"):
+                continue
+            payload = _event_to_discord_embed(ev)
+            if ev.get("type") == "violation" and webhooks.get("mention_role_id"):
+                payload["content"] = f"<@&{webhooks['mention_role_id']}>"
+            try:
+                r = await client.post(hook, json=payload)
+                if r.status_code < 400:
+                    sent += 1
+            except Exception as e:
+                logger.info("Discord POST failed: %s", e)
+    return sent
+
+
+async def _store_events_and_forward(server_id: str, events: List[Dict[str, Any]]) -> Dict[str, int]:
+    """Store events in MongoDB (de-duplicated by 'id') and forward to the server's Discord hooks."""
+    if not events:
+        return {"stored": 0, "forwarded": 0}
+    srv = await db.servers.find_one({"id": server_id}, {"_id": 0, "discord_webhooks": 1}) or {}
+    hooks = srv.get("discord_webhooks") or {}
+    inserted = 0
+    for ev in events:
+        try:
+            res = await db.server_events.update_one({"id": ev["id"]}, {"$setOnInsert": ev}, upsert=True)
+            if res.upserted_id is not None:
+                inserted += 1
+        except Exception as e:
+            logger.info("event store failed: %s", e)
+    sent = 0
+    if inserted:
+        new_events = [e for e in events][-200:]
+        sent = await _forward_to_discord(hooks, new_events)
+    return {"stored": inserted, "forwarded": sent}
+
+
+@api_router.post("/servers/{server_id}/logs/import")
+async def import_server_log(server_id: str, file: UploadFile = File(...)):
+    """Upload a SCUM log file (UTF-16) and parse+store its events.
+
+    Useful for web preview where no real SCUM server is running: the admin can drag
+    a real log here and immediately see kills/chat/admin/economy feeds + Discord relays.
+    """
+    srv = await db.servers.find_one({"id": server_id}, {"_id": 0})
+    if not srv:
+        raise HTTPException(status_code=404, detail="Server not found")
+    raw = await file.read()
+    from scum_logs import _decode_scum_log_bytes
+    text = _decode_scum_log_bytes(raw)
+    log_type = detect_log_type(file.filename or "")
+    events = parse_log_text(text, log_type, filename=file.filename or "", server_id=server_id)
+    res = await _store_events_and_forward(server_id, events)
+    return {"log_type": log_type, "parsed": len(events), **res, "filename": file.filename}
+
+
+@api_router.post("/servers/{server_id}/logs/scan")
+async def scan_server_logs(server_id: str, limit: int = 20):
+    """Walk {folder_path}/SCUM/Saved/SaveFiles/Logs/ and parse the `limit` most recent files.
+
+    This is the "real server" path: when a SCUM server is actually writing logs on the
+    host, calling this endpoint ingests everything new. Deduplication is by event id so
+    re-scans are safe.
+    """
+    srv = await db.servers.find_one({"id": server_id}, {"_id": 0})
+    if not srv:
+        raise HTTPException(status_code=404, detail="Server not found")
+    folder = srv["folder_path"]
+    sep = "\\" if ("\\" in folder or (len(folder) >= 2 and folder[1] == ":")) else "/"
+    if sep != "/":
+        return {"error": "Windows path — use the Electron IPC to scan", "scanned": 0}
+    logs_dir = Path(folder) / "SCUM" / "Saved" / "SaveFiles" / "Logs"
+    if not logs_dir.exists():
+        return {"error": f"Logs directory not found: {logs_dir}", "scanned": 0}
+    files = sorted(logs_dir.glob("*.log"), key=lambda p: p.stat().st_mtime, reverse=True)[:limit]
+    total_parsed = 0
+    total_stored = 0
+    total_forwarded = 0
+    per_file: List[Dict[str, Any]] = []
+    for p in files:
+        try:
+            text = read_log_file(p)
+            lt = detect_log_type(p.name)
+            evs = parse_log_text(text, lt, filename=p.name, server_id=server_id)
+            r = await _store_events_and_forward(server_id, evs)
+            total_parsed += len(evs)
+            total_stored += r["stored"]
+            total_forwarded += r["forwarded"]
+            per_file.append({"file": p.name, "type": lt, "parsed": len(evs), **r})
+        except Exception as e:
+            per_file.append({"file": p.name, "error": str(e)})
+    return {"scanned": len(files), "parsed": total_parsed, "stored": total_stored, "forwarded": total_forwarded, "files": per_file}
+
+
+@api_router.get("/servers/{server_id}/events")
+async def list_server_events(
+    server_id: str,
+    type: Optional[str] = None,
+    player: Optional[str] = None,
+    limit: int = 200,
+    since: Optional[str] = None,
+):
+    q: Dict[str, Any] = {"server_id": server_id}
+    if type:
+        q["type"] = type
+    if player:
+        q["$or"] = [{"player_name": {"$regex": player, "$options": "i"}}, {"steam_id": player}]
+    if since:
+        q["ts"] = {"$gt": since}
+    limit = max(1, min(int(limit or 200), 1000))
+    cur = db.server_events.find(q, {"_id": 0}).sort("ts", -1).limit(limit)
+    events = await cur.to_list(limit)
+    return {"server_id": server_id, "count": len(events), "events": events}
+
+
+@api_router.get("/servers/{server_id}/events/stats")
+async def server_event_stats(server_id: str, days: int = 0):
+    """Aggregate counts per type. `days=0` (default) means all time."""
+    match: Dict[str, Any] = {"server_id": server_id}
+    if days and days > 0:
+        cutoff = (datetime.now(timezone.utc) - timedelta(days=days)).isoformat()
+        match["ts"] = {"$gt": cutoff}
+    pipeline = [
+        {"$match": match},
+        {"$group": {"_id": "$type", "count": {"$sum": 1}}},
+    ]
+    rows = await db.server_events.aggregate(pipeline).to_list(100)
+    by_type = {r["_id"]: r["count"] for r in rows}
+    for t in LOG_TYPE_ORDER:
+        by_type.setdefault(t, 0)
+    top_pipe = [
+        {"$match": {**match, "player_name": {"$nin": [None, ""]}}},
+        {"$group": {"_id": "$player_name", "count": {"$sum": 1}}},
+        {"$sort": {"count": -1}},
+        {"$limit": 5},
+    ]
+    top_players = await db.server_events.aggregate(top_pipe).to_list(5)
+    total = sum(by_type.values())
+    return {"server_id": server_id, "total": total, "by_type": by_type, "top_players": [{"name": r["_id"], "count": r["count"]} for r in top_players]}
+
+
+@api_router.delete("/servers/{server_id}/events")
+async def clear_server_events(server_id: str):
+    res = await db.server_events.delete_many({"server_id": server_id})
+    return {"deleted": res.deleted_count}
+
+
+@api_router.get("/servers/{server_id}/discord", response_model=DiscordWebhookConfig)
+async def get_discord_webhooks(server_id: str):
+    srv = await db.servers.find_one({"id": server_id}, {"_id": 0}) or {}
+    hooks = srv.get("discord_webhooks") or {}
+    return DiscordWebhookConfig(**hooks)
+
+
+@api_router.put("/servers/{server_id}/discord", response_model=DiscordWebhookConfig)
+async def set_discord_webhooks(server_id: str, payload: DiscordWebhookConfig):
+    data = payload.model_dump()
+    await db.servers.update_one({"id": server_id}, {"$set": {"discord_webhooks": data}})
+    return DiscordWebhookConfig(**data)
+
+
+class DiscordTestPayload(BaseModel):
+    event_type: str = "admin"
+    webhook_url: str
+
+
+@api_router.post("/servers/{server_id}/discord/test")
+async def test_discord_webhook(server_id: str, payload: DiscordTestPayload):
+    fake = {
+        "type": payload.event_type,
+        "ts": datetime.now(timezone.utc).isoformat(),
+        "server_id": server_id,
+        "source_file": "manual-test",
+        "player_name": "LGSS Manager",
+        "command": "test",
+        "args": "This is a test notification from LGSS Manager.",
+        "message": "Hello from the manager!",
+        "action": "logged_in",
+        "killer_name": "TestKiller", "victim_name": "TestVictim", "weapon": "M9", "distance_m": 42.0,
+        "item_code": "Improvised_Metal_Chest", "quantity": 1, "amount": 1320, "trader": "A_0_Trader",
+        "description": "Suspicious teleport pattern",
+        "delta": 50,
+        "raw": "Manual test event",
+    }
+    sent = await _forward_to_discord({payload.event_type: payload.webhook_url}, [fake])
+    return {"sent": sent}
+
+
 @api_router.post("/servers/{server_id}/save-config")
 async def save_server_config(server_id: str, write_to_disk: bool = True):
     """Render all manager settings into actual SCUM config files and write them to disk.
@@ -1015,6 +1268,8 @@ async def get_settings_schema():
             # ------ AUTOMATION ------
             {"key": "automation_main", "labelKey": "cat_automation_main", "icon": "Clock", "section": "automation",
              "renderer": "automation"},
+            {"key": "automation_discord", "labelKey": "discord_integration", "icon": "Webhook", "section": "automation",
+             "renderer": "discord"},
 
             # ------ CLIENT DEFAULTS ------
             {"key": "client_game", "labelKey": "cat_client_game", "icon": "Gamepad2", "section": "client",

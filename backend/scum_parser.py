@@ -101,7 +101,7 @@ def load_defaults() -> Dict[str, Any]:
     input_path = DEFAULTS_DIR / "Input.ini"
     economy_path = DEFAULTS_DIR / "EconomyOverride.json"
     raid_path = DEFAULTS_DIR / "RaidTimes.json"
-    notif_path = DEFAULTS_DIR / "Notifications.json"
+    notif_path = DEFAULTS_DIR / "Notifications.json"  # noqa: F841 — kept for doc/reference
     admins_path = DEFAULTS_DIR / "AdminUsers.ini"
     banned_path = DEFAULTS_DIR / "BannedUsers.ini"
     exclusive_path = DEFAULTS_DIR / "ExclusiveUsers.ini"

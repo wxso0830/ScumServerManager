@@ -1,0 +1,296 @@
+import React, { useEffect, useMemo, useRef, useState } from "react";
+import {
+  ScrollText, Upload, FolderSearch, Trash2, Search, RefreshCw, Users, Filter,
+  Wrench, MessageCircle, LogIn, Swords, Coins, AlertTriangle, Trophy, ShieldCheck, FileText,
+} from "lucide-react";
+import { toast } from "sonner";
+import { useI18n } from "../providers/I18nProvider";
+import { endpoints } from "../lib/api";
+
+const TYPE_META = {
+  admin:     { icon: Wrench, color: "var(--accent)",        labelKey: "event_type_admin" },
+  chat:      { icon: MessageCircle, color: "var(--info)",   labelKey: "event_type_chat" },
+  login:     { icon: LogIn, color: "var(--success)",        labelKey: "event_type_login" },
+  kill:      { icon: Swords, color: "var(--danger)",        labelKey: "event_type_kill" },
+  economy:   { icon: Coins, color: "var(--warning)",        labelKey: "event_type_economy" },
+  violation: { icon: AlertTriangle, color: "var(--danger)", labelKey: "event_type_violation" },
+  fame:      { icon: Trophy, color: "#9B59B6",              labelKey: "event_type_fame" },
+  raid:      { icon: ShieldCheck, color: "#607D8B",         labelKey: "event_type_raid" },
+  generic:   { icon: FileText, color: "var(--text-dim)",    labelKey: "event_type_generic" },
+};
+
+const fmtTs = (iso) => {
+  try {
+    const d = new Date(iso);
+    return d.toLocaleString([], { month: "short", day: "2-digit", hour: "2-digit", minute: "2-digit", second: "2-digit" });
+  } catch { return iso; }
+};
+
+const EventRow = ({ ev }) => {
+  const meta = TYPE_META[ev.type] || TYPE_META.generic;
+  const Icon = meta.icon;
+
+  const renderBody = () => {
+    switch (ev.type) {
+      case "admin":
+        return (
+          <>
+            <span className="text-brand font-semibold">{ev.player_name || "system"}</span>
+            <span className="text-muted"> ran </span>
+            <span className="font-mono text-accent-brand">{ev.command}</span>
+            {ev.args && <span className="font-mono text-dim"> {ev.args}</span>}
+          </>
+        );
+      case "chat":
+        return (
+          <>
+            <span className="text-muted">[{ev.channel}] </span>
+            <span className="text-brand font-semibold">{ev.player_name}</span>
+            <span className="text-muted">: </span>
+            <span className="text-brand">{ev.message}</span>
+          </>
+        );
+      case "login":
+        return (
+          <>
+            <span className="text-brand font-semibold">{ev.player_name}</span>
+            <span className="text-muted"> {ev.action?.replace("_", " ")}</span>
+          </>
+        );
+      case "kill":
+        return (
+          <>
+            <span className="text-brand font-semibold">{ev.killer_name}</span>
+            <span className="text-muted"> killed </span>
+            <span className="text-brand font-semibold">{ev.victim_name}</span>
+            <span className="text-muted"> with </span>
+            <span className="font-mono text-accent-brand">{ev.weapon}</span>
+            <span className="text-muted"> · {Math.round(ev.distance_m || 0)}m</span>
+          </>
+        );
+      case "economy":
+        return (
+          <>
+            <span className="text-brand font-semibold">{ev.player_name}</span>
+            <span className="text-muted"> {ev.action} </span>
+            <span className="font-mono text-accent-brand">{ev.quantity}× {ev.item_code}</span>
+            <span className="text-muted"> for </span>
+            <span className="text-warning">{ev.amount}</span>
+            <span className="text-muted"> @ {ev.trader}</span>
+          </>
+        );
+      case "violation":
+      case "fame":
+        return <span className="text-brand">{ev.player_name} — {ev.description || (ev.delta != null ? `${ev.delta >= 0 ? "+" : ""}${ev.delta} fame` : "")}</span>;
+      default:
+        return <span className="text-dim font-mono text-xs">{ev.raw}</span>;
+    }
+  };
+
+  return (
+    <div className="px-4 py-2 border-b border-brand hover:bg-surface-2 transition-colors flex items-start gap-3 font-mono text-xs">
+      <span className="text-muted text-[10px] tracking-widest pt-0.5 w-32 shrink-0">{fmtTs(ev.ts)}</span>
+      <span className="shrink-0 pt-0.5" style={{ color: meta.color }}>
+        <Icon size={13} />
+      </span>
+      <div className="flex-1 min-w-0 leading-relaxed">{renderBody()}</div>
+    </div>
+  );
+};
+
+export const LogsView = ({ servers = [] }) => {
+  const { t } = useI18n();
+  const [serverId, setServerId] = useState(servers[0]?.id || "");
+  const [typeFilter, setTypeFilter] = useState("");
+  const [playerFilter, setPlayerFilter] = useState("");
+  const [events, setEvents] = useState([]);
+  const [stats, setStats] = useState({ by_type: {}, top_players: [], total: 0 });
+  const [loading, setLoading] = useState(false);
+  const fileRef = useRef(null);
+
+  useEffect(() => {
+    if (servers.length && !servers.find((s) => s.id === serverId)) {
+      setServerId(servers[0]?.id || "");
+    }
+  }, [servers, serverId]);
+
+  const load = async () => {
+    if (!serverId) return;
+    setLoading(true);
+    try {
+      const params = { limit: 300 };
+      if (typeFilter) params.type = typeFilter;
+      if (playerFilter) params.player = playerFilter;
+      const [evs, st] = await Promise.all([
+        endpoints.listEvents(serverId, params),
+        endpoints.eventStats(serverId, 0),
+      ]);
+      setEvents(evs.events || []);
+      setStats(st);
+    } finally { setLoading(false); }
+  };
+
+  useEffect(() => { load(); /* eslint-disable-next-line */ }, [serverId, typeFilter, playerFilter]);
+
+  // Auto-refresh every 10s
+  useEffect(() => {
+    const t = setInterval(() => { load(); }, 10000);
+    return () => clearInterval(t);
+    // eslint-disable-next-line
+  }, [serverId, typeFilter, playerFilter]);
+
+  const handleUpload = async (file) => {
+    if (!file || !serverId) return;
+    try {
+      const r = await endpoints.importLog(serverId, file);
+      toast.success(`${r.log_type}: ${r.stored} new events (${r.parsed} parsed)`);
+      load();
+    } catch (e) { toast.error(String(e.response?.data?.detail || e.message)); }
+  };
+
+  const handleScan = async () => {
+    if (!serverId) return;
+    try {
+      const r = await endpoints.scanLogs(serverId, 20);
+      if (r.error) toast.error(r.error);
+      else toast.success(`Scanned ${r.scanned} files · ${r.stored} new events`);
+      load();
+    } catch (e) { toast.error(String(e.response?.data?.detail || e.message)); }
+  };
+
+  const handleClear = async () => {
+    if (!serverId) return;
+    if (!window.confirm("Clear all events for this server?")) return;
+    const r = await endpoints.clearEvents(serverId);
+    toast(`Deleted ${r.deleted}`);
+    load();
+  };
+
+  const activeServer = useMemo(() => servers.find((s) => s.id === serverId), [servers, serverId]);
+
+  if (!servers.length) {
+    return (
+      <div className="flex-1 flex items-center justify-center bg-bg" data-testid="logs-view-empty">
+        <div className="text-center text-dim text-sm">Add a server first to see its event feed.</div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex-1 flex flex-col overflow-hidden bg-bg" data-testid="logs-view">
+      {/* Header */}
+      <div className="bg-bg-deep border-b border-brand px-6 py-4 flex items-center gap-4">
+        <ScrollText size={18} className="text-accent-brand" />
+        <div>
+          <div className="label-accent">{t("nav_logs")}</div>
+          <div className="heading-stencil text-lg">{activeServer?.name || "—"}</div>
+        </div>
+
+        <div className="flex-1" />
+
+        <select
+          value={serverId}
+          onChange={(e) => setServerId(e.target.value)}
+          className="bg-surface border border-strong px-3 py-1.5 text-xs font-mono uppercase tracking-wider text-brand"
+          data-testid="logs-server-select"
+          style={{ appearance: "none" }}
+        >
+          {servers.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
+        </select>
+
+        <input ref={fileRef} type="file" className="hidden" accept=".log,.txt" onChange={(e) => handleUpload(e.target.files?.[0])} data-testid="logs-upload-input" />
+        <button className="btn-secondary flex items-center gap-2" onClick={() => fileRef.current?.click()} data-testid="logs-upload-btn">
+          <Upload size={13} /> {t("upload_log_file")}
+        </button>
+        <button className="btn-secondary flex items-center gap-2" onClick={handleScan} data-testid="logs-scan-btn">
+          <FolderSearch size={13} /> {t("scan_logs_folder")}
+        </button>
+        <button className="icon-btn" onClick={load} title="Refresh" data-testid="logs-refresh-btn">
+          <RefreshCw size={14} className={loading ? "animate-spin" : ""} />
+        </button>
+        <button className="icon-btn" onClick={handleClear} title={t("clear_events")} data-testid="logs-clear-btn">
+          <Trash2 size={14} />
+        </button>
+      </div>
+
+      {/* Stats strip */}
+      <div className="bg-bg border-b border-brand px-6 py-3 flex items-center gap-3 overflow-x-auto scrollbar-thin">
+        <button
+          onClick={() => setTypeFilter("")}
+          className="px-2.5 py-1 text-[10px] font-mono uppercase tracking-widest border transition-colors whitespace-nowrap"
+          style={{
+            borderColor: !typeFilter ? "var(--accent)" : "var(--border)",
+            color: !typeFilter ? "var(--accent)" : "var(--text-dim)",
+          }}
+          data-testid="logs-filter-all"
+        >
+          {t("all_events")} · {stats.total}
+        </button>
+        {Object.entries(TYPE_META).filter(([k]) => k !== "generic").map(([k, meta]) => {
+          const Icon = meta.icon;
+          const count = stats.by_type[k] || 0;
+          return (
+            <button
+              key={k}
+              onClick={() => setTypeFilter(k)}
+              data-testid={`logs-filter-${k}`}
+              className="px-2.5 py-1 text-[10px] font-mono uppercase tracking-widest border transition-colors whitespace-nowrap flex items-center gap-1.5"
+              style={{
+                borderColor: typeFilter === k ? meta.color : "var(--border)",
+                color: typeFilter === k ? meta.color : "var(--text-dim)",
+                background: typeFilter === k ? `${meta.color}14` : "transparent",
+              }}
+            >
+              <Icon size={10} /> {t(meta.labelKey)} · {count}
+            </button>
+          );
+        })}
+
+        <div className="flex-1" />
+
+        <div className="relative">
+          <Search size={11} className="absolute left-2 top-1/2 -translate-y-1/2 text-dim" />
+          <input
+            className="input-field pl-7 text-xs w-56"
+            placeholder={t("filter_by_player")}
+            value={playerFilter}
+            onChange={(e) => setPlayerFilter(e.target.value)}
+            data-testid="logs-player-filter"
+          />
+        </div>
+      </div>
+
+      {/* Event feed */}
+      <div className="flex-1 overflow-y-auto scrollbar-thin bg-bg-deep">
+        {events.length === 0 && (
+          <div className="p-12 text-center">
+            <ScrollText size={40} className="mx-auto text-dim mb-4" />
+            <h3 className="heading-stencil text-lg mb-2">{t("logs_empty_title")}</h3>
+            <p className="text-xs text-dim max-w-md mx-auto leading-relaxed">{t("logs_empty_subtitle")}</p>
+            <button className="btn-primary mt-5" onClick={() => fileRef.current?.click()} data-testid="logs-upload-hero-btn">
+              <Upload size={13} className="inline mr-2" /> {t("upload_log_file")}
+            </button>
+          </div>
+        )}
+        {events.map((ev) => <EventRow key={ev.id} ev={ev} />)}
+      </div>
+
+      {/* Top players sidebar — small overlay at bottom */}
+      {stats.top_players?.length > 0 && (
+        <div className="bg-surface border-t border-brand px-6 py-3 flex items-center gap-6 text-xs overflow-x-auto scrollbar-thin">
+          <div className="flex items-center gap-2 text-dim shrink-0">
+            <Users size={12} className="text-accent-brand" />
+            <span className="label-overline">{t("top_players")}</span>
+          </div>
+          {stats.top_players.map((p, i) => (
+            <div key={p.name} className="flex items-center gap-2 whitespace-nowrap" data-testid={`top-player-${i}`}>
+              <span className="font-mono text-[10px] text-accent-brand">#{i + 1}</span>
+              <span className="text-brand">{p.name}</span>
+              <span className="text-dim">· {p.count}</span>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};

@@ -33,4 +33,16 @@ export const endpoints = {
   postInstall: (id) => api.post(`/servers/${id}/post-install`).then(r => r.data),
   steamCheckUpdate: () => api.get("/steam/check-update").then(r => r.data),
   steamPublishBuild: (build_id, notes = "") => api.post("/steam/publish-build", { build_id, notes }).then(r => r.data),
+  listEvents: (id, params = {}) => api.get(`/servers/${id}/events`, { params }).then(r => r.data),
+  eventStats: (id, days = 0) => api.get(`/servers/${id}/events/stats`, { params: { days } }).then(r => r.data),
+  clearEvents: (id) => api.delete(`/servers/${id}/events`).then(r => r.data),
+  scanLogs: (id, limit = 20) => api.post(`/servers/${id}/logs/scan`, null, { params: { limit } }).then(r => r.data),
+  importLog: (id, file) => {
+    const fd = new FormData();
+    fd.append("file", file);
+    return api.post(`/servers/${id}/logs/import`, fd, { headers: { "Content-Type": "multipart/form-data" } }).then(r => r.data);
+  },
+  getDiscord: (id) => api.get(`/servers/${id}/discord`).then(r => r.data),
+  setDiscord: (id, payload) => api.put(`/servers/${id}/discord`, payload).then(r => r.data),
+  testDiscord: (id, event_type, webhook_url) => api.post(`/servers/${id}/discord/test`, { event_type, webhook_url }).then(r => r.data),
 };

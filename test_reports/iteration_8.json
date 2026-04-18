@@ -1,0 +1,125 @@
+{
+  "summary": "Completed comprehensive testing of LGSS SCUM Server Manager Iteration 8 - Log Parsing, Event Feed & Discord Webhooks. All 15 backend API tests passed (100%). Frontend testing verified: LogsView with event feed, type filters, player search, top players ribbon; DiscordSettings with 8 webhook inputs and persistence. Regression tests confirmed all previous features still working.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_lgss_iteration8.py",
+    "/app/test_reports/pytest/pytest_iteration8.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "UTF-16 LE with BOM log parsing implemented correctly in scum_logs.py - handles SCUM's native encoding",
+    "Event deduplication working via SHA1 hash of server_id + source_file + ts + body",
+    "Economy log parser correctly filters out 'Before/After' balance lines, only emitting actual trade events",
+    "Discord webhook forwarding implemented with per-event-type URLs and embed formatting",
+    "MongoDB server_events collection properly indexed for efficient queries",
+    "LogsView auto-refreshes every 10 seconds for live event monitoring"
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_lgss_iteration8.py"
+  ],
+  "success_rate": {
+    "backend": "100% (15/15 tests passed)",
+    "frontend": "100% (all flows verified)"
+  },
+  "test_credentials": "No authentication required",
+  "seed_data_creation": "Tests use POST /api/setup/reset to clear state. PUT /api/setup with {is_admin_confirmed:true, selected_disk:'/', manager_path:'/tmp/LGSSManagers', completed:true} to setup. Sample logs at /app/backend/sample_logs/",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Iteration 8 adds: (1) SCUM log parsing with UTF-16 LE support (admin, chat, login, kill, economy, violation, fame, raid types), (2) Event ingestion via file upload (POST /servers/{id}/logs/import) and folder scan (POST /servers/{id}/logs/scan), (3) MongoDB-backed event storage with dedup by SHA1 hash, (4) Live event feed UI (LogsView) with type filters, player search, top players ribbon, (5) Per-server Discord webhook integration with per-event-type URLs and test-send. Key data-testids: logs-view, logs-upload-input, logs-upload-hero-btn, logs-filter-{type}, logs-player-filter, logs-refresh-btn, logs-clear-btn, top-player-{n}, discord-settings, discord-{type}-input, discord-mention-role-input, discord-save-btn, discord-{type}-test.",
+  "features_verified": {
+    "backend": {
+      "log_import": {
+        "endpoint": "POST /api/servers/{id}/logs/import",
+        "accepts": "multipart/form-data with UTF-16 LE encoded .log file",
+        "returns": "{log_type, parsed, stored, forwarded, filename}",
+        "admin_log_test": "27 parsed, >=19 stored (dedup)",
+        "economy_log_test": "3 parsed (before/after balance lines filtered)"
+      },
+      "log_scan": {
+        "endpoint": "POST /api/servers/{id}/logs/scan",
+        "returns_error_when_folder_missing": true,
+        "error_format": "{error: 'Logs directory not found ...', scanned: 0}"
+      },
+      "events_list": {
+        "endpoint": "GET /api/servers/{id}/events",
+        "params": ["limit", "type", "player", "since"],
+        "returns": "{server_id, count, events: [{id, ts, type, server_id, source_file, ...type-specific fields}]}",
+        "type_filter": "?type=admin returns only admin events",
+        "player_filter": "?player=WXSO case-insensitive search"
+      },
+      "events_stats": {
+        "endpoint": "GET /api/servers/{id}/events/stats",
+        "params": ["days"],
+        "returns": "{server_id, total, by_type: {admin, chat, ...}, top_players: [{name, count}]}"
+      },
+      "events_clear": {
+        "endpoint": "DELETE /api/servers/{id}/events",
+        "returns": "{deleted: N}"
+      },
+      "discord_config": {
+        "get": "GET /api/servers/{id}/discord",
+        "set": "PUT /api/servers/{id}/discord",
+        "test": "POST /api/servers/{id}/discord/test",
+        "fields": ["admin", "chat", "login", "kill", "economy", "violation", "fame", "raid", "mention_role_id"],
+        "invalid_url_handling": "returns {sent: 0} without crash"
+      },
+      "deduplication": {
+        "method": "SHA1 hash of server_id + source_file + ts + body",
+        "re_upload_behavior": "stored=0 for duplicate events"
+      }
+    },
+    "frontend": {
+      "logs_view": {
+        "testid": "[data-testid='logs-view']",
+        "header": "LOGS + server name",
+        "empty_state": "[data-testid='logs-upload-hero-btn']",
+        "upload_input": "[data-testid='logs-upload-input']",
+        "filter_chips": "[data-testid='logs-filter-{type}'] for admin, chat, login, kill, economy, violation, fame, raid",
+        "player_filter": "[data-testid='logs-player-filter']",
+        "refresh_btn": "[data-testid='logs-refresh-btn']",
+        "clear_btn": "[data-testid='logs-clear-btn']",
+        "top_players": "[data-testid='top-player-{n}']",
+        "auto_refresh": "10 second interval"
+      },
+      "discord_settings": {
+        "testid": "[data-testid='discord-settings']",
+        "location": "Configuration → Automation tab → Discord Integration panel",
+        "webhook_inputs": "[data-testid='discord-{type}-input'] for 8 event types",
+        "mention_role": "[data-testid='discord-mention-role-input']",
+        "test_buttons": "[data-testid='discord-{type}-test']",
+        "save_button": "[data-testid='discord-save-btn']",
+        "persistence": "Verified via reload test"
+      },
+      "event_row_rendering": {
+        "admin": "player ran command args",
+        "economy": "player purchased/sold item for amount @ trader",
+        "type_icons": "Colored icons per event type"
+      }
+    },
+    "regression": {
+      "admin_prompt": "Working",
+      "disk_wizard": "Working",
+      "dashboard_view": "Working",
+      "server_cards": "Working",
+      "install_button": "Working",
+      "settings_navigation": "Working",
+      "section_tabs": "Working (essentials, gameplay, economy, users)",
+      "traders_editor": "Working",
+      "save_config": "Working",
+      "confirm_modal": "Working (custom modal, not browser native)",
+      "deploy_new_server": "Working"
+    }
+  },
+  "mocked_apis": {
+    "note": "NO MOCKED APIs. All features are REAL: log parsing, event storage, Discord webhook forwarding (with real HTTP calls).",
+    "list": []
+  }
+}

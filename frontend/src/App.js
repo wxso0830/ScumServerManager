@@ -8,6 +8,7 @@ import { DiskSelectionWizard } from "./components/DiskSelectionWizard";
 import { TopBar } from "./components/TopBar";
 import { DashboardView } from "./components/DashboardView";
 import { ServerDashboard } from "./components/ServerDashboard";
+import { LogsView } from "./components/LogsView";
 import { endpoints } from "./lib/api";
 
 const Shell = () => {
@@ -201,7 +202,7 @@ const Shell = () => {
           )
         )}
 
-        {view === "logs" && <LogsView t={t} />}
+        {view === "logs" && <LogsView servers={servers} />}
       </div>
     </div>
   );
@@ -214,20 +215,6 @@ const NoServerSelected = ({ t, onGoDashboard }) => (
       <button className="btn-primary" onClick={onGoDashboard}>
         {t("back_to_dashboard")}
       </button>
-    </div>
-  </div>
-);
-
-const LogsView = ({ t }) => (
-  <div className="flex-1 flex items-center justify-center bg-bg font-mono" data-testid="logs-view">
-    <div className="text-center max-w-lg p-8 border border-brand panel corner-brackets">
-      <h2 className="heading-stencil text-xl mb-3">{t("nav_logs")}</h2>
-      <p className="text-dim text-xs leading-relaxed uppercase tracking-widest">
-        Live server output will appear here once operations begin.
-      </p>
-      <div className="mt-6 bg-bg-deep border border-brand px-4 py-3 text-left font-mono text-[11px] text-success">
-        $ lgss-manager --ready
-      </div>
     </div>
   </div>
 );

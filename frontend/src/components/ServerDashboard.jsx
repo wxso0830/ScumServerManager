@@ -9,6 +9,7 @@ import { NotificationsEditor } from "./NotificationsEditor";
 import { TradersEditor } from "./TradersEditor";
 import { InputEditor } from "./InputEditor";
 import { AutomationEditor } from "./AutomationEditor";
+import { DiscordSettings } from "./DiscordSettings";
 import { ConfirmModal } from "./ConfirmModal";
 import { useI18n } from "../providers/I18nProvider";
 import { endpoints, api } from "../lib/api";
@@ -217,6 +218,8 @@ export const ServerDashboard = ({
         );
       case "automation":
         return <AutomationEditor server={server} onChange={onChange} />;
+      case "discord":
+        return <DiscordSettings server={server} />;
       case "dynamic":
       default:
         return (

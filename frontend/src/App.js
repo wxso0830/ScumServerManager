@@ -179,7 +179,6 @@ const Shell = () => {
         currentView={view}
         onNavigate={handleNavigate}
         onResetSetup={handleResetSetup}
-        onServersChanged={refreshServers}
         onManagerUpdate={handleManagerUpdate}
       />
 

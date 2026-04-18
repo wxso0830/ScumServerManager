@@ -63,12 +63,46 @@ export const ServerDashboard = ({
   const [newName, setNewName] = useState(server.name);
   const [confirmDelOpen, setConfirmDelOpen] = useState(false);
   const [importExportOpen, setImportExportOpen] = useState(false);
+  const [autosaveSec, setAutosaveSec] = useState(() => {
+    const v = parseInt(localStorage.getItem("lgss.autosave_sec") || "0", 10);
+    return Number.isFinite(v) ? v : 0;
+  });
+  const [lastAutoSavedAt, setLastAutoSavedAt] = useState(null);
 
+  const draftKey = `lgss.draft.${server.id}`;
+
+  // Load: restore draft from localStorage if it differs from server settings
   useEffect(() => {
+    try {
+      const cached = localStorage.getItem(draftKey);
+      if (cached) {
+        const parsed = JSON.parse(cached);
+        if (JSON.stringify(parsed) !== JSON.stringify(server.settings || {})) {
+          setDraft(parsed);
+          setDirty(true);
+          toast(t("draft_restored"));
+          return;
+        }
+      }
+    } catch (_) {}
     setDraft(server.settings || {});
     setDirty(false);
     setNewName(server.name);
-  }, [server.id, server.settings, server.name]);
+    // eslint-disable-next-line
+  }, [server.id]);
+
+  // Persist draft to localStorage on any change (so view-switch doesn't lose it)
+  useEffect(() => {
+    if (dirty) {
+      try { localStorage.setItem(draftKey, JSON.stringify(draft)); } catch (_) {}
+    }
+    // eslint-disable-next-line
+  }, [draft, dirty]);
+
+  // Persist autosave choice
+  useEffect(() => {
+    localStorage.setItem("lgss.autosave_sec", String(autosaveSec));
+  }, [autosaveSec]);
 
   useEffect(() => {
     if (!schema?.categories) return;
@@ -99,9 +133,28 @@ export const ServerDashboard = ({
       const updated = await endpoints.updateSettings(server.id, draft);
       onChange(updated);
       setDirty(false);
+      try { localStorage.removeItem(draftKey); } catch (_) {}
       toast.success(t("toast_settings_saved"));
     } finally { setBusy(false); }
   };
+
+  // Auto-save: re-run every `autosaveSec` while dirty
+  useEffect(() => {
+    if (!autosaveSec || !dirty || busy) return;
+    const id = setInterval(async () => {
+      if (!dirty || busy) return;
+      try {
+        const updated = await endpoints.updateSettings(server.id, draft);
+        onChange(updated);
+        setDirty(false);
+        setLastAutoSavedAt(new Date());
+        try { localStorage.removeItem(draftKey); } catch (_) {}
+        toast.success(t("autosave_saved"));
+      } catch (_) { /* ignore */ }
+    }, autosaveSec * 1000);
+    return () => clearInterval(id);
+    // eslint-disable-next-line
+  }, [autosaveSec, dirty, busy, draft, server.id]);
 
   const handleStart = async () => {
     setBusy(true);
@@ -357,7 +410,31 @@ export const ServerDashboard = ({
             </button>
             <button className="btn-primary flex items-center gap-2" onClick={handleSave} disabled={!dirty || busy} data-testid="save-settings-btn">
               <Icons.Save size={13} /> {t("save_settings")}
+              {dirty && (
+                <span className="font-mono text-[9px] uppercase tracking-widest px-1.5 py-0.5 border border-warning text-warning ml-1">
+                  {t("unsaved_badge")}
+                </span>
+              )}
             </button>
+
+            {/* Auto-save dropdown */}
+            <div className="flex items-center gap-1.5 border border-strong px-2 py-1" title={t("autosave")} data-testid="autosave-wrap">
+              <Icons.Clock size={12} className={autosaveSec ? "text-accent-brand" : "text-dim"} />
+              <span className="label-overline">{t("autosave")}</span>
+              <select
+                value={autosaveSec}
+                onChange={(e) => setAutosaveSec(parseInt(e.target.value, 10))}
+                data-testid="autosave-select"
+                className="bg-transparent font-mono text-[11px] uppercase tracking-widest text-brand focus:outline-none"
+                style={{ appearance: "none", paddingRight: "8px" }}
+              >
+                <option value="0">{t("autosave_off")}</option>
+                <option value="5">5s</option>
+                <option value="10">10s</option>
+                <option value="15">15s</option>
+                <option value="30">30s</option>
+              </select>
+            </div>
             <button className="icon-btn" onClick={() => setConfirmDelOpen(true)} title={t("delete_server")} data-testid="delete-server-btn">
               <Icons.Trash2 size={15} />
             </button>
@@ -439,7 +516,7 @@ export const ServerDashboard = ({
         confirmLabel={t("confirm_yes_delete")}
         cancelLabel={t("cancel")}
         onCancel={() => setConfirmDelOpen(false)}
-        onConfirm={() => { setConfirmDelOpen(false); onDelete(server.id); }}
+        onConfirm={() => { setConfirmDelOpen(false); try { localStorage.removeItem(draftKey); } catch (_) {} onDelete(server.id); }}
         testId="delete-server-modal"
       />
 

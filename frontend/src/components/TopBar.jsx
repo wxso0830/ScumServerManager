@@ -1,12 +1,11 @@
 import React, { useState } from "react";
 import {
-  Palette, Languages, Check, Play, Square, Download, Wrench, ShieldCheck, ShieldAlert,
+  Palette, Languages, Check, Wrench, ShieldCheck, ShieldAlert,
   RotateCcw, Activity, Server, HardDrive, Terminal, LayoutDashboard, SlidersHorizontal, ScrollText, Users,
 } from "lucide-react";
 import { useTheme } from "../providers/ThemeProvider";
 import { useI18n } from "../providers/I18nProvider";
 import { endpoints } from "../lib/api";
-import { toast } from "sonner";
 
 const themeLabels = {
   blacksite: "theme_blacksite",
@@ -35,61 +34,15 @@ export const TopBar = ({
   currentView = "dashboard",
   onNavigate,
   onResetSetup,
-  onServersChanged,
   onManagerUpdate,
 }) => {
   const { theme, setTheme, themes } = useTheme();
   const { lang, setLang, t } = useI18n();
   const [themeOpen, setThemeOpen] = useState(false);
   const [langOpen, setLangOpen] = useState(false);
-  const [busy, setBusy] = useState(false);
 
   const running = servers.filter((s) => s.status === "Running").length;
   const total = servers.length;
-
-  const handleStartAll = async () => {
-    if (busy) return;
-    setBusy(true);
-    const stopped = servers.filter((s) => s.status !== "Running" && s.installed);
-    toast.success(`${t("starting_all")} · ${stopped.length}`);
-    for (const s of stopped) {
-      try { await endpoints.startServer(s.id); } catch (_) {}
-    }
-    onServersChanged?.();
-    setBusy(false);
-  };
-
-  const handleStopAll = async () => {
-    if (busy) return;
-    setBusy(true);
-    try {
-      const r = await endpoints.stopAllServers();
-      toast(`${t("stop_all")} · ${r.stopped}`);
-      onServersChanged?.();
-    } finally { setBusy(false); }
-  };
-
-  const handleRestartAll = async () => {
-    if (busy) return;
-    setBusy(true);
-    try {
-      const r = await endpoints.restartAllServers();
-      toast.success(`${t("restart_all")} · ${r.restarted}`);
-      onServersChanged?.();
-    } finally { setBusy(false); }
-  };
-
-  const handleUpdateAll = async () => {
-    if (busy) return;
-    setBusy(true);
-    toast(`${t("updating_all")} · ${servers.length}`);
-    for (const s of servers) {
-      try { await endpoints.updateServer(s.id); } catch (_) {}
-    }
-    onServersChanged?.();
-    toast.success(t("toast_update_done"));
-    setBusy(false);
-  };
 
   const navItems = [
     { key: "dashboard", label: t("nav_dashboard"), icon: LayoutDashboard },
@@ -147,44 +100,6 @@ export const TopBar = ({
 
         {/* Right Actions */}
         <div className="flex items-center gap-2">
-          <button
-            className="btn-primary flex items-center gap-2"
-            onClick={handleStartAll}
-            disabled={busy || servers.length === 0}
-            data-testid="start-all-btn"
-            title={t("start_all")}
-          >
-            <Play size={13} /> {t("start_all")}
-          </button>
-          <button
-            className="btn-secondary flex items-center gap-2"
-            onClick={handleRestartAll}
-            disabled={busy || servers.length === 0}
-            data-testid="restart-all-btn"
-            title={t("restart_all")}
-          >
-            <RotateCcw size={13} /> {t("restart_all")}
-          </button>
-          <button
-            className="btn-danger flex items-center gap-2"
-            onClick={handleStopAll}
-            disabled={busy || running === 0}
-            data-testid="stop-all-btn"
-            title={t("stop_all")}
-          >
-            <Square size={13} /> {t("stop_all")}
-          </button>
-          <button
-            className="btn-secondary flex items-center gap-2"
-            onClick={handleUpdateAll}
-            disabled={busy || servers.length === 0}
-            data-testid="update-all-servers-btn"
-          >
-            <Download size={13} /> {t("update_all_servers")}
-          </button>
-
-          <div className="w-px h-8 bg-brand mx-1" />
-
           <button
             className={`btn-ghost flex items-center gap-2 relative ${managerUpdateAvailable ? "text-accent-brand" : ""}`}
             onClick={onManagerUpdate}

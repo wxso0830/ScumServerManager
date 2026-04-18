@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from "react";
-import { Plus, ShieldAlert, Server, Play, Square, Activity, RefreshCw } from "lucide-react";
+import { Plus, ShieldAlert, Server, Play, Square, Activity, RefreshCw, RotateCcw, Download } from "lucide-react";
 import { useI18n } from "../providers/I18nProvider";
 import { toast } from "sonner";
 import { ServerCard } from "./ServerCard";
@@ -8,12 +8,12 @@ import { endpoints, api } from "../lib/api";
 
 export const DashboardView = ({ servers, managerPath, onAdd, onOpen, onChange, onDelete, onRefresh }) => {
   const { t } = useI18n();
-  const [confirmDel, setConfirmDel] = useState(null); // server object or null
+  const [confirmDel, setConfirmDel] = useState(null);
   const [checking, setChecking] = useState(false);
+  const [busy, setBusy] = useState(false);
 
   const running = useMemo(() => servers.filter((s) => s.status === "Running").length, [servers]);
   const stopped = useMemo(() => servers.filter((s) => s.status !== "Running").length, [servers]);
-  const updatesPending = useMemo(() => servers.filter((s) => s.update_available).length, [servers]);
 
   const handleInstall = async (server) => {
     toast(t("installing"));
@@ -73,6 +73,45 @@ export const DashboardView = ({ servers, managerPath, onAdd, onOpen, onChange, o
     finally { setChecking(false); }
   };
 
+  const handleStartAll = async () => {
+    if (busy) return;
+    setBusy(true);
+    const stoppedList = servers.filter((s) => s.status !== "Running" && s.installed);
+    toast.success(`${t("starting_all")} · ${stoppedList.length}`);
+    for (const s of stoppedList) { try { await endpoints.startServer(s.id); } catch (_) {} }
+    onRefresh?.(); setBusy(false);
+  };
+
+  const handleRestartAll = async () => {
+    if (busy) return;
+    setBusy(true);
+    try {
+      const r = await endpoints.restartAllServers();
+      toast.success(`${t("restart_all")} · ${r.restarted}`);
+      onRefresh?.();
+    } finally { setBusy(false); }
+  };
+
+  const handleStopAll = async () => {
+    if (busy) return;
+    setBusy(true);
+    try {
+      const r = await endpoints.stopAllServers();
+      toast(`${t("stop_all")} · ${r.stopped}`);
+      onRefresh?.();
+    } finally { setBusy(false); }
+  };
+
+  const handleUpdateAll = async () => {
+    if (busy) return;
+    setBusy(true);
+    toast(`${t("updating_all")} · ${servers.length}`);
+    for (const s of servers) { try { await endpoints.updateServer(s.id); } catch (_) {} }
+    onRefresh?.();
+    toast.success(t("toast_update_done"));
+    setBusy(false);
+  };
+
   return (
     <div className="flex-1 overflow-y-auto scrollbar-thin bg-bg relative" data-testid="dashboard-view">
       <div className="boot-scan" />
@@ -97,15 +136,30 @@ export const DashboardView = ({ servers, managerPath, onAdd, onOpen, onChange, o
               {t("deploy_subtitle")}
             </p>
             {servers.length > 0 && (
-              <button
-                onClick={handleCheckUpdate}
-                disabled={checking}
-                className="mt-4 btn-ghost flex items-center gap-2"
-                data-testid="dashboard-check-update-btn"
-              >
-                <RefreshCw size={12} className={checking ? "animate-spin" : ""} />
-                {t("check_now")}
-              </button>
+              <div className="mt-4 flex items-center gap-2 flex-wrap" data-testid="dashboard-global-actions">
+                <button className="btn-primary flex items-center gap-2" onClick={handleStartAll} disabled={busy || servers.length === 0} data-testid="start-all-btn">
+                  <Play size={13} /> {t("start_all")}
+                </button>
+                <button className="btn-secondary flex items-center gap-2" onClick={handleRestartAll} disabled={busy || servers.length === 0} data-testid="restart-all-btn">
+                  <RotateCcw size={13} /> {t("restart_all")}
+                </button>
+                <button className="btn-danger flex items-center gap-2" onClick={handleStopAll} disabled={busy || running === 0} data-testid="stop-all-btn">
+                  <Square size={13} /> {t("stop_all")}
+                </button>
+                <button className="btn-secondary flex items-center gap-2" onClick={handleUpdateAll} disabled={busy || servers.length === 0} data-testid="update-all-servers-btn">
+                  <Download size={13} /> {t("update_all_servers")}
+                </button>
+                <div className="w-px h-7 bg-brand mx-1" />
+                <button
+                  onClick={handleCheckUpdate}
+                  disabled={checking}
+                  className="btn-ghost flex items-center gap-2"
+                  data-testid="dashboard-check-update-btn"
+                >
+                  <RefreshCw size={12} className={checking ? "animate-spin" : ""} />
+                  {t("check_now")}
+                </button>
+              </div>
             )}
           </div>
 

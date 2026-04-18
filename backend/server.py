@@ -24,6 +24,7 @@ from scum_parser import (
     parse_ini_sections,
     parse_input_ini,
 )
+import scum_process as scum_proc
 import json as json_lib
 import io
 
@@ -328,8 +329,29 @@ async def start_server(server_id: str):
     doc = await db.servers.find_one({"id": server_id}, {"_id": 0})
     if not doc:
         raise HTTPException(status_code=404, detail="Server not found")
-    await db.servers.update_one({"id": server_id}, {"$set": {"status": "Running"}})
-    doc["status"] = "Running"
+    # Real process spawn (Windows only). If not installed or exe missing, fail cleanly.
+    try:
+        settings = (doc.get("settings") or {}).get("General") or {}
+        port = int(settings.get("Port") or settings.get("scum.ServerPort") or 7042)
+        query_port = int(settings.get("QueryPort") or settings.get("scum.QueryPort") or 7043)
+        max_players = int(settings.get("MaxPlayers") or settings.get("scum.MaxPlayers") or 64)
+        pid = scum_proc.start_server(
+            server_id=server_id,
+            folder_path=doc["folder_path"],
+            port=port,
+            query_port=query_port,
+            max_players=max_players,
+        )
+        await db.servers.update_one({"id": server_id},
+                                    {"$set": {"status": "Running", "last_pid": pid}})
+        doc["status"] = "Running"
+    except FileNotFoundError as e:
+        raise HTTPException(status_code=409, detail=str(e))
+    except RuntimeError as e:
+        # Non-Windows fallback: keep legacy simulated status so UI still works in dev/preview
+        logger.warning("start_server: %s - using simulated status", e)
+        await db.servers.update_one({"id": server_id}, {"$set": {"status": "Running"}})
+        doc["status"] = "Running"
     return ServerProfile(**doc)
 
 
@@ -338,6 +360,10 @@ async def stop_server(server_id: str):
     doc = await db.servers.find_one({"id": server_id}, {"_id": 0})
     if not doc:
         raise HTTPException(status_code=404, detail="Server not found")
+    try:
+        scum_proc.stop_server(server_id)
+    except Exception:
+        logger.exception("stop_server failed")
     await db.servers.update_one({"id": server_id}, {"$set": {"status": "Stopped"}})
     doc["status"] = "Stopped"
     return ServerProfile(**doc)
@@ -379,25 +405,68 @@ async def complete_server_update(server_id: str):
 
 @api_router.post("/servers/{server_id}/install", response_model=ServerProfile)
 async def install_server(server_id: str):
-    """Download SCUM server files via SteamCMD (AppID 3792580).
-    In web preview this is simulated — marks the server 'installed'.
-    Real SteamCMD execution happens in Electron main process."""
+    """Download SCUM server files via SteamCMD (AppID 3792580). Runs in a
+    background thread; poll /install/progress for live %. When SteamCMD
+    finishes it marks the server installed."""
     doc = await db.servers.find_one({"id": server_id}, {"_id": 0})
     if not doc:
         raise HTTPException(status_code=404, detail="Server not found")
-    # Record a pseudo build id for the install (real value comes from Electron/Steam)
-    build_id = f"build-{int(datetime.now(timezone.utc).timestamp())}"
-    await db.servers.update_one({"id": server_id}, {"$set": {
-        "installed": True,
-        "status": "Stopped",
-        "installed_build_id": build_id,
-        "update_available": False,
-    }})
-    doc["installed"] = True
-    doc["status"] = "Stopped"
-    doc["installed_build_id"] = build_id
-    doc["update_available"] = False
+
+    setup = await db.setup.find_one({"_id": SETUP_DOC_ID}, {"_id": 0}) or {}
+    manager_path = setup.get("manager_path") or ""
+
+    # Non-Windows (dev/preview) — keep legacy simulated install so UI can be exercised.
+    if platform.system() != "Windows" or not manager_path:
+        build_id = f"build-{int(datetime.now(timezone.utc).timestamp())}"
+        await db.servers.update_one({"id": server_id}, {"$set": {
+            "installed": True, "status": "Stopped",
+            "installed_build_id": build_id, "update_available": False,
+        }})
+        doc.update({"installed": True, "status": "Stopped",
+                    "installed_build_id": build_id, "update_available": False})
+        return ServerProfile(**doc)
+
+    # Real Windows install via SteamCMD in a background thread
+    def _on_complete(ok: bool, build_id: Optional[str], _log_tail: str):
+        import asyncio
+        async def _update():
+            if ok:
+                await db.servers.update_one({"id": server_id}, {"$set": {
+                    "installed": True, "status": "Stopped",
+                    "installed_build_id": build_id, "update_available": False,
+                }})
+            else:
+                await db.servers.update_one({"id": server_id}, {"$set": {"status": "Stopped"}})
+        try:
+            asyncio.run(_update())
+        except Exception:
+            logger.exception("install on_complete db update failed")
+
+    scum_proc.install_server(
+        server_id=server_id,
+        folder_path=doc["folder_path"],
+        manager_path=manager_path,
+        app_id=doc.get("steam_app_id") or "3792580",
+        on_complete=_on_complete,
+    )
+    await db.servers.update_one({"id": server_id}, {"$set": {"status": "Installing"}})
+    doc["status"] = "Installing"
     return ServerProfile(**doc)
+
+
+@api_router.get("/servers/{server_id}/install/progress")
+async def install_progress(server_id: str):
+    """Poll this endpoint every 1-2 seconds while an install is running."""
+    return scum_proc.get_install_progress(server_id)
+
+
+@api_router.get("/servers/{server_id}/metrics")
+async def server_metrics(server_id: str):
+    """Live CPU / RAM / uptime / disk usage / last-updated for the given server."""
+    doc = await db.servers.find_one({"id": server_id}, {"_id": 0})
+    if not doc:
+        raise HTTPException(status_code=404, detail="Server not found")
+    return scum_proc.get_metrics(server_id, folder_path=doc.get("folder_path"))
 
 
 # ---------- AUTOMATION (auto-restart + auto-update) ----------

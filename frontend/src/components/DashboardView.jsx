@@ -4,6 +4,7 @@ import { useI18n } from "../providers/I18nProvider";
 import { toast } from "sonner";
 import { ServerCard } from "./ServerCard";
 import { ConfirmModal } from "./ConfirmModal";
+import { InstallProgressModal } from "./InstallProgressModal";
 import { endpoints, api } from "../lib/api";
 
 export const DashboardView = ({ servers, managerPath, onAdd, onOpen, onChange, onDelete, onRefresh }) => {
@@ -11,21 +12,34 @@ export const DashboardView = ({ servers, managerPath, onAdd, onOpen, onChange, o
   const [confirmDel, setConfirmDel] = useState(null);
   const [checking, setChecking] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [installTarget, setInstallTarget] = useState(null);
 
   const running = useMemo(() => servers.filter((s) => s.status === "Running").length, [servers]);
   const stopped = useMemo(() => servers.filter((s) => s.status !== "Running").length, [servers]);
 
   const handleInstall = async (server) => {
-    toast(t("installing"));
     try {
-      if (window?.lgss?.installServer) {
-        await window.lgss.installServer({ folderPath: server.folder_path, appId: "3792580" });
-      }
+      // Kick off install (backend spawns SteamCMD in background thread)
       const updated = await endpoints.installServer(server.id);
-      const seeded = await endpoints.postInstall(updated.id).catch(() => updated);
-      onChange(seeded);
-      toast.success(t("install_complete"));
+      onChange(updated);
+      setInstallTarget(updated);    // open modal — it polls progress
     } catch (e) { toast.error(String(e.message || e)); }
+  };
+
+  const handleInstallDone = async (success) => {
+    try {
+      if (success && installTarget) {
+        // Refresh server doc (backend updates installed=true on completion)
+        const fresh = await endpoints.getServer(installTarget.id);
+        try { await endpoints.postInstall(fresh.id); } catch (_) {}
+        onChange(fresh);
+        toast.success(t("install_complete"));
+      } else if (installTarget) {
+        const fresh = await endpoints.getServer(installTarget.id);
+        onChange(fresh);
+        toast.error("Kurulum başarısız oldu. Log'u kontrol edin.");
+      }
+    } catch {}
   };
 
   const handleStart = async (server) => {
@@ -235,6 +249,13 @@ export const DashboardView = ({ servers, managerPath, onAdd, onOpen, onChange, o
         onCancel={() => setConfirmDel(null)}
         onConfirm={() => { const id = confirmDel?.id; setConfirmDel(null); if (id) onDelete(id); }}
         testId="dashboard-delete-modal"
+      />
+
+      <InstallProgressModal
+        open={!!installTarget}
+        server={installTarget}
+        onClose={() => setInstallTarget(null)}
+        onDone={handleInstallDone}
       />
     </div>
   );

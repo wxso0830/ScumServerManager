@@ -85,6 +85,47 @@ Turkish user requested a SCUM server manager desktop application with:
 - Backend testing (`iteration_7.json`): **100% pass (10/10)**. Frontend verified end-to-end.
 
 ### Desktop-Only Operations (clearly scoped)
+
+### 2026-04-18 — RCON Alternative: Log Parser + Event Feed + Discord Webhooks
+Research outcome: SCUM has no RCON/API. Community bots (Prisoner Bot, scum_discord_bot_os, Scummy, SCUM-bot) all implement the same pattern — **parse the server's log files** from `SCUM/Saved/SaveFiles/Logs/` (UTF-16 LE with BOM) and relay to Discord. Implemented this pattern natively in the manager:
+
+**Backend — `/app/backend/scum_logs.py`** (new module):
+- UTF-16 decoder with BOM handling
+- Per-type parsers: `admin`, `chat`, `login`, `kill`, `economy`, `violation`, `fame`, `raid` + `generic` fallback
+- Event schema: `{id, ts, type, server_id, source_file, player_name, steam_id, entity_id, + type-specific fields}`
+- Deterministic event id (sha1 hash) — re-uploading the same log produces zero duplicates
+- Validated against user's real logs (27 admin events, 3 economy events parsed correctly; before/after balance lines filtered)
+
+**New API endpoints** (real, tested end-to-end with user's actual sample logs):
+- `POST /api/servers/{id}/logs/import` (multipart) — upload a log file, parse, store, forward to Discord
+- `POST /api/servers/{id}/logs/scan?limit=N` — walk the server's log folder on disk and ingest recent files
+- `GET /api/servers/{id}/events?type=X&player=Y&limit=N&since=T` — paginated history
+- `GET /api/servers/{id}/events/stats?days=N` — by-type counts + top-5 players (days=0 → all time)
+- `DELETE /api/servers/{id}/events` — clear the feed
+- `GET/PUT /api/servers/{id}/discord` — per-event-type webhook URLs (admin/chat/login/kill/economy/violation/fame/raid) + `mention_role_id` for violation pings
+- `POST /api/servers/{id}/discord/test` — send a synthetic event to a webhook to verify it
+
+**Frontend — new LogsView** (`/app/frontend/src/components/LogsView.jsx`):
+- Header with server switcher + Upload / Scan / Refresh / Clear buttons
+- Filter chips per event type (with live counts from stats endpoint)
+- Player filter input (case-insensitive search)
+- Color-coded event rows (Admin=amber, Chat=cyan, Login=green, Kill=red, Trade=yellow, Violation=red, Fame=purple)
+- Auto-refresh every 10 s
+- Top Players ribbon at bottom (most active over selected period)
+
+**Frontend — new DiscordSettings** (`/app/frontend/src/components/DiscordSettings.jsx`):
+- Located inside the Automation tab as a second collapsible panel
+- 8 individual webhook URL inputs (emoji-prefixed for easy scanning)
+- Test-send button per field (posts a realistic embed to the webhook)
+- Save persists to MongoDB; Forward-on-ingest wired into log importer
+
+**Legal/ethical notes**:
+- Drone/headless-client approach (Prisoner Bot-style, Steam TOS grey area) NOT implemented — user's call to add later via an external "command executor" HTTP bridge
+- Image URLs in Traders Editor remain user-sourced; manager does not scrape scum-global.com
+
+**Testing**: `iteration_8.json` — **100% pass (15/15 backend + frontend)**, 0 issues, 0 regressions.
+
+### Desktop-Only Operations (clearly scoped)
 These require Electron + Windows because they spawn external binaries; in the web preview they fallback to a simulation of status toggling but real behavior requires Electron IPC (`window.lgss.*`):
 - `installServer` → SteamCMD `app_update 3792580`
 - `startServer` / `stopServer` → `SCUMServer.exe` child_process

@@ -5,7 +5,6 @@ import {
 } from "lucide-react";
 import { useI18n } from "../providers/I18nProvider";
 import { endpoints } from "../lib/api";
-import { ServerPortsModal } from "./ServerPortsModal";
 
 const STATUS_META = {
   Running:   { cls: "running",    label: "server_status_running",    color: "var(--success)" },
@@ -47,7 +46,6 @@ export const ServerCard = ({ server, onOpen, onStart, onStop, onUpdate, onInstal
   const queryPort = server.query_port ?? 7780;
 
   const [metrics, setMetrics] = useState(null);
-  const [portsOpen, setPortsOpen] = useState(false);
 
   // Poll live metrics every 5s (also immediately on mount / status change)
   useEffect(() => {
@@ -148,23 +146,14 @@ export const ServerCard = ({ server, onOpen, onStart, onStop, onUpdate, onInstal
             {server.folder_path}
           </div>
         </div>
-        <div className="flex items-center justify-between gap-2">
-          <div className="flex items-center gap-3 font-mono text-[11px]">
-            <span className="text-muted">PORT</span>
-            <span className="text-brand">{gamePort}</span>
-            <span className="text-muted">·</span>
-            <span className="text-muted">QUERY</span>
-            <span className="text-brand">{queryPort}</span>
-          </div>
-          <button
-            onClick={(e) => { e.stopPropagation(); setPortsOpen(true); }}
-            className="font-mono text-[10px] uppercase tracking-widest text-accent-brand hover:underline flex items-center gap-1"
-            disabled={isRunning}
-            title={isRunning ? "Sunucu çalışırken portlar değiştirilemez" : "Portları düzenle"}
-            data-testid={`edit-ports-${server.folder_name}`}
-          >
-            <Network size={11} /> Portlar
-          </button>
+        <div className="flex items-center gap-3 font-mono text-[11px]">
+          <Network size={11} className="text-muted" />
+          <span className="text-muted">PORT</span>
+          <span className="text-brand">{gamePort}</span>
+          <span className="text-muted">·</span>
+          <span className="text-muted">QUERY</span>
+          <span className="text-brand">{queryPort}</span>
+          <span className="text-muted ml-auto text-[10px]">Ayarlar → Temel</span>
         </div>
       </div>
 
@@ -226,13 +215,6 @@ export const ServerCard = ({ server, onOpen, onStart, onStop, onUpdate, onInstal
           <Settings size={13} />
         </button>
       </div>
-
-      <ServerPortsModal
-        open={portsOpen}
-        server={server}
-        onClose={() => setPortsOpen(false)}
-        onSaved={(updated) => onChange?.(updated)}
-      />
     </div>
   );
 };

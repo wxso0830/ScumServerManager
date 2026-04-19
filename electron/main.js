@@ -3,6 +3,7 @@
 // + loads the React frontend. Zero dependencies on the target machine.
 
 const { app, BrowserWindow, ipcMain, dialog, shell, globalShortcut } = require('electron');
+const { autoUpdater } = require('electron-updater');
 
 // ---------- Compatibility switches for Windows Server / RDP / no-GPU hosts ----
 // Servers (Windows Server 2019/2022) do not have full GPU drivers and Electron's
@@ -321,6 +322,7 @@ function createWindow() {
     width: 1600, height: 960, minWidth: 1100, minHeight: 680,
     backgroundColor: '#141512', show: false,
     title: 'LGSS Manager',
+    icon: path.join(__dirname, 'installer', 'icon.ico'),
     autoHideMenuBar: true,
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
@@ -502,3 +504,66 @@ ipcMain.handle('lgss:backend-info', async () => ({
   logsDir: logDir(),
   mongoRunning: !!mongodProcess || (await isMongoReachable()),
 }));
+
+// ---------- Auto-updater (GitHub releases) ----------
+// Frontend calls window.lgss.checkForUpdates() from the "Manager Update" button.
+// Requires `build.publish` in package.json to point at a GitHub repo.
+autoUpdater.autoDownload = false;                  // ask the user first
+autoUpdater.autoInstallOnAppQuit = true;
+
+autoUpdater.on('update-available', (info) => {
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    mainWindow.webContents.send('lgss:update-event', { type: 'available', info });
+  }
+});
+autoUpdater.on('update-not-available', (info) => {
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    mainWindow.webContents.send('lgss:update-event', { type: 'not-available', info });
+  }
+});
+autoUpdater.on('download-progress', (p) => {
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    mainWindow.webContents.send('lgss:update-event', { type: 'progress', progress: p });
+  }
+});
+autoUpdater.on('update-downloaded', (info) => {
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    mainWindow.webContents.send('lgss:update-event', { type: 'downloaded', info });
+  }
+});
+autoUpdater.on('error', (err) => {
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    mainWindow.webContents.send('lgss:update-event', { type: 'error', message: err.message });
+  }
+});
+
+ipcMain.handle('lgss:check-for-updates', async () => {
+  try {
+    const result = await autoUpdater.checkForUpdates();
+    return {
+      ok: true,
+      currentVersion: app.getVersion(),
+      latestVersion: result?.updateInfo?.version,
+      updateAvailable: !!result?.updateInfo && result.updateInfo.version !== app.getVersion(),
+    };
+  } catch (e) {
+    return { ok: false, error: e.message, currentVersion: app.getVersion() };
+  }
+});
+
+ipcMain.handle('lgss:download-update', async () => {
+  try {
+    await autoUpdater.downloadUpdate();
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, error: e.message };
+  }
+});
+
+ipcMain.handle('lgss:install-update', async () => {
+  // Quits app and relaunches into new version after the NSIS installer runs
+  autoUpdater.quitAndInstall(false, true);
+  return { ok: true };
+});
+
+ipcMain.handle('lgss:get-version', async () => app.getVersion());

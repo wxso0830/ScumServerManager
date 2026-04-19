@@ -10,6 +10,7 @@ import { DashboardView } from "./components/DashboardView";
 import { ServerDashboard } from "./components/ServerDashboard";
 import { LogsView } from "./components/LogsView";
 import { PlayersView } from "./components/PlayersView";
+import { ManagerUpdateModal } from "./components/ManagerUpdateModal";
 import { endpoints } from "./lib/api";
 
 const Shell = () => {
@@ -22,6 +23,7 @@ const Shell = () => {
   const [schema, setSchema] = useState(null);
   const [appVersion, setAppVersion] = useState({ current: "1.0.0", latest: "1.0.0", update_available: false });
   const [view, setView] = useState("dashboard"); // dashboard | configs | logs
+  const [updateModalOpen, setUpdateModalOpen] = useState(false);
 
   const load = useCallback(async () => {
     const [adminRes, setupRes, serverList, schemaRes, versionRes] = await Promise.all([
@@ -98,6 +100,13 @@ const Shell = () => {
   };
 
   const handleManagerUpdate = async () => {
+    // If we're running inside Electron packaged build, open the auto-updater
+    // modal which uses GitHub Releases via electron-updater. In browser/dev,
+    // fall back to the legacy backend-polled manager update endpoint.
+    if (window?.lgss?.checkForUpdates) {
+      setUpdateModalOpen(true);
+      return;
+    }
     if (!appVersion.update_available) {
       toast(t("manager_no_update"));
       return;
@@ -214,6 +223,8 @@ const Shell = () => {
         {view === "logs" && <LogsView servers={servers} />}
         {view === "players" && <PlayersView servers={servers} />}
       </div>
+
+      <ManagerUpdateModal open={updateModalOpen} onClose={() => setUpdateModalOpen(false)} />
     </div>
   );
 };

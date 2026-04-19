@@ -17,6 +17,7 @@
     "dist:only": "electron-builder --win nsis"
   },
   "dependencies": {
+    "electron-updater": "^6.8.3",
     "is-elevated": "^4.0.0",
     "sudo-prompt": "^9.2.1"
   },
@@ -44,7 +45,9 @@
       {
         "from": "../backend/dist",
         "to": "backend",
-        "filter": ["lgss-backend.exe"]
+        "filter": [
+          "lgss-backend.exe"
+        ]
       },
       {
         "from": "../backend/scum_defaults",
@@ -53,13 +56,21 @@
       {
         "from": "../mongodb-portable",
         "to": "mongodb",
-        "filter": ["bin/mongod.exe"]
+        "filter": [
+          "bin/mongod.exe"
+        ]
       }
     ],
     "win": {
       "target": [
-        { "target": "nsis", "arch": ["x64"] }
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
       ],
+      "icon": "installer/icon.ico",
       "requestedExecutionLevel": "requireAdministrator"
     },
     "nsis": {
@@ -68,7 +79,18 @@
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
       "shortcutName": "LGSS Manager",
+      "installerIcon": "installer/icon.ico",
+      "uninstallerIcon": "installer/icon.ico",
+      "uninstallDisplayName": "LGSS Manager",
       "include": "installer/installer.nsh"
-    }
+    },
+    "publish": [
+      {
+        "provider": "github",
+        "owner": "YOUR_GITHUB_USERNAME",
+        "repo": "YOUR_REPO_NAME",
+        "releaseType": "release"
+      }
+    ]
   }
 }

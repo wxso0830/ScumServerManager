@@ -41,11 +41,16 @@ export const ServerCard = ({ server, onOpen, onStart, onStop, onUpdate, onInstal
   const { t } = useI18n();
   const status = STATUS_META[server.status] || STATUS_META.Stopped;
   const isRunning = server.status === "Running";
-  const maxPlayers = server.max_players ?? 64;
   const gamePort = server.game_port ?? 7779;
   const queryPort = server.query_port ?? 7780;
 
   const [metrics, setMetrics] = useState(null);
+  // Read max_players from the saved INI values (scum.MaxPlayers). Falls back
+  // to the legacy `max_players` field or 64 if neither exists.
+  const maxPlayers = Number(
+    server.settings?.srv_general?.["scum.MaxPlayers"] ??
+    server.max_players ?? 64
+  );
 
   // Poll live metrics every 5s (also immediately on mount / status change)
   useEffect(() => {

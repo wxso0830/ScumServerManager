@@ -3,7 +3,21 @@
 // + loads the React frontend. Zero dependencies on the target machine.
 
 const { app, BrowserWindow, ipcMain, dialog, shell, globalShortcut } = require('electron');
-const { autoUpdater } = require('electron-updater');
+// electron-updater is loaded lazily so the app still works if the module is
+// missing (e.g., after a fresh clone where `npm install` was skipped).
+let autoUpdater = null;
+function getAutoUpdater() {
+  if (autoUpdater) return autoUpdater;
+  try {
+    ({ autoUpdater } = require('electron-updater'));
+    autoUpdater.autoDownload = false;
+    autoUpdater.autoInstallOnAppQuit = true;
+    return autoUpdater;
+  } catch (e) {
+    console.warn('[updater] electron-updater not available:', e.message);
+    return null;
+  }
+}
 
 // ---------- Compatibility switches for Windows Server / RDP / no-GPU hosts ----
 // Servers (Windows Server 2019/2022) do not have full GPU drivers and Electron's
@@ -507,39 +521,44 @@ ipcMain.handle('lgss:backend-info', async () => ({
 
 // ---------- Auto-updater (GitHub releases) ----------
 // Frontend calls window.lgss.checkForUpdates() from the "Manager Update" button.
-// Requires `build.publish` in package.json to point at a GitHub repo.
-autoUpdater.autoDownload = false;                  // ask the user first
-autoUpdater.autoInstallOnAppQuit = true;
-
-autoUpdater.on('update-available', (info) => {
-  if (mainWindow && !mainWindow.isDestroyed()) {
-    mainWindow.webContents.send('lgss:update-event', { type: 'available', info });
-  }
-});
-autoUpdater.on('update-not-available', (info) => {
-  if (mainWindow && !mainWindow.isDestroyed()) {
-    mainWindow.webContents.send('lgss:update-event', { type: 'not-available', info });
-  }
-});
-autoUpdater.on('download-progress', (p) => {
-  if (mainWindow && !mainWindow.isDestroyed()) {
-    mainWindow.webContents.send('lgss:update-event', { type: 'progress', progress: p });
-  }
-});
-autoUpdater.on('update-downloaded', (info) => {
-  if (mainWindow && !mainWindow.isDestroyed()) {
-    mainWindow.webContents.send('lgss:update-event', { type: 'downloaded', info });
-  }
-});
-autoUpdater.on('error', (err) => {
-  if (mainWindow && !mainWindow.isDestroyed()) {
-    mainWindow.webContents.send('lgss:update-event', { type: 'error', message: err.message });
-  }
-});
+// electron-updater is loaded lazily (see top of file) so missing node_modules
+// does not crash the app.
+function setupAutoUpdaterEvents() {
+  const u = getAutoUpdater();
+  if (!u) return;
+  u.on('update-available', (info) => {
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.webContents.send('lgss:update-event', { type: 'available', info });
+    }
+  });
+  u.on('update-not-available', (info) => {
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.webContents.send('lgss:update-event', { type: 'not-available', info });
+    }
+  });
+  u.on('download-progress', (p) => {
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.webContents.send('lgss:update-event', { type: 'progress', progress: p });
+    }
+  });
+  u.on('update-downloaded', (info) => {
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.webContents.send('lgss:update-event', { type: 'downloaded', info });
+    }
+  });
+  u.on('error', (err) => {
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.webContents.send('lgss:update-event', { type: 'error', message: err.message });
+    }
+  });
+}
+setupAutoUpdaterEvents();
 
 ipcMain.handle('lgss:check-for-updates', async () => {
+  const u = getAutoUpdater();
+  if (!u) return { ok: false, error: 'electron-updater not installed', currentVersion: app.getVersion() };
   try {
-    const result = await autoUpdater.checkForUpdates();
+    const result = await u.checkForUpdates();
     return {
       ok: true,
       currentVersion: app.getVersion(),
@@ -552,17 +571,16 @@ ipcMain.handle('lgss:check-for-updates', async () => {
 });
 
 ipcMain.handle('lgss:download-update', async () => {
-  try {
-    await autoUpdater.downloadUpdate();
-    return { ok: true };
-  } catch (e) {
-    return { ok: false, error: e.message };
-  }
+  const u = getAutoUpdater();
+  if (!u) return { ok: false, error: 'electron-updater not installed' };
+  try { await u.downloadUpdate(); return { ok: true }; }
+  catch (e) { return { ok: false, error: e.message }; }
 });
 
 ipcMain.handle('lgss:install-update', async () => {
-  // Quits app and relaunches into new version after the NSIS installer runs
-  autoUpdater.quitAndInstall(false, true);
+  const u = getAutoUpdater();
+  if (!u) return { ok: false, error: 'electron-updater not installed' };
+  u.quitAndInstall(false, true);
   return { ok: true };
 });
 

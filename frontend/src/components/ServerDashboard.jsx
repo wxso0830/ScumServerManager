@@ -463,18 +463,6 @@ export const ServerDashboard = ({
       </div>
 
       <div className="flex-1 overflow-y-auto scrollbar-thin p-6 bg-bg">
-        {activeSection === "essentials" && (
-          <Collapsible
-            testId="panel-network-ports"
-            title="Ağ & Portlar"
-            icon={<Icons.Network size={15} className="text-accent-brand" />}
-            open={openMap.__ports !== false}
-            onToggle={() => setOpenMap((m) => ({ ...m, __ports: m.__ports === false ? true : false }))}
-            badge="NETWORK"
-          >
-            <NetworkPortsPanel server={server} onSaved={(updated) => onChange(updated)} />
-          </Collapsible>
-        )}
         {visibleCategories.map((cat) => {
           const Icon = Icons[cat.icon] || Icons.Settings;
           const badge = cat.exportKey ? cat.exportKey.toUpperCase() : null;
@@ -489,6 +477,11 @@ export const ServerDashboard = ({
               badge={badge}
             >
               {renderCategoryBody(cat)}
+              {/* Injected: show SCUM CLI network port editor at the bottom of
+                  the Performance category (section=essentials). */}
+              {cat.key === "essentials_performance" && (
+                <NetworkPortsPanel server={server} onSaved={(updated) => onChange(updated)} />
+              )}
             </Collapsible>
           );
         })}

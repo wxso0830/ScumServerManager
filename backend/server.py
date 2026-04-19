@@ -371,7 +371,9 @@ async def start_server(server_id: str):
     try:
         port = int(doc.get("game_port") or 7779)
         query_port = int(doc.get("query_port") or 7780)
-        max_players = int(doc.get("max_players") or 64)
+        # scum.MaxPlayers lives in ServerSettings.ini -> srv_general category
+        settings = (doc.get("settings") or {}).get("srv_general") or {}
+        max_players = int(settings.get("scum.MaxPlayers") or doc.get("max_players") or 64)
         pid = scum_proc.start_server(
             server_id=server_id,
             folder_path=doc["folder_path"],

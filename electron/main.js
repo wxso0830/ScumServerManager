@@ -34,7 +34,17 @@ function getUserDataDir(sub = 'logs') {
 }
 
 function logDir() { return getUserDataDir('logs'); }
-function mongoDbPath() { return getUserDataDir('mongo-db'); }
+function mongoDbPath() {
+  // Use ProgramData (machine-wide writable dir) — avoids per-user % APPDATA
+  // permission issues when the app runs elevated, and keeps DB in one place
+  // across Windows user accounts.
+  const dir = path.join(
+    process.env.ProgramData || path.join('C:', 'ProgramData'),
+    'LGSS Manager', 'mongo-db'
+  );
+  try { fs.mkdirSync(dir, { recursive: true }); } catch (_) {}
+  return dir;
+}
 
 // ---------- Admin elevation ----------
 async function requireAdminOrExit() {
@@ -100,8 +110,10 @@ async function spawnMongodIfNeeded() {
   }
   const mongod = getMongodExe();
   if (!mongod) {
-    console.warn('[mongo] no bundled mongod.exe and no system mongo service.');
-    return; // backend will error; user will see message
+    throw new Error(
+      'MongoDB binary bulunamadi. Kurulum paketinin icindeki mongod.exe eksik. ' +
+      'Lutfen kurulumu yeniden yapin veya destek ile iletisime gecin.'
+    );
   }
 
   const dbpath = mongoDbPath();
@@ -109,24 +121,47 @@ async function spawnMongodIfNeeded() {
   const err = fs.openSync(path.join(logDir(), 'mongod.err.log'), 'a');
 
   console.log(`[mongo] spawning portable: ${mongod} --dbpath ${dbpath}`);
+  updateSplash('MongoDB baslatiliyor...');
+
   mongodProcess = spawn(mongod, [
     '--dbpath', dbpath,
     '--port', String(MONGO_PORT),
     '--bind_ip', MONGO_HOST,
   ], { stdio: ['ignore', out, err], windowsHide: true });
 
+  let earlyExitError = null;
   mongodProcess.on('exit', (code, sig) => {
     console.log(`[mongo] exited code=${code} sig=${sig}`);
+    if (code !== 0 && code !== null) {
+      earlyExitError = `mongod exit code ${code}. Olasi nedenler:\n` +
+        `  - Visual C++ Redistributable eksik (kurulum sirasinda otomatik yuklenir)\n` +
+        `  - CPU AVX desteklemiyor (MongoDB 4.4 kullaniliyor, olmamasi lazim)\n` +
+        `  - ${dbpath} klasorune yazma izni yok\n` +
+        `Detay: ${path.join(logDir(), 'mongod.err.log')}`;
+    }
     mongodProcess = null;
   });
+  mongodProcess.on('error', (e) => {
+    console.error('[mongo] spawn error:', e.message);
+    earlyExitError = `mongod baslatilamadi: ${e.message}`;
+  });
 
-  // wait up to 15s for mongod to listen
-  const deadline = Date.now() + 15000;
+  // wait up to 20s for mongod to listen
+  const deadline = Date.now() + 20000;
   while (Date.now() < deadline) {
-    if (await isMongoReachable()) return;
+    if (earlyExitError) throw new Error(earlyExitError);
+    if (await isMongoReachable()) {
+      console.log('[mongo] up and accepting connections');
+      return;
+    }
     await new Promise(r => setTimeout(r, 400));
   }
-  throw new Error('MongoDB 15sn içinde başlamadı. mongod.err.log kontrol edin.');
+  throw new Error(
+    'MongoDB 20 saniye icinde baslamadi.\n\n' +
+    `Log dosyasi: ${path.join(logDir(), 'mongod.err.log')}\n` +
+    'Cogu zaman Visual C++ Redistributable yuklu degilse bu hata olur.\n' +
+    'Kurulum paketi VC++ yukler ama antivirus engellemis olabilir.'
+  );
 }
 
 // ---------- Backend spawn (PyInstaller in prod, venv in dev) ----------
@@ -219,28 +254,49 @@ function shutdownChildren() {
   killChild(mongodProcess, 'mongo');    mongodProcess = null;
 }
 
-// ---------- Splash ----------
-function showSplash(status = 'Arka plan servisleri başlatılıyor...') {
+// ---------- Splash (live status updates) ----------
+function showSplash(status = 'Arka plan servisleri baslatiliyor...') {
   splashWindow = new BrowserWindow({
-    width: 520, height: 300, frame: false, resizable: false, alwaysOnTop: true,
+    width: 560, height: 340, frame: false, resizable: false, alwaysOnTop: true,
     backgroundColor: '#141512',
     webPreferences: { nodeIntegration: false, contextIsolation: true },
   });
   const html = `
   <html><head><style>
     body{margin:0;font-family:Segoe UI,system-ui,sans-serif;background:#141512;color:#e7e2d6;
-         display:flex;flex-direction:column;align-items:center;justify-content:center;height:100vh}
+         display:flex;flex-direction:column;align-items:center;justify-content:center;height:100vh;padding:0 24px;text-align:center}
     .logo{font-size:28px;font-weight:700;letter-spacing:2px;color:#c9a14a}
-    .sub{margin-top:10px;color:#8e8878;font-size:13px}
-    .bar{margin-top:26px;width:320px;height:4px;background:#2a2721;border-radius:2px;overflow:hidden}
+    .tag{margin-top:4px;color:#8e8878;font-size:11px;letter-spacing:3px}
+    #status{margin-top:30px;color:#e7e2d6;font-size:13px;min-height:18px}
+    #hint{margin-top:6px;color:#8e8878;font-size:11px;min-height:14px}
+    .bar{margin-top:22px;width:380px;height:4px;background:#2a2721;border-radius:2px;overflow:hidden}
     .bar span{display:block;height:100%;width:40%;background:#c9a14a;animation:slide 1.3s infinite}
     @keyframes slide{0%{margin-left:-40%}100%{margin-left:100%}}
   </style></head><body>
     <div class="logo">LGSS MANAGER</div>
-    <div class="sub">${status}</div>
+    <div class="tag">SCUM SERVER MANAGER v1.0.0</div>
+    <div id="status">${status}</div>
+    <div id="hint"></div>
     <div class="bar"><span></span></div>
+    <script>
+      window.addEventListener('message', (e) => {
+        if (e.data && e.data.type === 'status') {
+          document.getElementById('status').textContent = e.data.text || '';
+          document.getElementById('hint').textContent = e.data.hint || '';
+        }
+      });
+    </script>
   </body></html>`;
   splashWindow.loadURL('data:text/html;charset=utf-8,' + encodeURIComponent(html));
+}
+
+function updateSplash(text, hint = '') {
+  if (!splashWindow || splashWindow.isDestroyed()) return;
+  try {
+    splashWindow.webContents.executeJavaScript(
+      `postMessage({type:'status', text:${JSON.stringify(text)}, hint:${JSON.stringify(hint)}}, '*')`
+    );
+  } catch (_) {}
 }
 
 function closeSplash() {
@@ -295,17 +351,21 @@ function createWindow() {
 // ---------- Lifecycle ----------
 app.whenReady().then(async () => {
   await requireAdminOrExit();
-  showSplash();
+  showSplash('Yonetici ayricaliklari dogrulandi...');
 
   try {
+    updateSplash('MongoDB kontrol ediliyor...');
     await spawnMongodIfNeeded();
+    updateSplash('Backend baslatiliyor...', 'Python gomulu, ek kurulum gerekmez');
     spawnBackend();
+    updateSplash('Backend hazir olmayi bekliyor...', 'Bu 10-30 saniye surebilir');
     await waitForBackend();
+    updateSplash('Arayuz yukleniyor...');
   } catch (err) {
     closeSplash();
     dialog.showErrorBox(
-      'Başlatma hatası',
-      `${err.message}\n\nLog klasörü: ${logDir()}`
+      'Baslatma hatasi',
+      `${err.message}\n\nLog klasoru: ${logDir()}`
     );
     shutdownChildren();
     app.exit(1);

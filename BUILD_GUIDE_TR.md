@@ -1,169 +1,158 @@
-# LGSS Manager — Tek-Paket `.exe` Build Rehberi (Türkçe)
+# LGSS Manager — Kullanicilarin HIC BIR SEY Yuklemeden Kullanabilecegi .exe Build Rehberi
 
-Bu rehber, **Python / Node.js / MongoDB kurulu olmayan bilgisayarlarda da** tek tıkla çalışan bir kurulum dosyası (`LGSS Manager Setup.exe`) üretmeni sağlar.
+Bu rehber, **Python / Node.js / MongoDB / Visual C++ Redistributable** kurulu olmayan bilgisayarlarda bile **tek tikla calisacak** bir installer (`LGSS Manager Setup.exe`) uretmeni saglar.
 
-> ⚠️ Bu adımları **SADECE BİR KEZ** yapacaksın (build yapan makinede). Sonuç `.exe`, istediğin kadar kullanıcıya dağıtılabilir.
+## Ne Dahil?
+
+Installer icerigi:
+- **Electron + React Frontend** (~80 MB)
+- **Python + Backend** (PyInstaller ile tek `lgss-backend.exe` ~25 MB)
+- **MongoDB 4.4.29 Portable** (~50 MB, AVX gerektirmez, Server 2019 uyumlu)
+- **Visual C++ Redistributable 2015-2022 x64** (~25 MB, sessizce otomatik kurulur)
+- **SteamCMD** (uygulama ilk kullanimda otomatik indirir)
+
+**Toplam installer boyutu:** ~280-320 MB
+
+## Son Kullanici Deneyimi
+
+1. `LGSS Manager Setup 1.0.0.exe`'ye cift tikla
+2. VC++ Redistributable sessizce arka planda kurulur (kullanici farketmez)
+3. Kurulum dizinini sec, `Next`, bitir
+4. Masaustunden `LGSS Manager` ikonuna cift tikla
+5. UAC onay iste -> `Evet`
+6. Splash ekrani: "MongoDB baslatiliyor..." -> "Backend hazir olmayi bekliyor..." -> "Arayuz yukleniyor..."
+7. Disk secim sihirbazi acilir
+
+**Son kullanici hicbir sey kurmaz**, Python/Node/MongoDB bilmez.
 
 ---
 
-## 📋 Build Makinesinde Olması Gerekenler
+## Build Makinesi Gereksinimleri (senin PC)
 
-| Araç | Versiyon | İndir |
+| Arac | Versiyon | Neden |
 |---|---|---|
-| Python | 3.11+ | https://python.org |
-| Node.js | 20 LTS | https://nodejs.org |
-| Yarn | 1.22+ | `npm i -g yarn` |
-| MongoDB Community | 7.0+ ZIP (sadece `mongod.exe` için) | https://www.mongodb.com/try/download/community |
+| Python | 3.11+ | Backend'i PyInstaller ile paketlemek icin |
+| Node.js | 20 LTS | Electron ve React build |
+| Yarn | 1.22+ | Frontend bagimliliklar |
+| Internet | - | Ilk build'de MongoDB + VC++ indirilir |
 
-> MongoDB'yi **kurmana** gerek yok — sadece ZIP'ini indirip içinden `bin\mongod.exe` dosyasını alacağız.
-
----
-
-## 🏗️ Build Adımları
-
-### 1 · MongoDB portable hazırla (tek seferlik, ~2 dk)
-
-1. https://www.mongodb.com/try/download/community adresine git.
-2. **Version:** 7.0.x (veya en son), **Platform:** Windows, **Package:** **ZIP** seç.
-3. İndirdiğin ZIP'i aç, içindeki `mongodb-win32-x86_64-...` klasörünü kopyala.
-4. Projenin **kök** klasörüne (`lgss-manager\`) yeni klasör aç: `mongodb-portable\`
-5. MongoDB ZIP'inin içindeki `bin\mongod.exe` dosyasını `lgss-manager\mongodb-portable\bin\mongod.exe` konumuna kopyala.
-
-> Sadece `mongod.exe` gerekli, diğer dosyalara (mongos, mongoimport vs.) ihtiyaç yok. Ama tüm `bin\` klasörünü kopyalamakta sakınca yok.
-
-**Doğrulama:** Aşağıdaki yol var olmalı:
-```
-C:\Users\umutc\Desktop\lgss-manager\mongodb-portable\bin\mongod.exe
-```
+Yonetici yetkisi **gerekmez**, npm run dist normal PowerShell'den calisir.
 
 ---
 
-### 2 · Backend'i `lgss-backend.exe` olarak paketle (~5 dk)
+## Build Komutlari (Tek Seferlik Tam Akis)
 
-PowerShell aç:
+### ILK KEZ Build Ediyorsan
+
 ```powershell
+# 1. Backend sanal ortam (eger yoksa)
 cd C:\Users\umutc\Desktop\lgss-manager\backend
+python -m venv .venv
 .\.venv\Scripts\Activate.ps1
-pip install pyinstaller
-.\build.ps1
+pip install -r requirements.txt
+
+# 2. Frontend bagimliliklari
+cd ..\frontend
+yarn install
+
+# 3. Electron bagimliliklari
+cd ..\electron
+npm install
+
+# 4. TAM BUILD (tek komut - MongoDB + VC++ otomatik indirilir)
+npm run dist
 ```
 
-**Sonuç:** `backend\dist\lgss-backend.exe` (~80-100 MB, Python + tüm paketler gömülü)
+**Ilk build ~15 dk** (MongoDB ve VC++ indirilmesi dahil).  
+**Sonraki build'ler ~6 dk** (MongoDB/VC++ cache'den kullanilir).
 
-**Test et (isteğe bağlı):**
-```powershell
-cd dist
-.\lgss-backend.exe
-```
-Başka tarayıcıda: http://127.0.0.1:8001/api/ → JSON görmelisin. `Ctrl+C` ile kapat.
-
----
-
-### 3 · Frontend'i production build'le (~2 dk)
-
-```powershell
-cd C:\Users\umutc\Desktop\lgss-manager\frontend
-yarn build
-```
-
-**Sonuç:** `frontend\build\` klasörü oluşur (statik HTML+JS+CSS).
-
----
-
-### 4 · Installer'ı üret (~3 dk)
+### Sadece Kod Degistirip Yeniden Build
 
 ```powershell
-cd C:\Users\umutc\Desktop\lgss-manager\electron
-npm run dist:only
+cd electron
+npm run dist
 ```
 
-> `dist:only` komutu adım 2 ve 3'ü tekrar yapmadan direkt installer üretir. Eğer backend/frontend kodunu değiştirdiysen `npm run dist` kullan (her şeyi baştan yapar).
+`prepare-bundle.ps1` akilli — MongoDB ve VC++ zaten varsa tekrar indirmez.
 
-**Sonuç:**
+### Cikti
+
 ```
 C:\Users\umutc\Desktop\lgss-manager\dist\LGSS Manager Setup 1.0.0.exe
 ```
 
-Boyut: ~250-300 MB.
+Bu dosyayi istedigin kullaniciya gonder.
 
 ---
 
-## 🎁 Dağıtım
+## Kullanici Makinesinde Paket Yapisi
 
-Bu `.exe`'yi istediğin kullanıcıya gönder. Kullanıcı:
-1. `.exe`'ye çift tıklar → NSIS kurulum sihirbazı açılır.
-2. Kurulum dizini seçer (varsayılan: `C:\Program Files\LGSS Manager\`).
-3. Kurulum biter → Desktop kısayolu oluşur.
-4. Kısayola çift tıklar → UAC onayı ister → **Evet**.
-5. Splash ekranı → 5-15 sn içinde uygulama açılır.
-6. **Disk seçim sihirbazı** karşılar. İşte bu kadar. 🎉
-
----
-
-## 🗂️ Kurulu Paket İçeriği
-
-Kullanıcının makinesinde kurulum şöyle görünür:
+Kurulumdan sonra:
 ```
 C:\Program Files\LGSS Manager\
-├── LGSS Manager.exe              (Electron ana yürütülebilir)
+├── LGSS Manager.exe
 ├── resources\
-│   ├── app.asar                  (main.js + preload.js)
-│   ├── frontend\build\           (React statik)
+│   ├── app.asar                  (Electron main.js + preload.js)
+│   ├── frontend\build\           (React statik dosyalar)
 │   ├── backend\
-│   │   ├── lgss-backend.exe      (Python + FastAPI + deps, PyInstaller)
-│   │   └── scum_defaults\        (Config şablonları)
-│   └── mongodb\bin\mongod.exe    (Portable MongoDB)
-└── ... (Electron runtime)
+│   │   ├── lgss-backend.exe      (Python + FastAPI + tum bagimliliklar)
+│   │   └── scum_defaults\
+│   └── mongodb\bin\mongod.exe    (MongoDB 4.4)
 ```
 
-Kullanıcı verisi:
+Kullanici verisi (ayrilmis, guncellemelerden etkilenmez):
 ```
-C:\Users\<kullanıcı>\AppData\Roaming\LGSS Manager\
-├── logs\
-│   ├── backend.out.log
-│   ├── backend.err.log
-│   ├── mongod.out.log
-│   └── mongod.err.log
-└── mongo-db\                     (MongoDB veri klasörü)
+C:\ProgramData\LGSS Manager\
+└── mongo-db\                     (MongoDB veri klasoru, paylasimli)
+
+C:\Users\<kullanici>\AppData\Roaming\LGSS Manager\
+└── logs\
+    ├── backend.out.log
+    ├── backend.err.log
+    ├── mongod.out.log
+    └── mongod.err.log
 ```
 
 ---
 
-## 🔧 Sorun Giderme
+## Sorun Giderme
 
-### "Başlatma hatası: MongoDB 15sn içinde başlamadı"
-- Kullanıcının `%APPDATA%\LGSS Manager\logs\mongod.err.log` dosyasına baksın.
-- Genelde antivirus `mongod.exe`'yi engeller. Windows Defender'da güvenilir ekle.
-
-### "Backend hazır olmadı (60s timeout)"
-- `backend.err.log`'a bak. PyInstaller bir modülü atlamış olabilir.
-- Çözüm: `lgss-backend.spec` içindeki `hidden_imports`'a eksik modülü ekle → tekrar build et.
-
-### Antivirus `.exe`'yi siliyor
-- PyInstaller ile üretilen exe'ler bazen false positive yaratır.
-- Çözüm: Code signing sertifikası al (EV Code Signing, ~$400/yıl) — zorunlu değil ama önerilir.
-
----
-
-## 🔄 Güncelleme Dağıtımı
-
-Kullanıcıya yeni `.exe` gönderdiğinde:
-- Mevcut kurulumun üzerine yazar (ayarlar/veri korunur — `%APPDATA%` farklı yerde).
-- Versiyon numarasını `electron/package.json` içindeki `"version"` alanından bump'la (1.0.0 → 1.0.1).
-
----
-
-## 🚀 Hızlı Komut Özeti
-
-Tüm build'i tek seferde (her şey kurulu olduktan sonra):
-```powershell
-cd C:\Users\umutc\Desktop\lgss-manager\electron
-npm run dist
+### Kullanici "Baslatma hatasi" dialog goruyor
+Log dosyasini iste:
+```
+C:\Users\<kullanici>\AppData\Roaming\LGSS Manager\logs\
 ```
 
-Bu komut:
-1. `backend\build.ps1` çalıştırır → `lgss-backend.exe` üretir
-2. `frontend\yarn build` çalıştırır → `build\` üretir
-3. `electron-builder` çalıştırır → `dist\LGSS Manager Setup x.y.z.exe` üretir
+Iceriklerini sana yollasin, sorunu 5 saniyede teshis edebilirsin.
 
-Toplam süre: **~10 dakika** (ilk seferinde PyInstaller bağımlılıkları indirirken biraz daha uzun).
+### Windows Defender `.exe`'yi engelliyor
+- Code signing sertifikasi yok (opsiyonel, ~$400/yil)
+- Kullanici ilk acilista: **Daha fazla bilgi -> Yine de calistir**
+- Ya da Defender'da klasor istisna: `C:\Program Files\LGSS Manager`
+
+### Hala acilmiyor (nadir)
+- Antivirus `mongod.exe`'yi karantinaya almis olabilir
+- CPU cok eski (2010 oncesi) -> MongoDB 4.4 bile calismayabilir
+- Windows 10 build 1809 altinda Electron 32 desteklenmiyor olabilir
+
+---
+
+## Hizli Komut Ozeti
+
+| Ne Yapiyor | Komut |
+|---|---|
+| Full build (MongoDB + VC++ indir + build) | `npm run dist` |
+| Sadece son paketleme (bagimliliklar varsa) | `npm run dist:only` |
+| Portable .exe (installer gerekmez) | `npm run dist:portable` |
+| Sadece MongoDB + VC++ indir | `npm run prepare:bundle` |
+| Sadece backend PyInstaller build | `npm run build:backend` |
+| Sadece frontend React build | `npm run build:frontend` |
+
+---
+
+## Guncelleme Dagitimi
+
+Kullaniciya yeni surum gonderdiginde:
+1. `electron/package.json` icindeki `"version"` alaninda bump'la (`1.0.0` -> `1.0.1`)
+2. `npm run dist`
+3. Yeni `.exe` kullaniciya gonder -> ustune kurar -> veriler (MongoDB, ayarlar) korunur

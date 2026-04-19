@@ -8,11 +8,12 @@
   "scripts": {
     "start": "electron .",
     "dev": "cross-env ELECTRON_START_URL=http://localhost:3000 electron .",
+    "prepare:bundle": "powershell -ExecutionPolicy Bypass -File ../prepare-bundle.ps1",
     "build:frontend": "cd ../frontend && yarn build",
     "build:backend": "cd ../backend && powershell -ExecutionPolicy Bypass -File build.ps1",
     "build:all": "npm run build:backend && npm run build:frontend",
-    "dist": "npm run build:all && electron-builder --win nsis",
-    "dist:portable": "npm run build:all && electron-builder --win portable",
+    "dist": "npm run prepare:bundle && npm run build:all && electron-builder --win nsis",
+    "dist:portable": "npm run prepare:bundle && npm run build:all && electron-builder --win portable",
     "dist:only": "electron-builder --win nsis"
   },
   "dependencies": {
@@ -28,7 +29,8 @@
     "appId": "com.lgss.managers",
     "productName": "LGSS Manager",
     "directories": {
-      "output": "../dist"
+      "output": "../dist",
+      "buildResources": "installer"
     },
     "files": [
       "main.js",
@@ -65,7 +67,8 @@
       "allowToChangeInstallationDirectory": true,
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
-      "shortcutName": "LGSS Manager"
+      "shortcutName": "LGSS Manager",
+      "include": "installer/installer.nsh"
     }
   }
 }

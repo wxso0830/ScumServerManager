@@ -1,10 +1,11 @@
 import React, { useEffect, useState } from "react";
 import {
   Play, Square, Download, RefreshCw, Settings, Trash2, Users, Cpu, Activity,
-  Server as ServerIcon, HardDrive, Clock,
+  Server as ServerIcon, HardDrive, Clock, Network,
 } from "lucide-react";
 import { useI18n } from "../providers/I18nProvider";
 import { endpoints } from "../lib/api";
+import { ServerPortsModal } from "./ServerPortsModal";
 
 const STATUS_META = {
   Running:   { cls: "running",    label: "server_status_running",    color: "var(--success)" },

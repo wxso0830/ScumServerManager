@@ -12,7 +12,10 @@
 
 $ErrorActionPreference = "Stop"
 
-$root = Resolve-Path "$PSScriptRoot\.."
+# We may be executed from `electron/` folder (via `npm run prepare:bundle`) or
+# from the project root. Pin to the DIRECTORY THAT CONTAINS THIS SCRIPT so the
+# output paths are always under the project root, not the caller's $PWD.
+$root = Split-Path -Parent $MyInvocation.MyCommand.Definition
 $mongoDir = Join-Path $root "mongodb-portable"
 $mongoBin = Join-Path $mongoDir "bin"
 $mongodExe = Join-Path $mongoBin "mongod.exe"

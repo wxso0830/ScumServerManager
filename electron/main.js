@@ -3,6 +3,17 @@
 // + loads the React frontend. Zero dependencies on the target machine.
 
 const { app, BrowserWindow, ipcMain, dialog, shell, globalShortcut } = require('electron');
+
+// ---------- Compatibility switches for Windows Server / RDP / no-GPU hosts ----
+// Servers (Windows Server 2019/2022) do not have full GPU drivers and Electron's
+// default hardware-accelerated rendering crashes silently on them. We also see
+// the same failure in some RDP sessions. Disabling GPU acceleration makes the
+// renderer use a software path that works everywhere.
+app.disableHardwareAcceleration();
+app.commandLine.appendSwitch('disable-gpu');
+app.commandLine.appendSwitch('disable-software-rasterizer');
+app.commandLine.appendSwitch('disable-gpu-compositing');
+app.commandLine.appendSwitch('no-sandbox');
 const path = require('path');
 const fs = require('fs');
 const http = require('http');

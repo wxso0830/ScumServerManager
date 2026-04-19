@@ -197,10 +197,10 @@ def _scum_exe(folder_path: str) -> Path:
     return Path(folder_path) / "SCUM" / "Binaries" / "Win64" / "SCUMServer.exe"
 
 
-def start_server(server_id: str, folder_path: str, port: int = 7042,
-                 query_port: int = 7043, max_players: int = 64) -> int:
-    """Spawn SCUMServer.exe with -log. Returns PID. Raises if already running
-    or executable missing."""
+def start_server(server_id: str, folder_path: str, port: int = 7779,
+                 query_port: int = 7780, max_players: int = 64) -> int:
+    """Spawn SCUMServer.exe with -log (opens its own console window showing
+    live server log). Returns PID. Raises if already running or exe missing."""
     if not _is_windows():
         raise RuntimeError("SCUMServer.exe requires Windows.")
 
@@ -221,16 +221,17 @@ def start_server(server_id: str, folder_path: str, port: int = 7042,
         f"-MaxPlayers={max_players}",
     ]
     log.info("Starting SCUM: %s", " ".join(args))
-    CREATE_NEW_PROCESS_GROUP = 0x00000200
-    DETACHED_PROCESS = 0x00000008
+
+    # CREATE_NEW_CONSOLE = 0x00000010
+    # Opens SCUMServer.exe in its OWN visible console window, so the `-log`
+    # flag actually streams server output that the admin can read live.
+    CREATE_NEW_CONSOLE = 0x00000010
     proc = subprocess.Popen(
         args,
         cwd=str(exe.parent),
-        creationflags=CREATE_NEW_PROCESS_GROUP | DETACHED_PROCESS,
+        creationflags=CREATE_NEW_CONSOLE,
         close_fds=True,
-        stdin=subprocess.DEVNULL,
-        stdout=subprocess.DEVNULL,
-        stderr=subprocess.DEVNULL,
+        # inherit stdio so the new console can display the log; do NOT redirect
     )
     with _LOCK:
         REGISTRY.setdefault(server_id, {})

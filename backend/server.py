@@ -87,6 +87,9 @@ class ServerProfile(BaseModel):
     installed: bool = False
     steam_app_id: str = "3792580"
     public_ip: Optional[str] = None
+    game_port: int = 7779
+    query_port: int = 7780
+    max_players: int = 64
     installed_build_id: Optional[str] = None
     update_available: bool = False
     created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
@@ -114,6 +117,12 @@ class AutomationUpdate(BaseModel):
 
 class ServerCreate(BaseModel):
     name: Optional[str] = None
+
+
+class ServerPortsUpdate(BaseModel):
+    game_port: Optional[int] = None
+    query_port: Optional[int] = None
+    max_players: Optional[int] = None
 
 
 class ServerSettingsUpdate(BaseModel):
@@ -300,6 +309,35 @@ async def rename_server(server_id: str, payload: ServerRename):
     return ServerProfile(**res)
 
 
+@api_router.put("/servers/{server_id}/ports", response_model=ServerProfile)
+async def update_server_ports(server_id: str, payload: ServerPortsUpdate):
+    """Update game port / query port / max players. Takes effect on next START."""
+    update: Dict[str, Any] = {}
+    if payload.game_port is not None:
+        if not (1024 <= payload.game_port <= 65535):
+            raise HTTPException(status_code=400, detail="game_port must be 1024-65535")
+        update["game_port"] = payload.game_port
+    if payload.query_port is not None:
+        if not (1024 <= payload.query_port <= 65535):
+            raise HTTPException(status_code=400, detail="query_port must be 1024-65535")
+        update["query_port"] = payload.query_port
+    if payload.max_players is not None:
+        if not (1 <= payload.max_players <= 128):
+            raise HTTPException(status_code=400, detail="max_players must be 1-128")
+        update["max_players"] = payload.max_players
+    if not update:
+        raise HTTPException(status_code=400, detail="No fields to update")
+    res = await db.servers.find_one_and_update(
+        {"id": server_id},
+        {"$set": update},
+        projection={"_id": 0},
+        return_document=True,
+    )
+    if not res:
+        raise HTTPException(status_code=404, detail="Server not found")
+    return ServerProfile(**res)
+
+
 @api_router.put("/servers/{server_id}/settings", response_model=ServerProfile)
 async def update_server_settings(server_id: str, payload: ServerSettingsUpdate):
     doc = await db.servers.find_one({"id": server_id}, {"_id": 0})
@@ -331,10 +369,9 @@ async def start_server(server_id: str):
         raise HTTPException(status_code=404, detail="Server not found")
     # Real process spawn (Windows only). If not installed or exe missing, fail cleanly.
     try:
-        settings = (doc.get("settings") or {}).get("General") or {}
-        port = int(settings.get("Port") or settings.get("scum.ServerPort") or 7042)
-        query_port = int(settings.get("QueryPort") or settings.get("scum.QueryPort") or 7043)
-        max_players = int(settings.get("MaxPlayers") or settings.get("scum.MaxPlayers") or 64)
+        port = int(doc.get("game_port") or 7779)
+        query_port = int(doc.get("query_port") or 7780)
+        max_players = int(doc.get("max_players") or 64)
         pid = scum_proc.start_server(
             server_id=server_id,
             folder_path=doc["folder_path"],

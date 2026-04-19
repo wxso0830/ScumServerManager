@@ -234,6 +234,7 @@ export const DashboardView = ({ servers, managerPath, onAdd, onOpen, onChange, o
                 onUpdate={handleUpdate}
                 onInstall={handleInstall}
                 onDelete={requestDelete}
+                onChange={onChange}
               />
             ))}
           </div>

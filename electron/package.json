@@ -93,14 +93,20 @@
     ],
     "nsis": {
       "oneClick": false,
+      "perMachine": true,
       "allowToChangeInstallationDirectory": true,
-      "createDesktopShortcut": true,
+      "allowElevation": true,
+      "runAfterFinish": true,
+      "menuCategory": "LGSS",
+      "createDesktopShortcut": false,
       "createStartMenuShortcut": true,
       "shortcutName": "LGSS Manager",
       "installerIcon": "installer/icon.ico",
       "uninstallerIcon": "installer/icon.ico",
-      "uninstallDisplayName": "LGSS Manager",
-      "include": "installer/installer.nsh"
+      "uninstallDisplayName": "LGSS Manager ${version}",
+      "deleteAppDataOnUninstall": false,
+      "include": "installer/installer.nsh",
+      "warningsAsErrors": false
     }
   }
 }

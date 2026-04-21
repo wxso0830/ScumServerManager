@@ -350,6 +350,70 @@ def parse_fame_line(ts_iso: str, body: str) -> Optional[Dict[str, Any]]:
     }
 
 
+def parse_vehicle_destruction_line(ts_iso: str, body: str) -> Optional[Dict[str, Any]]:
+    """Parse vehicle_destruction_*.log lines. Real SCUM formats:
+
+    '[VehicleDestroyed] Vehicle: BP_LandVehicle_Laika_C (VehicleId=12345),
+     Owner: 76561199056876451 (Gabriel), DestroyedBy: 76561198808439462 (Hawx),
+     Reason: ExplosiveDamage, Location: X,Y,Z'
+
+    Older variants drop DestroyedBy or use slightly different keys. We pick up
+    whatever is present and emit a structured event.
+    """
+    if body.lstrip().startswith("{"):
+        # SCUM sometimes writes a JSON companion — skip, the human line is enough
+        return {"_skip": True}
+
+    # Vehicle class (BP_LandVehicle_X_C or BP_*)
+    vm = re.search(r"Vehicle:\s*([A-Za-z0-9_]+)", body)
+    veh_class = vm.group(1) if vm else None
+
+    # Owner & destroyer pairs "SID (NAME)" or "NAME (SID)"
+    def _pair(tag: str) -> Tuple[Optional[str], Optional[str]]:
+        mm = re.search(
+            rf"{tag}:\s*(?:(\d{{17}})\s*\(([^)]+)\)|([^\s(]+)\s*\((\d{{17}})\))",
+            body, flags=re.IGNORECASE,
+        )
+        if not mm:
+            return (None, None)
+        if mm.group(1):
+            return (mm.group(1), mm.group(2).strip())
+        return (mm.group(4), mm.group(3).strip())
+
+    owner_sid, owner_name = _pair("Owner")
+    killer_sid, killer_name = _pair("(?:DestroyedBy|Destroyer|Killer)")
+
+    reason = None
+    rm = re.search(r"Reason:\s*([A-Za-z_]+)", body)
+    if rm:
+        reason = rm.group(1)
+
+    if not veh_class and not owner_sid and not killer_sid:
+        return None  # nothing usable — fall back to generic parser
+
+    # Pretty-print the vehicle class (BP_LandVehicle_Laika_C → Laika)
+    pretty = None
+    if veh_class:
+        pretty = re.sub(r"^BP_(?:Land|Sea|Air)?Vehicle_", "", veh_class)
+        pretty = re.sub(r"_C$", "", pretty).replace("_", " ").strip()
+
+    return {
+        "type": "vehicle_destruction",
+        "ts": ts_iso,
+        "vehicle_class": veh_class,
+        "vehicle_pretty": pretty or veh_class,
+        "owner_steam_id": owner_sid,
+        "owner_name": owner_name,
+        "killer_steam_id": killer_sid,
+        "killer_name": killer_name,
+        "reason": reason,
+        # Top-level steam_id is the victim/owner so Player aggregates surface it
+        "steam_id": owner_sid,
+        "player_name": owner_name,
+        "raw": body,
+    }
+
+
 def parse_generic_line(ts_iso: str, body: str, log_type: str) -> Dict[str, Any]:
     w = _WHO_RX.search(body)
     return {
@@ -408,6 +472,7 @@ def _parser_for(log_type: str):
         "economy": parse_economy_line,
         "violation": parse_violations_line,
         "fame": parse_fame_line,
+        "vehicle_destruction": parse_vehicle_destruction_line,
     }.get(log_type)
 
 

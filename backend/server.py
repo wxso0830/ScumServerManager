@@ -26,6 +26,7 @@ from scum_parser import (
     parse_input_ini,
 )
 import scum_db
+import scum_backup
 import scum_process as scum_proc
 import json as json_lib
 import io
@@ -889,6 +890,116 @@ async def import_server_log(server_id: str, file: UploadFile = File(...)):
     events = parse_log_text(text, log_type, filename=file.filename or "", server_id=server_id)
     res = await _store_events_and_forward(server_id, events)
     return {"log_type": log_type, "parsed": len(events), **res, "filename": file.filename}
+
+
+# ---------------------------------------------------------------------------
+#  Backup endpoints — SaveFiles zip snapshots
+# ---------------------------------------------------------------------------
+async def _get_server_for_backup(server_id: str) -> Dict[str, Any]:
+    """Resolve server doc + manager_path context. Raises HTTPException if missing."""
+    doc = await db.servers.find_one({"id": server_id}, {"_id": 0})
+    if not doc:
+        raise HTTPException(status_code=404, detail="Server not found")
+    setup = await db.setup.find_one({"_id": SETUP_DOC_ID}, {"_id": 0}) or {}
+    manager_path = setup.get("manager_path")
+    if not manager_path:
+        raise HTTPException(status_code=400, detail="Manager path not configured")
+    return {
+        "doc": doc,
+        "manager_path": manager_path,
+        "server_folder": doc.get("folder_name") or f"Server{doc.get('index', 1)}",
+    }
+
+
+@api_router.get("/servers/{server_id}/backups")
+async def list_server_backups(server_id: str):
+    ctx = await _get_server_for_backup(server_id)
+    backups = await asyncio.to_thread(
+        scum_backup.list_backups,
+        server_id=server_id,
+        manager_path=ctx["manager_path"],
+        server_folder=ctx["server_folder"],
+    )
+    total = sum(b["size_bytes"] for b in backups)
+    return {
+        "server_id": server_id,
+        "count": len(backups),
+        "total_size_mb": round(total / (1024 * 1024), 2),
+        "backups": backups,
+    }
+
+
+@api_router.post("/servers/{server_id}/backups")
+async def create_server_backup(server_id: str, backup_type: str = "manual"):
+    """Create an on-demand ZIP backup of SaveFiles. Non-blocking; completes
+    within 5-30 seconds depending on save size. Safe while server is running
+    — SCUM.db is copied via SQLite's online backup API."""
+    ctx = await _get_server_for_backup(server_id)
+    res = await asyncio.to_thread(
+        scum_backup.create_backup,
+        server_id=server_id,
+        folder_path=ctx["doc"]["folder_path"],
+        manager_path=ctx["manager_path"],
+        server_folder=ctx["server_folder"],
+        backup_type=backup_type,
+    )
+    if not res.get("ok"):
+        raise HTTPException(status_code=500, detail=res.get("error", "backup failed"))
+    return res
+
+
+@api_router.delete("/servers/{server_id}/backups/{backup_id}")
+async def delete_server_backup(server_id: str, backup_id: str):
+    ctx = await _get_server_for_backup(server_id)
+    ok = await asyncio.to_thread(
+        scum_backup.delete_backup,
+        manager_path=ctx["manager_path"],
+        server_folder=ctx["server_folder"],
+        backup_id=backup_id,
+    )
+    if not ok:
+        raise HTTPException(status_code=404, detail="Backup not found")
+    return {"ok": True}
+
+
+@api_router.post("/servers/{server_id}/backups/{backup_id}/restore")
+async def restore_server_backup(server_id: str, backup_id: str):
+    """Restore a backup into SaveFiles. REQUIRES the server to be Stopped —
+    we refuse if the SCUM process is alive to avoid clobbering live DB files
+    and corrupting mid-write tables. A `pre_restore` safety backup is
+    automatically captured before extraction."""
+    ctx = await _get_server_for_backup(server_id)
+    # Check running state (DB status + real OS process)
+    metrics = scum_proc.get_metrics(server_id, folder_path=ctx["doc"].get("folder_path"))
+    if metrics.get("running") or ctx["doc"].get("status") in ("Running", "Starting"):
+        raise HTTPException(status_code=409, detail="Stop the server before restoring")
+    res = await asyncio.to_thread(
+        scum_backup.restore_backup,
+        server_id=server_id,
+        folder_path=ctx["doc"]["folder_path"],
+        manager_path=ctx["manager_path"],
+        server_folder=ctx["server_folder"],
+        backup_id=backup_id,
+    )
+    if not res.get("ok"):
+        raise HTTPException(status_code=500, detail=res.get("error", "restore failed"))
+    return res
+
+
+@api_router.get("/servers/{server_id}/backups/{backup_id}/download")
+async def download_server_backup(server_id: str, backup_id: str):
+    """Stream a backup zip back to the admin for off-machine archiving."""
+    ctx = await _get_server_for_backup(server_id)
+    p = scum_backup.find_backup(
+        manager_path=ctx["manager_path"],
+        server_folder=ctx["server_folder"],
+        backup_id=backup_id,
+    )
+    if p is None or not p.exists():
+        raise HTTPException(status_code=404, detail="Backup not found")
+    from fastapi.responses import FileResponse
+    return FileResponse(str(p), media_type="application/zip", filename=p.name)
+
 
 
 @api_router.post("/servers/{server_id}/logs/scan")
@@ -1866,6 +1977,8 @@ _last_restart_tick: Dict[str, str] = {}   # server_id -> "YYYY-MM-DDTHH:MM" of l
 _last_update_check_at: Dict[str, float] = {}  # server_id -> epoch seconds
 _last_log_scan_at: Dict[str, float] = {}  # server_id -> epoch seconds
 _last_config_reimport_at: Dict[str, float] = {}  # server_id -> epoch seconds
+_last_backup_at: Dict[str, float] = {}    # server_id -> epoch seconds
+_crash_watch: Dict[str, Dict[str, Any]] = {}  # server_id -> {"was_running": bool, "pid": int}
 LOG_SCAN_INTERVAL_SEC = 20   # how often the scheduler re-parses log files
 CONFIG_REIMPORT_INTERVAL_SEC = 60  # how often we re-read on-disk configs into DB
 
@@ -1991,6 +2104,75 @@ async def _tick_scheduler():
                                 logger.info("Config re-import: %s picked up on-disk changes", s.get("name"))
                         except Exception as e:
                             logger.info("Config re-import failed for %s: %s", s.get("name"), e)
+
+                # --- Auto backup + crash-safe emergency backup ---
+                # Two independent triggers:
+                #   1) Periodic: if automation.backup_enabled, create a backup every
+                #      automation.backup_interval_min (default 120). Pruned to
+                #      keep-count so disk doesn't fill.
+                #   2) Crash detector: we remember whether the SCUM process was
+                #      alive last tick; if it was Running/Starting and is suddenly
+                #      gone without an admin-driven Stop, snapshot RIGHT NOW before
+                #      the player's progress is potentially corrupted by the crash.
+                if s.get("installed") and s.get("folder_path"):
+                    setup_doc = await db.setup.find_one({"_id": SETUP_DOC_ID}, {"_id": 0}) or {}
+                    manager_path = setup_doc.get("manager_path")
+                    if manager_path:
+                        server_folder = s.get("folder_name") or f"Server{s.get('index', 1)}"
+                        running_now = s.get("status") in ("Running", "Starting")
+
+                        # (1) Periodic
+                        if auto.get("backup_enabled"):
+                            interval_min = int(auto.get("backup_interval_min") or 120)
+                            last_bk = _last_backup_at.get(sid, 0)
+                            if (now.timestamp() - last_bk) >= interval_min * 60:
+                                _last_backup_at[sid] = now.timestamp()
+                                try:
+                                    await asyncio.to_thread(
+                                        scum_backup.create_backup,
+                                        server_id=sid,
+                                        folder_path=s["folder_path"],
+                                        manager_path=manager_path,
+                                        server_folder=server_folder,
+                                        backup_type="auto",
+                                    )
+                                    # Prune: keep max N auto-backups
+                                    keep = int(auto.get("backup_keep_count") or 30)
+                                    await asyncio.to_thread(
+                                        scum_backup.prune_old_backups,
+                                        manager_path=manager_path,
+                                        server_folder=server_folder,
+                                        keep_count=keep,
+                                    )
+                                    logger.info("Auto-backup: %s done", s.get("name"))
+                                except Exception as e:
+                                    logger.info("Auto-backup failed for %s: %s", s.get("name"), e)
+
+                        # (2) Crash detector
+                        prev = _crash_watch.get(sid, {})
+                        if prev.get("was_running") and not running_now:
+                            # State transitioned from alive → dead. Was this an
+                            # admin stop (in which case we'd already have status
+                            # set to 'Stopped' this tick) or a real crash?
+                            # We treat any unexpected "Running → Stopped" that
+                            # happens in the scheduler as a crash, since admin
+                            # Stop flips status via the API and we pick it up on
+                            # the next tick, producing the same transition. In
+                            # practice the emergency backup fires for both but
+                            # that's fine — over-backup is safe.
+                            try:
+                                await asyncio.to_thread(
+                                    scum_backup.create_backup,
+                                    server_id=sid,
+                                    folder_path=s["folder_path"],
+                                    manager_path=manager_path,
+                                    server_folder=server_folder,
+                                    backup_type="crash",
+                                )
+                                logger.warning("Crash backup captured for %s", s.get("name"))
+                            except Exception as e:
+                                logger.info("Crash backup failed for %s: %s", s.get("name"), e)
+                        _crash_watch[sid] = {"was_running": running_now}
         except Exception as e:
             logger.exception("Scheduler tick failed: %s", e)
         await asyncio.sleep(10)

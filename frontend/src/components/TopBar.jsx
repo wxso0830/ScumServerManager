@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import {
   Palette, Languages, Check, Wrench, ShieldCheck, ShieldAlert,
-  RotateCcw, Activity, Server, HardDrive, Terminal, LayoutDashboard, SlidersHorizontal, ScrollText, Users,
+  RotateCcw, Activity, Server, HardDrive, Terminal, LayoutDashboard, SlidersHorizontal, ScrollText, Users, Archive,
 } from "lucide-react";
 import { useTheme } from "../providers/ThemeProvider";
 import { useI18n } from "../providers/I18nProvider";
@@ -49,6 +49,7 @@ export const TopBar = ({
     { key: "configs", label: t("nav_configs"), icon: SlidersHorizontal },
     { key: "players", label: t("nav_players"), icon: Users },
     { key: "logs", label: t("nav_logs"), icon: ScrollText },
+    { key: "backups", label: t("nav_backups"), icon: Archive },
   ];
 
   return (

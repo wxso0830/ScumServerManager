@@ -48,6 +48,21 @@ _VEHICLE_OWNER_QUERIES = [
        GROUP BY owner_user_id""",
 ]
 
+_VEHICLE_LOCKED_QUERIES = [
+    # "Locked" = player put a personal padlock on the vehicle. SCUM stores
+    # this on the vehicle itself (is_locked flag or a lock_code != 0).
+    """SELECT up.user_id AS sid, COUNT(v.id) AS cnt
+       FROM vehicle_entity v
+       JOIN user_profile up ON up.id = v.owner_user_profile_id
+       WHERE v.is_locked = 1
+       GROUP BY up.user_id""",
+    """SELECT up.user_id AS sid, COUNT(v.id) AS cnt
+       FROM vehicle_entity v
+       JOIN user_profile up ON up.id = v.owner_user_profile_id
+       WHERE v.lock_code IS NOT NULL AND v.lock_code != ''
+       GROUP BY up.user_id""",
+]
+
 _VEHICLE_SQUAD_QUERIES = [
     # Vehicles owned by anyone in the player's squad
     """SELECT up.user_id AS sid, COUNT(v.id) AS cnt
@@ -145,6 +160,14 @@ def read_player_stats(folder_path: str) -> Dict[str, Dict[str, Any]]:
             stats.setdefault(sid, _empty_stat())
             stats[sid]["vehicle_count"] = int(row["cnt"] or 0)
 
+        # Locked vehicles (personal padlock) — subset of owned
+        for row in _try_queries(conn, _VEHICLE_LOCKED_QUERIES):
+            sid = str(row["sid"]) if row["sid"] is not None else None
+            if not sid:
+                continue
+            stats.setdefault(sid, _empty_stat())
+            stats[sid]["locked_vehicle_count"] = int(row["cnt"] or 0)
+
         # Vehicles owned by anyone in the player's squad (includes self-owned)
         for row in _try_queries(conn, _VEHICLE_SQUAD_QUERIES):
             sid = str(row["sid"]) if row["sid"] is not None else None
@@ -179,6 +202,7 @@ def read_player_stats(folder_path: str) -> Dict[str, Dict[str, Any]]:
 def _empty_stat() -> Dict[str, Any]:
     return {
         "fame": 0.0, "vehicle_count": 0, "squad_vehicle_count": 0,
+        "locked_vehicle_count": 0,
         "flag_count": 0, "squad_name": None, "squad_id": None, "db_name": None,
     }
 

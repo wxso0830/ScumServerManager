@@ -10,6 +10,7 @@ import { DashboardView } from "./components/DashboardView";
 import { ServerDashboard } from "./components/ServerDashboard";
 import { LogsView } from "./components/LogsView";
 import { PlayersView } from "./components/PlayersView";
+import { BackupsView } from "./components/BackupsView";
 import { ManagerUpdateModal } from "./components/ManagerUpdateModal";
 import { endpoints } from "./lib/api";
 
@@ -222,6 +223,7 @@ const Shell = () => {
 
         {view === "logs" && <LogsView servers={servers} />}
         {view === "players" && <PlayersView servers={servers} />}
+        {view === "backups" && <BackupsView servers={servers} />}
       </div>
 
       <ManagerUpdateModal open={updateModalOpen} onClose={() => setUpdateModalOpen(false)} />

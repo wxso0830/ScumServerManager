@@ -232,7 +232,7 @@ export const PlayersView = ({ servers = [] }) => {
         <span>{t("players_db_source")}</span>
       </div>
 
-      {detail && <PlayerDetailModal detail={detail} onClose={() => setDetail(null)} t={t} />}
+      {detail && <PlayerDetailModal detail={detail} allPlayers={data.players} onClose={() => setDetail(null)} t={t} />}
     </div>
   );
 };
@@ -249,9 +249,30 @@ const DetailStat = ({ icon: Icon, label, value, color }) => (
   </div>
 );
 
-const PlayerDetailModal = ({ detail, onClose, t }) => {
+const PlayerDetailModal = ({ detail, allPlayers = [], onClose, t }) => {
   const p = detail.player;
   const recent = detail.recent_events || [];
+
+  // Squad mates: all players sharing this squad_id (including the current player).
+  // We use squad_id (stable) not squad_name (could collide across SCUM patches).
+  const squadMates = useMemo(() => {
+    if (!p.squad_id) return [];
+    return allPlayers.filter((x) => x.squad_id === p.squad_id);
+  }, [allPlayers, p.squad_id]);
+
+  // Squad aggregate totals for the info strip
+  const squadAgg = useMemo(() => {
+    const zero = { fame: 0, kills: 0, deaths: 0, vehicles: 0, flags: 0, online: 0 };
+    return squadMates.reduce((acc, m) => ({
+      fame:     acc.fame     + (Number(m.fame) || 0),
+      kills:    acc.kills    + (m.kills || 0),
+      deaths:   acc.deaths   + (m.deaths || 0),
+      vehicles: acc.vehicles + (m.vehicle_count || 0),
+      flags:    acc.flags    + (m.flag_count || 0),
+      online:   acc.online   + (m.is_online ? 1 : 0),
+    }), zero);
+  }, [squadMates]);
+
   return (
     <div
       className="fixed inset-0 z-[80] bg-bg-deep/90 backdrop-blur-md flex items-center justify-center p-4"
@@ -299,11 +320,72 @@ const PlayerDetailModal = ({ detail, onClose, t }) => {
           <DetailStat icon={Clock} label={t("col_last_seen")} value={fmtFull(p.last_seen)} color="var(--accent)" />
           <DetailStat icon={Activity} label={t("col_events")} value={p.total_events} />
           <DetailStat icon={Swords} label={t("col_kills")} value={`${p.kills} / ${p.deaths}`} color={p.kills > p.deaths ? "var(--success)" : "var(--text)"} />
+          <DetailStat icon={Trophy} label={t("col_fame")} value={p.fame != null ? Number(p.fame).toLocaleString(undefined, { maximumFractionDigits: 1 }) : "—"} color="var(--warning)" />
           <DetailStat icon={Coins} label={t("col_trade")} value={p.trade_amount ? p.trade_amount.toLocaleString() : "0"} color="var(--warning)" />
-          <DetailStat icon={Trophy} label={t("fame_change")} value={`${p.fame_delta >= 0 ? "+" : ""}${p.fame_delta}`} color={p.fame_delta >= 0 ? "var(--success)" : "var(--danger)"} />
           <DetailStat icon={Flag} label={t("col_flags")} value={p.flag_count ?? "—"} />
-          <DetailStat icon={Car} label={t("col_vehicles")} value={p.vehicle_count ?? "—"} />
+          <DetailStat icon={Car} label={t("col_vehicles_self")} value={p.vehicle_count ?? "—"} />
         </div>
+
+        {/* Squad aggregate strip — visible only when player belongs to one */}
+        {p.squad_name && (
+          <div className="mx-5 mb-3 bg-bg border border-accent-brand p-3" data-testid="player-squad-strip">
+            <div className="flex items-center gap-2 mb-2">
+              <Users size={12} className="text-accent-brand" />
+              <span className="label-accent">{t("col_squad")}</span>
+              <span className="font-mono text-sm text-brand">{p.squad_name}</span>
+              {squadMates.length > 0 && (
+                <span className="text-[10px] text-dim uppercase tracking-widest ml-auto">
+                  {squadMates.length} {t("squad_members")}
+                </span>
+              )}
+            </div>
+            {squadMates.length > 0 ? (
+              <div className="grid grid-cols-2 md:grid-cols-5 gap-2 text-[11px] font-mono">
+                <div className="text-dim">
+                  <div className="text-[9px] uppercase tracking-widest">{t("squad_total_fame")}</div>
+                  <div className="text-warning">{squadAgg.fame.toLocaleString(undefined, { maximumFractionDigits: 1 })}</div>
+                </div>
+                <div className="text-dim">
+                  <div className="text-[9px] uppercase tracking-widest">{t("squad_total_kills")}</div>
+                  <div className="text-brand">{squadAgg.kills}</div>
+                </div>
+                <div className="text-dim">
+                  <div className="text-[9px] uppercase tracking-widest">{t("squad_total_vehicles")}</div>
+                  <div className="text-brand">{squadAgg.vehicles}</div>
+                </div>
+                <div className="text-dim">
+                  <div className="text-[9px] uppercase tracking-widest">{t("squad_total_flags")}</div>
+                  <div className="text-brand">{squadAgg.flags}</div>
+                </div>
+                <div className="text-dim">
+                  <div className="text-[9px] uppercase tracking-widest">{t("squad_online")}</div>
+                  <div className="text-success">{squadAgg.online} / {squadMates.length}</div>
+                </div>
+                <div className="col-span-full mt-2 border-t border-brand pt-2">
+                  <div className="text-[9px] uppercase tracking-widest text-dim mb-1.5">{t("squad_members")}</div>
+                  <div className="flex flex-wrap gap-1.5">
+                    {squadMates.map((m) => (
+                      <span
+                        key={m.steam_id}
+                        className="px-2 py-0.5 border text-[10px]"
+                        style={{
+                          borderColor: m.is_online ? "var(--success)" : "var(--border)",
+                          color: m.is_online ? "var(--success)" : "var(--text-dim)",
+                          background: m.steam_id === p.steam_id ? "rgba(255,132,12,0.1)" : "transparent",
+                        }}
+                        title={`Fame ${m.fame ?? 0} · K/D ${m.kills}/${m.deaths} · Veh ${m.vehicle_count ?? 0}`}
+                      >
+                        {m.name}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div className="text-[11px] text-dim">{t("squad_solo")}</div>
+            )}
+          </div>
+        )}
 
         <div className="px-5 pb-2 border-t border-brand pt-3">
           <div className="label-accent mb-2">{t("recent_events")} · {recent.length}</div>

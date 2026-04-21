@@ -53,6 +53,12 @@ export const endpoints = {
   eventStats: (id, days = 0) => api.get(`/servers/${id}/events/stats`, { params: { days } }).then(r => r.data),
   clearEvents: (id) => api.delete(`/servers/${id}/events`).then(r => r.data),
   scanLogs: (id, limit = 20) => api.post(`/servers/${id}/logs/scan`, null, { params: { limit } }).then(r => r.data),
+  // Backups
+  listBackups: (id) => api.get(`/servers/${id}/backups`).then(r => r.data),
+  createBackup: (id, backup_type = "manual") => api.post(`/servers/${id}/backups`, null, { params: { backup_type }, timeout: 120000 }).then(r => r.data),
+  deleteBackup: (id, bid) => api.delete(`/servers/${id}/backups/${bid}`).then(r => r.data),
+  restoreBackup: (id, bid) => api.post(`/servers/${id}/backups/${bid}/restore`, null, { timeout: 180000 }).then(r => r.data),
+  downloadBackupUrl: (id, bid) => `${API}/servers/${id}/backups/${bid}/download`,
   importLog: (id, file) => {
     const fd = new FormData();
     fd.append("file", file);

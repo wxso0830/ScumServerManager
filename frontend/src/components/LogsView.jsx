@@ -102,6 +102,7 @@ export const LogsView = ({ servers = [] }) => {
   const { t } = useI18n();
   const [serverId, setServerId] = useState(servers[0]?.id || "");
   const [typeFilter, setTypeFilter] = useState("");
+  const [chatChannel, setChatChannel] = useState(""); // "" | Global | Local | Squad | Admin
   const [playerFilter, setPlayerFilter] = useState("");
   const [events, setEvents] = useState([]);
   const [stats, setStats] = useState({ by_type: {}, top_players: [], total: 0 });
@@ -113,6 +114,11 @@ export const LogsView = ({ servers = [] }) => {
       setServerId(servers[0]?.id || "");
     }
   }, [servers, serverId]);
+
+  // Reset chat sub-filter whenever the user leaves the chat category
+  useEffect(() => {
+    if (typeFilter !== "chat") setChatChannel("");
+  }, [typeFilter]);
 
   const load = async () => {
     if (!serverId) return;
@@ -167,6 +173,24 @@ export const LogsView = ({ servers = [] }) => {
   };
 
   const activeServer = useMemo(() => servers.find((s) => s.id === serverId), [servers, serverId]);
+
+  // Chat channel counts (Global/Local/Squad/Admin) computed from the current event set.
+  // These are client-side because the backend stats API does not aggregate by chat channel.
+  const chatChannelCounts = useMemo(() => {
+    const acc = { Global: 0, Local: 0, Squad: 0, Admin: 0 };
+    for (const ev of events) {
+      if (ev.type === "chat" && ev.channel && acc[ev.channel] !== undefined) {
+        acc[ev.channel] += 1;
+      }
+    }
+    return acc;
+  }, [events]);
+
+  // Final render list: apply chat channel filter on top of the server-filtered events.
+  const visibleEvents = useMemo(() => {
+    if (typeFilter !== "chat" || !chatChannel) return events;
+    return events.filter((ev) => ev.type === "chat" && ev.channel === chatChannel);
+  }, [events, typeFilter, chatChannel]);
 
   if (!servers.length) {
     return (
@@ -260,9 +284,57 @@ export const LogsView = ({ servers = [] }) => {
         </div>
       </div>
 
+      {/* Chat channel sub-filter — only visible when the Chat category is active */}
+      {typeFilter === "chat" && (
+        <div
+          className="bg-bg-deep border-b border-brand px-6 py-2 flex items-center gap-2 overflow-x-auto scrollbar-thin"
+          data-testid="logs-chat-subfilter"
+        >
+          <span className="label-overline text-info shrink-0">
+            <MessageCircle size={11} className="inline mr-1.5" />
+            {t("chat_channel_filter")}
+          </span>
+          <button
+            onClick={() => setChatChannel("")}
+            data-testid="logs-chat-channel-all"
+            className="px-2.5 py-1 text-[10px] font-mono uppercase tracking-widest border transition-colors whitespace-nowrap"
+            style={{
+              borderColor: !chatChannel ? "var(--info)" : "var(--border)",
+              color: !chatChannel ? "var(--info)" : "var(--text-dim)",
+              background: !chatChannel ? "rgba(0,201,255,0.08)" : "transparent",
+            }}
+          >
+            {t("all_events")} · {events.filter((e) => e.type === "chat").length}
+          </button>
+          {[
+            { key: "Global", tkey: "chat_channel_global", color: "#FFD166" },
+            { key: "Local",  tkey: "chat_channel_local",  color: "#00C9FF" },
+            { key: "Squad",  tkey: "chat_channel_squad",  color: "#22D36F" },
+            { key: "Admin",  tkey: "chat_channel_admin",  color: "var(--accent)" },
+          ].map(({ key, tkey, color }) => {
+            const active = chatChannel === key;
+            return (
+              <button
+                key={key}
+                onClick={() => setChatChannel(key)}
+                data-testid={`logs-chat-channel-${key.toLowerCase()}`}
+                className="px-2.5 py-1 text-[10px] font-mono uppercase tracking-widest border transition-colors whitespace-nowrap"
+                style={{
+                  borderColor: active ? color : "var(--border)",
+                  color: active ? color : "var(--text-dim)",
+                  background: active ? `${color}14` : "transparent",
+                }}
+              >
+                {t(tkey)} · {chatChannelCounts[key] || 0}
+              </button>
+            );
+          })}
+        </div>
+      )}
+
       {/* Event feed */}
       <div className="flex-1 overflow-y-auto scrollbar-thin bg-bg-deep">
-        {events.length === 0 && (
+        {visibleEvents.length === 0 && (
           <div className="p-12 text-center">
             <ScrollText size={40} className="mx-auto text-dim mb-4" />
             <h3 className="heading-stencil text-lg mb-2">{t("logs_empty_title")}</h3>
@@ -272,7 +344,7 @@ export const LogsView = ({ servers = [] }) => {
             </button>
           </div>
         )}
-        {events.map((ev) => <EventRow key={ev.id} ev={ev} />)}
+        {visibleEvents.map((ev) => <EventRow key={ev.id} ev={ev} />)}
       </div>
 
       {/* Top players sidebar — small overlay at bottom */}

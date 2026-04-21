@@ -91,22 +91,44 @@ def parse_admin_line(ts_iso: str, body: str) -> Optional[Dict[str, Any]]:
 
 
 def parse_chat_line(ts_iso: str, body: str) -> Optional[Dict[str, Any]]:
-    # '76561199...:WXSO(1)' 'Global' 'hello world'
+    # Real SCUM server chat log format (primary):
+    #   '76561199...:Gabriel(10)' 'Local: hello testing'
+    # Legacy/alternate format we still support:
+    #   '76561199...:Gabriel(10)' 'Local' 'hello testing'
+    channel = None
+    msg = None
+    who = None
+
+    # Primary: 'who' 'Channel: message'
     m = re.match(
-        r"'(?P<who>[^']+)'\s+'(?P<channel>Global|Squad|Local|Admin|Whisper|Team)'\s+'(?P<msg>.*)'\s*$",
+        r"'(?P<who>[^']+)'\s+'(?P<channel>Global|Squad|Local|Admin|Whisper|Team)\s*:\s*(?P<msg>.*)'\s*$",
         body,
     )
-    if not m:
-        return None
-    w = _WHO_RX.search(m.group("who"))
+    if m:
+        who = m.group("who")
+        channel = m.group("channel")
+        msg = m.group("msg")
+    else:
+        # Legacy: 'who' 'Channel' 'message'
+        m = re.match(
+            r"'(?P<who>[^']+)'\s+'(?P<channel>Global|Squad|Local|Admin|Whisper|Team)'\s+'(?P<msg>.*)'\s*$",
+            body,
+        )
+        if not m:
+            return None
+        who = m.group("who")
+        channel = m.group("channel")
+        msg = m.group("msg")
+
+    w = _WHO_RX.search(who)
     return {
         "type": "chat",
         "ts": ts_iso,
-        "channel": m.group("channel"),
+        "channel": channel,
         "steam_id": w.group(1) if w else None,
         "player_name": w.group(2) if w else None,
         "entity_id": int(w.group(3)) if w else None,
-        "message": m.group("msg"),
+        "message": msg,
         "raw": body,
     }
 

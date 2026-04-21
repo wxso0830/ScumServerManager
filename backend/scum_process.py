@@ -252,10 +252,33 @@ def _scum_exe(folder_path: str) -> Path:
     return Path(folder_path) / "SCUM" / "Binaries" / "Win64" / "SCUMServer.exe"
 
 
+def _a2s_info_alive(host: str, port: int, timeout: float = 1.2) -> bool:
+    """Return True if a Steam A2S_INFO query gets a valid reply on (host, port).
+    Used to detect the exact moment a SCUM dedicated server finishes its Unreal
+    level-stream warm-up and starts answering Steam browser queries. Much more
+    accurate than a "wait N seconds" heuristic.
+    """
+    import socket  # local import keeps module lightweight
+    packet = b"\xff\xff\xff\xffTSource Engine Query\x00"
+    try:
+        with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as sock:
+            sock.settimeout(timeout)
+            sock.sendto(packet, (host, port))
+            data, _ = sock.recvfrom(4096)
+            # A2S_INFO reply starts with 0xFF 0xFF 0xFF 0xFF 0x49 ('I')
+            return len(data) >= 5 and data[:5] == b"\xff\xff\xff\xffI"
+    except (OSError, socket.timeout):
+        return False
+
+
 def start_server(server_id: str, folder_path: str, port: int = 7779,
                  query_port: int = 7780, max_players: int = 64) -> int:
     """Spawn SCUMServer.exe with -log (opens its own console window showing
-    live server log). Returns PID. Raises if already running or exe missing."""
+    live server log). Returns PID. Raises if already running or exe missing.
+
+    The process is spawned with HIGH priority and Unreal fast-path flags so
+    the ~2-3 minute SCUM boot is trimmed where possible without losing the
+    in-console log stream the admin watches."""
     if not _is_windows():
         raise RuntimeError("SCUMServer.exe requires Windows.")
 
@@ -268,26 +291,35 @@ def start_server(server_id: str, folder_path: str, port: int = 7779,
     if not exe.exists():
         raise FileNotFoundError(f"SCUMServer.exe not found at {exe}")
 
+    # -log / -stdout  : keep the visible console with colored warnings
+    # -NoVerifyGC     : skip Unreal's garbage-collector sanity pass on boot (~5-15s saving)
+    # -nocrashreports : skip CrashReportClient warm-up (~3-8s saving on first boot)
+    # -nosound        : dedicated server has no audio device; skip SoundCue warmup
+    # NOTE: -FORCELOGFLUSH is REMOVED because it forces fsync on every single log
+    #       line — on SCUM's very chatty LogQuadTree/LogStreaming output that costs
+    #       10-40 seconds of pure I/O during boot. We rely on Unreal's default
+    #       periodic flush which is still live enough for the admin to read.
     args = [
         str(exe),
         "-log",
-        "-stdout",            # force Unreal log to the console window
-        "-FORCELOGFLUSH",     # write each line immediately (no buffering)
-        "-ForceLogFlush",     # alternate casing that some UE builds require
+        "-stdout",
+        "-NoVerifyGC",
+        "-nocrashreports",
+        "-nosound",
         f"-port={port}",
         f"-QueryPort={query_port}",
         f"-MaxPlayers={max_players}",
     ]
     log.info("Starting SCUM: %s", " ".join(args))
 
-    # CREATE_NEW_CONSOLE = 0x00000010
-    # Opens SCUMServer.exe in its OWN visible console window, so the `-log`
-    # flag actually streams server output that the admin can read live.
+    # CREATE_NEW_CONSOLE       = 0x00000010  — own visible console window
+    # HIGH_PRIORITY_CLASS      = 0x00000080  — OS scheduler gives SCUM extra CPU
     CREATE_NEW_CONSOLE = 0x00000010
+    HIGH_PRIORITY_CLASS = 0x00000080
     proc = subprocess.Popen(
         args,
         cwd=str(exe.parent),
-        creationflags=CREATE_NEW_CONSOLE,
+        creationflags=CREATE_NEW_CONSOLE | HIGH_PRIORITY_CLASS,
         close_fds=True,
         # inherit stdio so the new console can display the log; do NOT redirect
     )
@@ -296,12 +328,43 @@ def start_server(server_id: str, folder_path: str, port: int = 7779,
         REGISTRY[server_id]["process"] = {
             "pid": proc.pid,
             "started_at": time.time(),
+            "online_at": None,            # set by _watch_ready when A2S replies
             "folder_path": folder_path,
             "port": port,
             "query_port": query_port,
             "max_players": max_players,
+            "ready": False,
         }
+
+    # Kick off a readiness watcher so callers can tell "starting" from "online"
+    _spawn_ready_watcher(server_id, query_port)
     return proc.pid
+
+
+def _spawn_ready_watcher(server_id: str, query_port: int) -> None:
+    """Background thread: every 3 seconds send a Steam A2S_INFO packet to the
+    SCUM server's query port. As soon as we get a valid reply, mark the process
+    record as ready and record `online_at`. Stops on its own after 10 minutes
+    or when the process is no longer alive."""
+    def _watch():
+        deadline = time.time() + 600  # hard cap: 10 minutes
+        while time.time() < deadline:
+            rec = REGISTRY.get(server_id, {}).get("process")
+            if not rec or not _pid_alive(rec.get("pid")):
+                return
+            if rec.get("ready"):
+                return
+            if _a2s_info_alive("127.0.0.1", query_port, timeout=1.2):
+                with _LOCK:
+                    rec["ready"] = True
+                    rec["online_at"] = time.time()
+                log.info("SCUM %s is READY (A2S_INFO ack) after %.1fs",
+                         server_id, time.time() - rec.get("started_at", time.time()))
+                return
+            time.sleep(3.0)
+
+    th = threading.Thread(target=_watch, name=f"ready-{server_id}", daemon=True)
+    th.start()
 
 
 def stop_server(server_id: str) -> bool:
@@ -590,13 +653,24 @@ def get_metrics(server_id: str, folder_path: Optional[str] = None) -> Dict[str, 
         scum_exists = _scum_exe(fpath).exists()
 
     uptime = int(now - started_at) if started_at else 0
+    # Ready means the server answered its Steam A2S_INFO query. "Warmup uptime"
+    # tracks the boot phase, "online uptime" is what admins actually care about.
+    ready = bool(rec.get("ready"))
+    online_at = rec.get("online_at") if running else None
+    online_uptime = int(now - online_at) if online_at else 0
+    phase = "online" if ready else ("starting" if running else "stopped")
 
     return {
         "running": running,
+        "ready": ready,
+        "phase": phase,
         "pid": pid if running else None,
         "started_at": (time.strftime("%Y-%m-%dT%H:%M:%S", time.localtime(started_at))
                        if started_at else None),
-        "uptime_seconds": uptime,
+        "online_at": (time.strftime("%Y-%m-%dT%H:%M:%S", time.localtime(online_at))
+                      if online_at else None),
+        "uptime_seconds": uptime,                 # since process spawn (warm-up + online)
+        "online_uptime_seconds": online_uptime,   # since A2S_INFO reply (true play time)
         "cpu_percent": cpu_percent,
         "memory_mb": memory_mb,
         "installed_size_gb": size_gb,

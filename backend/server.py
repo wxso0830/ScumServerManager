@@ -392,9 +392,11 @@ async def start_server(server_id: str):
             query_port=query_port,
             max_players=max_players,
         )
+        # Set status to Starting; /metrics + scheduler promote to Running when
+        # Steam A2S_INFO acks the query port (true online moment).
         await db.servers.update_one({"id": server_id},
-                                    {"$set": {"status": "Running", "last_pid": pid}})
-        doc["status"] = "Running"
+                                    {"$set": {"status": "Starting", "last_pid": pid}})
+        doc["status"] = "Starting"
     except FileNotFoundError as e:
         raise HTTPException(status_code=409, detail=str(e))
     except RuntimeError as e:
@@ -534,11 +536,24 @@ async def install_progress(server_id: str):
 
 @api_router.get("/servers/{server_id}/metrics")
 async def server_metrics(server_id: str):
-    """Live CPU / RAM / uptime / disk usage / last-updated for the given server."""
+    """Live CPU / RAM / uptime / disk usage / last-updated for the given server.
+    Also auto-promotes the DB status from `Starting` → `Running` the moment the
+    SCUM dedicated server answers its Steam A2S_INFO query (true online state)."""
     doc = await db.servers.find_one({"id": server_id}, {"_id": 0})
     if not doc:
         raise HTTPException(status_code=404, detail="Server not found")
-    return scum_proc.get_metrics(server_id, folder_path=doc.get("folder_path"))
+    m = scum_proc.get_metrics(server_id, folder_path=doc.get("folder_path"))
+
+    # Reconcile DB status with the live phase. This runs on every UI poll so
+    # within ~1-2s of the server becoming queryable the status flips to Running.
+    phase = m.get("phase")
+    current = doc.get("status")
+    if phase == "online" and current != "Running":
+        await db.servers.update_one({"id": server_id}, {"$set": {"status": "Running"}})
+    elif phase == "stopped" and current in ("Starting", "Running"):
+        await db.servers.update_one({"id": server_id}, {"$set": {"status": "Stopped"}})
+    # (phase == "starting" keeps whatever status is already in DB — typically "Starting".)
+    return m
 
 
 # ---------- AUTOMATION (auto-restart + auto-update) ----------

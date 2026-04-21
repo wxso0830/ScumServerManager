@@ -18,6 +18,7 @@ import { endpoints, api } from "../lib/api";
 
 const STATUS_META = {
   Running:   { label: "server_status_running",   color: "var(--success)" },
+  Starting:  { label: "server_status_starting",  color: "var(--warning)" },
   Stopped:   { label: "server_status_stopped",   color: "var(--text-muted)" },
   Updating:  { label: "server_status_updating",  color: "var(--warning)" },
   Installing:{ label: "installing",              color: "var(--accent)" },
@@ -120,6 +121,8 @@ export const ServerDashboard = ({
 
   const statusMeta = STATUS_META[server.status] || STATUS_META.Stopped;
   const isRunning = server.status === "Running";
+  const isStarting = server.status === "Starting";
+  const processAlive = isRunning || isStarting;
 
   const maxPlayers = useMemo(() => draft.srv_general?.["scum.MaxPlayers"] ?? 64, [draft]);
 
@@ -377,9 +380,20 @@ export const ServerDashboard = ({
                 <Icons.Download size={13} /> {t("install_server")}
               </button>
             )}
-            {server.installed && !isRunning && (
+            {server.installed && !processAlive && (
               <button className="btn-primary flex items-center gap-2" onClick={handleStart} disabled={busy} data-testid="server-start-button">
                 <Icons.Play size={13} /> {t("start")}
+              </button>
+            )}
+            {isStarting && (
+              <button
+                className="btn-primary flex items-center gap-2"
+                disabled
+                data-testid="server-starting-indicator"
+                style={{ background: "var(--warning)", color: "var(--bg-deep)" }}
+                title={t("server_warming_up")}
+              >
+                <Icons.Activity size={13} className="animate-pulse" /> {t("server_status_starting")}
               </button>
             )}
             {isRunning && (
@@ -387,7 +401,7 @@ export const ServerDashboard = ({
                 <Icons.RotateCw size={13} />
               </button>
             )}
-            {isRunning && (
+            {(isRunning || isStarting) && (
               <button className="btn-danger flex items-center gap-2" onClick={handleStop} disabled={busy} data-testid="server-stop-button">
                 <Icons.Square size={13} /> {t("stop")}
               </button>
@@ -396,7 +410,7 @@ export const ServerDashboard = ({
               <button
                 className={`btn-secondary flex items-center gap-2 ${server.update_available ? "update-pulse" : ""}`}
                 onClick={handleUpdate}
-                disabled={busy || isRunning}
+                disabled={busy || processAlive}
                 data-testid="server-update-button"
                 title={server.update_available ? t("update_available_label") : t("update_server")}
               >

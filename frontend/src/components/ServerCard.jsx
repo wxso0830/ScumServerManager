@@ -8,6 +8,7 @@ import { endpoints } from "../lib/api";
 
 const STATUS_META = {
   Running:   { cls: "running",    label: "server_status_running",    color: "var(--success)" },
+  Starting:  { cls: "starting",   label: "server_status_starting",   color: "var(--warning)" },
   Stopped:   { cls: "stopped",    label: "server_status_stopped",    color: "var(--text-muted)" },
   Updating:  { cls: "updating",   label: "server_status_updating",   color: "var(--warning)" },
   Installing:{ cls: "installing", label: "installing",               color: "var(--accent)" },
@@ -41,6 +42,8 @@ export const ServerCard = ({ server, onOpen, onStart, onStop, onUpdate, onInstal
   const { t } = useI18n();
   const status = STATUS_META[server.status] || STATUS_META.Stopped;
   const isRunning = server.status === "Running";
+  const isStarting = server.status === "Starting";
+  const processAlive = isRunning || isStarting;  // SCUM.exe is already up
   const gamePort = server.game_port ?? 7779;
   const queryPort = server.query_port ?? 7780;
 
@@ -62,9 +65,9 @@ export const ServerCard = ({ server, onOpen, onStart, onStop, onUpdate, onInstal
       } catch {}
     };
     load();
-    const interval = setInterval(load, isRunning ? 5000 : 15000);
+    const interval = setInterval(load, processAlive ? 5000 : 15000);
     return () => { alive = false; clearInterval(interval); };
-  }, [server.id, isRunning, server.installed]);
+  }, [server.id, processAlive, server.installed]);
 
   return (
     <div className="server-card group" data-testid={`server-card-${server.folder_name}`}>
@@ -115,7 +118,13 @@ export const ServerCard = ({ server, onOpen, onStart, onStop, onUpdate, onInstal
         <MetricTile
           icon={Activity}
           label={t("uptime")}
-          value={metrics?.running ? fmtUptime(metrics.uptime_seconds) : "—"}
+          value={
+            metrics?.ready
+              ? fmtUptime(metrics.online_uptime_seconds)
+              : metrics?.running
+                ? t("server_warming_up")
+                : "—"
+          }
           testId={`metric-uptime-${server.folder_name}`}
         />
       </div>
@@ -175,7 +184,7 @@ export const ServerCard = ({ server, onOpen, onStart, onStop, onUpdate, onInstal
           </button>
         )}
 
-        {server.installed && !isRunning && (
+        {server.installed && !processAlive && (
           <button
             className="btn-primary flex-1 flex items-center justify-center gap-2"
             onClick={(e) => { e.stopPropagation(); onStart?.(server); }}
@@ -186,7 +195,18 @@ export const ServerCard = ({ server, onOpen, onStart, onStop, onUpdate, onInstal
           </button>
         )}
 
-        {isRunning && (
+        {isStarting && (
+          <button
+            className="btn-primary flex-1 flex items-center justify-center gap-2"
+            disabled
+            data-testid={`card-starting-${server.folder_name}`}
+            style={{ background: "var(--warning)", color: "var(--bg-deep)" }}
+          >
+            <Activity size={13} className="animate-pulse" /> {t("server_status_starting")}
+          </button>
+        )}
+
+        {(isRunning || isStarting) && (
           <button
             className="btn-danger flex-1 flex items-center justify-center gap-2"
             onClick={(e) => { e.stopPropagation(); onStop?.(server); }}
@@ -201,7 +221,7 @@ export const ServerCard = ({ server, onOpen, onStart, onStop, onUpdate, onInstal
           <button
             className={`btn-secondary flex items-center justify-center gap-2 px-3 ${server.update_available ? "update-pulse" : ""}`}
             onClick={(e) => { e.stopPropagation(); onUpdate?.(server); }}
-            disabled={busy || isRunning}
+            disabled={busy || processAlive}
             title={server.update_available ? "Update available" : "Update"}
             data-testid={`card-update-${server.folder_name}`}
           >

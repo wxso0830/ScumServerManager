@@ -351,24 +351,68 @@ def parse_fame_line(ts_iso: str, body: str) -> Optional[Dict[str, Any]]:
 
 
 def parse_vehicle_destruction_line(ts_iso: str, body: str) -> Optional[Dict[str, Any]]:
-    """Parse vehicle_destruction_*.log lines. Real SCUM formats:
+    """Parse vehicle_destruction_*.log lines. Real SCUM format (1.2+):
 
-    '[VehicleDestroyed] Vehicle: BP_LandVehicle_Laika_C (VehicleId=12345),
-     Owner: 76561199056876451 (Gabriel), DestroyedBy: 76561198808439462 (Hawx),
-     Reason: ExplosiveDamage, Location: X,Y,Z'
+        [Destroyed] Rager_ES. VehicleId: 70028. Owner: N/A. Location: X=... Y=... Z=...
+        [Entity destroyed] Kinglet_Mariner_ES. VehicleId: 70704. Owner: N/A. Location: ...
 
-    Older variants drop DestroyedBy or use slightly different keys. We pick up
-    whatever is present and emit a structured event.
+    Older/alt variant with explicit Killer is also handled:
+
+        [VehicleDestroyed] Vehicle: BP_LandVehicle_X_C (VehicleId=...), Owner: SID (N), DestroyedBy: SID (N), Reason: X
+
+    The newer format doesn't include a destroyer (most kills are environmental
+    damage / entity timeout), so we populate what's available.
     """
     if body.lstrip().startswith("{"):
-        # SCUM sometimes writes a JSON companion — skip, the human line is enough
         return {"_skip": True}
 
-    # Vehicle class (BP_LandVehicle_X_C or BP_*)
+    # --- NEW FORMAT (1.2+) ---
+    # [Destroyed] Rager_ES. VehicleId: 70028. Owner: N/A. Location: X=1 Y=2 Z=3
+    m = re.match(
+        r"\[(?P<kind>Destroyed|Entity destroyed|VehicleDestroyed)\]\s+"
+        r"(?P<klass>[A-Za-z0-9_]+)\.\s*"
+        r"VehicleId:\s*(?P<vid>\d+)\.\s*"
+        r"Owner:\s*(?P<owner>[^.]+?)\.\s*"
+        r"Location:\s*X=(?P<x>-?[0-9.]+)\s+Y=(?P<y>-?[0-9.]+)\s+Z=(?P<z>-?[0-9.]+)",
+        body,
+    )
+    if m:
+        owner_raw = m.group("owner").strip()
+        # Owner can be "N/A", "76561199... (Gabriel)", or just "Gabriel"
+        owner_sid: Optional[str] = None
+        owner_name: Optional[str] = None
+        if owner_raw and owner_raw.upper() != "N/A":
+            sidm = re.search(r"(\d{17})\s*(?:\(([^)]+)\))?", owner_raw)
+            if sidm:
+                owner_sid = sidm.group(1)
+                owner_name = (sidm.group(2) or "").strip() or None
+            else:
+                owner_name = owner_raw
+        klass = m.group("klass")
+        pretty = re.sub(r"^BP_(?:Land|Sea|Air)?Vehicle_", "", klass)
+        pretty = re.sub(r"_C$", "", pretty).replace("_", " ").strip() or klass
+        entity_only = m.group("kind").lower().startswith("entity")
+        return {
+            "type": "vehicle_destruction",
+            "ts": ts_iso,
+            "vehicle_class": klass,
+            "vehicle_pretty": pretty,
+            "vehicle_id": int(m.group("vid")),
+            "owner_steam_id": owner_sid,
+            "owner_name": owner_name,
+            "killer_steam_id": None,
+            "killer_name": None,
+            "reason": "EntityTimeout" if entity_only else "Destroyed",
+            "location": {"x": float(m.group("x")), "y": float(m.group("y")), "z": float(m.group("z"))},
+            "steam_id": owner_sid,
+            "player_name": owner_name,
+            "raw": body,
+        }
+
+    # --- OLDER / ALT FORMAT with explicit Killer ---
     vm = re.search(r"Vehicle:\s*([A-Za-z0-9_]+)", body)
     veh_class = vm.group(1) if vm else None
 
-    # Owner & destroyer pairs "SID (NAME)" or "NAME (SID)"
     def _pair(tag: str) -> Tuple[Optional[str], Optional[str]]:
         mm = re.search(
             rf"{tag}:\s*(?:(\d{{17}})\s*\(([^)]+)\)|([^\s(]+)\s*\((\d{{17}})\))",
@@ -389,9 +433,8 @@ def parse_vehicle_destruction_line(ts_iso: str, body: str) -> Optional[Dict[str,
         reason = rm.group(1)
 
     if not veh_class and not owner_sid and not killer_sid:
-        return None  # nothing usable — fall back to generic parser
+        return None
 
-    # Pretty-print the vehicle class (BP_LandVehicle_Laika_C → Laika)
     pretty = None
     if veh_class:
         pretty = re.sub(r"^BP_(?:Land|Sea|Air)?Vehicle_", "", veh_class)
@@ -407,7 +450,6 @@ def parse_vehicle_destruction_line(ts_iso: str, body: str) -> Optional[Dict[str,
         "killer_steam_id": killer_sid,
         "killer_name": killer_name,
         "reason": reason,
-        # Top-level steam_id is the victim/owner so Player aggregates surface it
         "steam_id": owner_sid,
         "player_name": owner_name,
         "raw": body,

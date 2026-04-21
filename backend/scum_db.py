@@ -98,6 +98,19 @@ _SQUAD_QUERIES = [
        JOIN user_profile up ON up.id = sm.user_profile_id""",
 ]
 
+_VEHICLE_ENTITY_SNAPSHOT_QUERIES = [
+    # Full vehicle roster with per-row owner steam id — used by the "claim"
+    # detector to diff between polls and synthesize `vehicle_claim` events.
+    """SELECT v.id AS vid, v.class_name AS klass, up.user_id AS owner_sid,
+              up.name AS owner_name
+       FROM vehicle_entity v
+       LEFT JOIN user_profile up ON up.id = v.owner_user_profile_id""",
+    """SELECT v.id AS vid, v.class_name AS klass, up.user_id AS owner_sid,
+              up.name AS owner_name
+       FROM vehicle_entity v
+       LEFT JOIN user_profile up ON up.id = v.owner_id""",
+]
+
 
 def _open_ro(db_path: Path) -> Optional[sqlite3.Connection]:
     """Open SCUM.db in read-only mode. Returns None if the file doesn't exist
@@ -209,3 +222,31 @@ def _empty_stat() -> Dict[str, Any]:
 
 def db_exists(folder_path: str) -> bool:
     return (Path(folder_path) / "SCUM" / "Saved" / "SaveFiles" / "SCUM.db").exists()
+
+
+def read_vehicle_ownership(folder_path: str) -> Dict[int, Dict[str, Any]]:
+    """Return {vehicle_id: {owner_sid, owner_name, klass}} snapshot from SCUM.db.
+
+    Used by the "vehicle claim" detector to diff between consecutive polls:
+    if a vehicle's owner_sid changed from None/other to someone, we emit a
+    synthetic `vehicle_claim` event. SCUM does NOT write claim events to its
+    own logs (it's a pure DB mutation), so this is the only way to track it.
+    """
+    db_path = Path(folder_path) / "SCUM" / "Saved" / "SaveFiles" / "SCUM.db"
+    conn = _open_ro(db_path)
+    if conn is None:
+        return {}
+    out: Dict[int, Dict[str, Any]] = {}
+    try:
+        for row in _try_queries(conn, _VEHICLE_ENTITY_SNAPSHOT_QUERIES):
+            vid = row["vid"]
+            if vid is None:
+                continue
+            out[int(vid)] = {
+                "owner_sid": str(row["owner_sid"]) if row["owner_sid"] else None,
+                "owner_name": row["owner_name"],
+                "klass": row["klass"],
+            }
+    finally:
+        conn.close()
+    return out

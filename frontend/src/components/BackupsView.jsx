@@ -22,6 +22,99 @@ const fmtTs = (iso) => {
 };
 
 
+/**
+ * DiskUsageStrip — at-a-glance "how much disk are my backups eating?" bar.
+ *
+ * Breaks the total size into THREE stacked segments by type:
+ *  - manual + pre_restore → PROTECTED (can't be auto-pruned)
+ *  - auto                 → PRUNEABLE (will be trimmed to keep-count)
+ *  - crash                → emergency captures (kept around)
+ *
+ * Color bands switch from green → yellow → red as total grows to give a
+ * visual "hey, review old backups" cue without needing a hard quota check
+ * (the actual disk quota varies per host and belongs in host-side tooling).
+ */
+const DiskUsageStrip = ({ data, t }) => {
+  const seg = useMemo(() => {
+    const sums = { protected: 0, prune: 0, crash: 0 };
+    let protectedCount = 0, pruneCount = 0, crashCount = 0;
+    for (const b of data.backups || []) {
+      if (b.backup_type === "manual" || b.backup_type === "pre_restore") {
+        sums.protected += b.size_bytes;
+        protectedCount += 1;
+      } else if (b.backup_type === "crash") {
+        sums.crash += b.size_bytes;
+        crashCount += 1;
+      } else {
+        sums.prune += b.size_bytes;
+        pruneCount += 1;
+      }
+    }
+    return { sums, protectedCount, pruneCount, crashCount };
+  }, [data.backups]);
+
+  const totalMb = data.total_size_mb || 0;
+  // Soft thresholds (MB) — purely visual cues
+  const tier = totalMb < 2000 ? "green" : totalMb < 10000 ? "yellow" : "red";
+  const tierColor = tier === "green" ? "var(--success)" : tier === "yellow" ? "var(--warning)" : "var(--danger)";
+
+  const total = seg.sums.protected + seg.sums.prune + seg.sums.crash;
+  const pct = (n) => (total === 0 ? 0 : (n / total) * 100);
+
+  return (
+    <div
+      className="bg-surface border-b border-brand px-6 py-2.5"
+      data-testid="backups-disk-strip"
+    >
+      <div className="flex items-center gap-3 mb-1.5">
+        <span className="label-overline text-info">{t("disk_usage")}</span>
+        <span className="font-mono text-xs" style={{ color: tierColor }}>
+          {totalMb.toFixed(1)} MB
+        </span>
+        <div className="flex-1" />
+        <div className="flex items-center gap-3 text-[10px] font-mono uppercase tracking-widest">
+          <span style={{ color: "var(--info)" }}>
+            ● {seg.protectedCount} {t("disk_protected")}
+          </span>
+          {seg.crashCount > 0 && (
+            <span style={{ color: "var(--danger)" }}>
+              ● {seg.crashCount} {t("disk_crash")}
+            </span>
+          )}
+          <span className="text-dim">● {seg.pruneCount} {t("disk_pruneable")}</span>
+        </div>
+      </div>
+      <div className="flex h-1.5 w-full overflow-hidden border border-brand" data-testid="backups-disk-bar">
+        {seg.sums.protected > 0 && (
+          <div
+            className="h-full"
+            style={{ width: `${pct(seg.sums.protected)}%`, background: "var(--info)" }}
+            title={`${t("disk_protected")}: ${(seg.sums.protected / (1024 * 1024)).toFixed(1)} MB`}
+          />
+        )}
+        {seg.sums.crash > 0 && (
+          <div
+            className="h-full"
+            style={{ width: `${pct(seg.sums.crash)}%`, background: "var(--danger)" }}
+            title={`${t("disk_crash")}: ${(seg.sums.crash / (1024 * 1024)).toFixed(1)} MB`}
+          />
+        )}
+        {seg.sums.prune > 0 && (
+          <div
+            className="h-full"
+            style={{ width: `${pct(seg.sums.prune)}%`, background: "var(--text-dim)", opacity: 0.55 }}
+            title={`${t("disk_pruneable")}: ${(seg.sums.prune / (1024 * 1024)).toFixed(1)} MB`}
+          />
+        )}
+        {total === 0 && (
+          <div className="h-full w-full" style={{ background: "transparent" }} />
+        )}
+      </div>
+    </div>
+  );
+};
+
+
 export const BackupsView = ({ servers = [] }) => {
   const { t } = useI18n();
   const [serverId, setServerId] = useState(servers[0]?.id || "");
@@ -143,6 +236,11 @@ export const BackupsView = ({ servers = [] }) => {
           <RefreshCw size={14} className={loading ? "animate-spin" : ""} />
         </button>
       </div>
+
+      {/* Disk usage strip — visualizes how much space backups consume + how
+          many are protected from auto-prune. Gives admin an at-a-glance read
+          on "am I about to run out of disk?" */}
+      <DiskUsageStrip data={data} t={t} />
 
       {/* Running-state warning strip */}
       {isRunning && (

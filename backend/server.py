@@ -1979,6 +1979,7 @@ _last_log_scan_at: Dict[str, float] = {}  # server_id -> epoch seconds
 _last_config_reimport_at: Dict[str, float] = {}  # server_id -> epoch seconds
 _last_backup_at: Dict[str, float] = {}    # server_id -> epoch seconds
 _crash_watch: Dict[str, Dict[str, Any]] = {}  # server_id -> {"was_running": bool, "pid": int}
+_vehicle_ownership_snapshot: Dict[str, Dict[int, Dict[str, Any]]] = {}   # server_id -> {vid: {owner_sid, ...}}
 LOG_SCAN_INTERVAL_SEC = 20   # how often the scheduler re-parses log files
 CONFIG_REIMPORT_INTERVAL_SEC = 60  # how often we re-read on-disk configs into DB
 
@@ -2173,6 +2174,58 @@ async def _tick_scheduler():
                             except Exception as e:
                                 logger.info("Crash backup failed for %s: %s", s.get("name"), e)
                         _crash_watch[sid] = {"was_running": running_now}
+
+                # --- Vehicle-claim detector (SCUM.db owner-diff) ---
+                # SCUM writes no "player claimed X" log line. We detect it by
+                # polling vehicle_entity and comparing owner_sid between ticks.
+                # Any row whose owner changed None→SID (or SID→different SID)
+                # becomes a synthetic `vehicle_claim` event so admins see it
+                # in the Logs page + Discord.
+                if s.get("installed") and s.get("folder_path") and s.get("status") in ("Running", "Starting"):
+                    try:
+                        new_snapshot = await asyncio.to_thread(
+                            scum_db.read_vehicle_ownership, s["folder_path"],
+                        )
+                        old_snapshot = _vehicle_ownership_snapshot.get(sid) or {}
+                        claim_events: List[Dict[str, Any]] = []
+                        for vid, row in new_snapshot.items():
+                            old_row = old_snapshot.get(vid)
+                            new_owner = row.get("owner_sid")
+                            old_owner = (old_row or {}).get("owner_sid")
+                            if new_owner and new_owner != old_owner:
+                                # Changed hands (either from unowned or from another player)
+                                klass = row.get("klass") or ""
+                                pretty = klass.replace("BP_", "").replace("_C", "").replace("_", " ").strip() or klass
+                                ts_iso = now.isoformat()
+                                ev = {
+                                    "type": "vehicle_claim",
+                                    "ts": ts_iso,
+                                    "server_id": sid,
+                                    "source_file": "scum.db",
+                                    "vehicle_id": vid,
+                                    "vehicle_class": klass,
+                                    "vehicle_pretty": pretty,
+                                    "steam_id": new_owner,
+                                    "player_name": row.get("owner_name"),
+                                    "previous_owner_sid": old_owner,
+                                    "action": "claimed" if not old_owner else "transferred",
+                                    "raw": f"[SCUM.db] {pretty} (VehicleId={vid}) owner={new_owner}",
+                                }
+                                # Stable id so the same claim isn't re-forwarded next tick
+                                import hashlib as _h
+                                ev["id"] = _h.sha1(
+                                    f"{sid}|claim|{vid}|{new_owner}".encode()
+                                ).hexdigest()[:24]
+                                claim_events.append(ev)
+                        if claim_events:
+                            r = await _store_events_and_forward(sid, claim_events)
+                            logger.info(
+                                "Claim detector: %s → %d new events (%d forwarded)",
+                                s.get("name"), r.get("stored", 0), r.get("forwarded", 0),
+                            )
+                        _vehicle_ownership_snapshot[sid] = new_snapshot
+                    except Exception as e:
+                        logger.info("Claim detector failed for %s: %s", s.get("name"), e)
         except Exception as e:
             logger.exception("Scheduler tick failed: %s", e)
         await asyncio.sleep(10)

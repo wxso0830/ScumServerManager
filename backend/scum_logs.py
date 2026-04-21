@@ -69,7 +69,13 @@ def _event_id(*parts: Any) -> str:
 # ----- individual parsers -------------------------------------------------
 
 def parse_admin_line(ts_iso: str, body: str) -> Optional[Dict[str, Any]]:
-    m = re.match(r"'(?P<who>[^']+)'\s+Command:\s+'(?P<cmd>[^']+)'", body)
+    # SCUM's real admin log format is:
+    #   '76561199...:Gabriel(10)' '#Command args...'
+    # The legacy "Command: '...'" format still appears in some mods.
+    # Try modern hash-prefix format first.
+    m = re.match(r"'(?P<who>[^']+)'\s+'#(?P<cmd>[^']*)'", body)
+    if not m:
+        m = re.match(r"'(?P<who>[^']+)'\s+Command:\s+'(?P<cmd>[^']+)'", body)
     if not m:
         return None
     who = m.group("who")
@@ -84,7 +90,7 @@ def parse_admin_line(ts_iso: str, body: str) -> Optional[Dict[str, Any]]:
         "steam_id": w.group(1) if w else None,
         "player_name": w.group(2) if w else None,
         "entity_id": int(w.group(3)) if w else None,
-        "command": verb,
+        "command": verb or "?",
         "args": args,
         "raw": body,
     }
@@ -327,7 +333,11 @@ def parse_log_text(text: str, log_type: str, *, filename: str = "", server_id: s
             ev = parse_generic_line(ts_iso, body, log_type)
         ev["server_id"] = server_id
         ev["source_file"] = Path(filename).name if filename else ""
-        ev["id"] = _event_id(server_id, ev["source_file"], ts_iso, body)
+        # Deterministic id: server + timestamp + full body text.
+        # We intentionally DROP source_file from the hash input — SCUM rotates log
+        # files and can re-write the same login snapshot into a new file name,
+        # which previously produced duplicate events (and duplicate Discord pings).
+        ev["id"] = _event_id(server_id, ts_iso, body)
         events.append(ev)
     return events
 

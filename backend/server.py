@@ -846,24 +846,29 @@ async def _forward_to_discord(webhooks: Dict[str, Any], events: List[Dict[str, A
 
 
 async def _store_events_and_forward(server_id: str, events: List[Dict[str, Any]]) -> Dict[str, int]:
-    """Store events in MongoDB (de-duplicated by 'id') and forward to the server's Discord hooks."""
+    """Store events in MongoDB (de-duplicated by 'id') and forward ONLY the
+    freshly-inserted ones to the server's Discord hooks. Previously we forwarded
+    the full batch if any insert succeeded, which caused Discord to re-announce
+    old events every time a log file grew (the "player re-joined every 30 min"
+    and "admin ran ? repeatedly" bugs)."""
     if not events:
         return {"stored": 0, "forwarded": 0}
     srv = await db.servers.find_one({"id": server_id}, {"_id": 0, "discord_webhooks": 1}) or {}
     hooks = srv.get("discord_webhooks") or {}
-    inserted = 0
+    newly_inserted: List[Dict[str, Any]] = []
     for ev in events:
         try:
             res = await db.server_events.update_one({"id": ev["id"]}, {"$setOnInsert": ev}, upsert=True)
             if res.upserted_id is not None:
-                inserted += 1
+                newly_inserted.append(ev)
         except Exception as e:
             logger.info("event store failed: %s", e)
     sent = 0
-    if inserted:
-        new_events = [e for e in events][-200:]
-        sent = await _forward_to_discord(hooks, new_events)
-    return {"stored": inserted, "forwarded": sent}
+    if newly_inserted:
+        # Hard cap so a big initial ingest doesn't blast a Discord channel with 500+ embeds
+        to_send = newly_inserted[-200:]
+        sent = await _forward_to_discord(hooks, to_send)
+    return {"stored": len(newly_inserted), "forwarded": sent}
 
 
 @api_router.post("/servers/{server_id}/logs/import")
@@ -1003,6 +1008,27 @@ async def list_players(server_id: str, online: Optional[bool] = None, search: Op
         }},
     ]
     rows = await db.server_events.aggregate(pipeline).to_list(5000)
+
+    # Compute online-state from ONLY login events (connect / disconnect transitions),
+    # not from any arbitrary "last event". A player can chat / kill / trade while
+    # still online; treating any non-login event as "offline" was causing the UI to
+    # flip players to offline as soon as they chatted.
+    login_pipe = [
+        {"$match": {"server_id": server_id, "type": "login", "steam_id": {"$nin": [None, ""]}}},
+        {"$sort": {"ts": 1}},
+        {"$group": {
+            "_id": "$steam_id",
+            "last_login_action": {"$last": "$action"},
+            "last_login_ts": {"$last": "$ts"},
+        }},
+    ]
+    login_state = {r["_id"]: r for r in await db.server_events.aggregate(login_pipe).to_list(5000)}
+
+    # A login that is older than 12h without a matching disconnect is almost
+    # certainly a stale state (server restart wiped sessions). Treat it as offline.
+    STALE_LOGIN_HOURS = 12
+    now_dt = datetime.now(timezone.utc)
+
     # Also track kills scored (kill events where this sid is killer_steam_id)
     kills_pipe = [
         {"$match": {"server_id": server_id, "type": "kill", "killer_steam_id": {"$nin": [None, ""]}}},
@@ -1021,8 +1047,20 @@ async def list_players(server_id: str, online: Optional[bool] = None, search: Op
         by_type: Dict[str, int] = {}
         for t in types:
             by_type[t] = by_type.get(t, 0) + 1
-        is_online = bool(r.get("last_event_type") == "login" and r.get("last_action") in ("logged_in", "connected"))
         sid = r.pop("_id")
+        ls = login_state.get(sid) or {}
+        last_login_action = ls.get("last_login_action") or ""
+        last_login_ts = ls.get("last_login_ts")
+        is_online = last_login_action in ("logged_in", "connected")
+        # Stale-session guard: if no disconnect but also no activity for N hours,
+        # consider the player offline (prevents "forever online" after a crash).
+        if is_online and last_login_ts:
+            try:
+                age_h = (now_dt - datetime.fromisoformat(last_login_ts)).total_seconds() / 3600
+                if age_h > STALE_LOGIN_HOURS:
+                    is_online = False
+            except Exception:
+                pass
         player = {
             "steam_id": sid,
             "name": r.get("last_name") or sid,
@@ -1811,10 +1849,12 @@ _scheduler_task: Optional[asyncio.Task] = None
 _last_restart_tick: Dict[str, str] = {}   # server_id -> "YYYY-MM-DDTHH:MM" of last restart
 _last_update_check_at: Dict[str, float] = {}  # server_id -> epoch seconds
 _last_log_scan_at: Dict[str, float] = {}  # server_id -> epoch seconds
-LOG_SCAN_INTERVAL_SEC = 45   # how often the scheduler re-parses log files
+_last_config_reimport_at: Dict[str, float] = {}  # server_id -> epoch seconds
+LOG_SCAN_INTERVAL_SEC = 20   # how often the scheduler re-parses log files
+CONFIG_REIMPORT_INTERVAL_SEC = 60  # how often we re-read on-disk configs into DB
 
 
-async def _auto_scan_logs(server_id: str, folder_path: str, limit: int = 10) -> Dict[str, int]:
+async def _auto_scan_logs(server_id: str, folder_path: str, limit: int = 20) -> Dict[str, int]:
     """Background helper: parse the N most recent log files for this server and
     forward new events to Discord. Safe to call repeatedly — events are de-duped
     by their stable id. Runs the blocking filesystem walk in a worker thread so
@@ -1900,7 +1940,7 @@ async def _tick_scheduler():
                     if (now.timestamp() - last_scan) >= LOG_SCAN_INTERVAL_SEC:
                         _last_log_scan_at[sid] = now.timestamp()
                         try:
-                            r = await _auto_scan_logs(sid, s["folder_path"], limit=10)
+                            r = await _auto_scan_logs(sid, s["folder_path"], limit=20)
                             if r.get("stored"):
                                 logger.info(
                                     "Auto-scan: %s → %d new events (%d forwarded)",
@@ -1908,9 +1948,36 @@ async def _tick_scheduler():
                                 )
                         except Exception as e:
                             logger.info("Auto-scan failed for %s: %s", s.get("name"), e)
+
+                # --- Config file re-import (every CONFIG_REIMPORT_INTERVAL_SEC) ---
+                # When an admin edits settings from inside the game (via #commands
+                # or the in-game admin panel), SCUM rewrites ServerSettings.ini on
+                # disk. We periodically re-read those files and merge into the
+                # manager's settings so the UI reflects the live game state.
+                if s.get("installed") and s.get("folder_path") and s.get("status") in ("Running", "Starting"):
+                    last_reimport = _last_config_reimport_at.get(sid, 0)
+                    if (now.timestamp() - last_reimport) >= CONFIG_REIMPORT_INTERVAL_SEC:
+                        _last_config_reimport_at[sid] = now.timestamp()
+                        try:
+                            parsed = parse_real_config_dir(s["folder_path"])
+                            current = s.get("settings", {}) or {}
+                            merged = {**current}
+                            changed = False
+                            for k, v in parsed.items():
+                                # Skip empty parses (file not written yet / missing section)
+                                if isinstance(v, (list, dict)) and not v:
+                                    continue
+                                if merged.get(k) != v:
+                                    merged[k] = v
+                                    changed = True
+                            if changed:
+                                await db.servers.update_one({"id": sid}, {"$set": {"settings": merged}})
+                                logger.info("Config re-import: %s picked up on-disk changes", s.get("name"))
+                        except Exception as e:
+                            logger.info("Config re-import failed for %s: %s", s.get("name"), e)
         except Exception as e:
             logger.exception("Scheduler tick failed: %s", e)
-        await asyncio.sleep(30)
+        await asyncio.sleep(10)
 
 
 @app.on_event("startup")
@@ -1918,7 +1985,7 @@ async def _start_scheduler():
     global _scheduler_task
     if _scheduler_task is None:
         _scheduler_task = asyncio.create_task(_tick_scheduler())
-        logger.info("LGSS automation scheduler started (tick=30s)")
+        logger.info("LGSS automation scheduler started (tick=10s)")
 
 
 @app.on_event("shutdown")

@@ -342,24 +342,79 @@ def start_server(server_id: str, folder_path: str, port: int = 7779,
 
 
 def _spawn_ready_watcher(server_id: str, query_port: int) -> None:
-    """Background thread: every 3 seconds send a Steam A2S_INFO packet to the
-    SCUM server's query port. As soon as we get a valid reply, mark the process
-    record as ready and record `online_at`. Stops on its own after 10 minutes
-    or when the process is no longer alive."""
+    """Background thread: detect the moment SCUM is actually playable.
+
+    The watcher tries **three independent signals** in parallel (whichever
+    triggers first wins). This is crucial because Windows Firewall / SCUM bind
+    order sometimes blocks the UDP A2S query — if we relied only on A2S_INFO
+    the UI would be stuck at "BAŞLATILIYOR" forever.
+
+    Signals:
+      1. Steam A2S_INFO ack on (127.0.0.1, query_port) — the ideal path.
+      2. Log file heuristic — once the SCUM `Saved/Logs/SCUM.log` or
+         `SaveFiles/Logs/*.log` contains a "LogSCUM: Global Stats" line at
+         least 3 times, the world is loaded and the tick loop is running.
+      3. Hard time fallback — after 300 seconds we flip to ready anyway so
+         the UI doesn't strand at warm-up.
+    """
     def _watch():
-        deadline = time.time() + 600  # hard cap: 10 minutes
+        start_ts = time.time()
+        deadline = start_ts + 600  # hard cap: 10 minutes
+        hard_fallback = start_ts + 300   # flip to ready after 5min no matter what
+        rec = REGISTRY.get(server_id, {}).get("process") or {}
+        folder_path = rec.get("folder_path", "")
+        # Collect candidate log file paths the ready-signal may appear in
+        log_candidates = [
+            Path(folder_path) / "SCUM" / "Saved" / "Logs" / "SCUM.log",
+            Path(folder_path) / "SCUM" / "Saved" / "Logs" / "SCUMServer.log",
+        ]
+
+        def _log_tick_heartbeat_seen() -> bool:
+            """Return True if we see 3+ 'Global Stats' ticks in the SCUM log —
+            the tick loop only runs after the world is fully loaded."""
+            for p in log_candidates:
+                try:
+                    if not p.exists():
+                        continue
+                    # Tail last 64KB — that's ~1000 recent lines, enough
+                    with p.open("rb") as f:
+                        f.seek(0, 2)
+                        size = f.tell()
+                        f.seek(max(0, size - 64 * 1024))
+                        tail = f.read().decode("utf-8", errors="replace")
+                    if tail.count("LogSCUM: Global Stats") >= 3:
+                        return True
+                except Exception:
+                    continue
+            return False
+
+        def _mark_ready(reason: str) -> None:
+            with _LOCK:
+                rec_now = REGISTRY.get(server_id, {}).get("process")
+                if rec_now and not rec_now.get("ready"):
+                    rec_now["ready"] = True
+                    rec_now["online_at"] = time.time()
+                    rec_now["ready_reason"] = reason
+                    log.info("SCUM %s READY via %s after %.1fs",
+                             server_id, reason, time.time() - start_ts)
+
         while time.time() < deadline:
-            rec = REGISTRY.get(server_id, {}).get("process")
-            if not rec or not _pid_alive(rec.get("pid")):
+            rec_now = REGISTRY.get(server_id, {}).get("process")
+            if not rec_now or not _pid_alive(rec_now.get("pid")):
                 return
-            if rec.get("ready"):
+            if rec_now.get("ready"):
                 return
+            # Signal #1: A2S query
             if _a2s_info_alive("127.0.0.1", query_port, timeout=1.2):
-                with _LOCK:
-                    rec["ready"] = True
-                    rec["online_at"] = time.time()
-                log.info("SCUM %s is READY (A2S_INFO ack) after %.1fs",
-                         server_id, time.time() - rec.get("started_at", time.time()))
+                _mark_ready("a2s_info")
+                return
+            # Signal #2: log heartbeat
+            if _log_tick_heartbeat_seen():
+                _mark_ready("log_heartbeat")
+                return
+            # Signal #3: hard fallback
+            if time.time() > hard_fallback:
+                _mark_ready("timeout_fallback")
                 return
             time.sleep(3.0)
 

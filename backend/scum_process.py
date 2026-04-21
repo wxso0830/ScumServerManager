@@ -216,6 +216,9 @@ def start_server(server_id: str, folder_path: str, port: int = 7779,
     args = [
         str(exe),
         "-log",
+        "-stdout",            # force Unreal log to the console window
+        "-FORCELOGFLUSH",     # write each line immediately (no buffering)
+        "-ForceLogFlush",     # alternate casing that some UE builds require
         f"-port={port}",
         f"-QueryPort={query_port}",
         f"-MaxPlayers={max_players}",

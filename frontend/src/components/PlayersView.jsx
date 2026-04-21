@@ -26,7 +26,7 @@ const relative = (iso) => {
 export const PlayersView = ({ servers = [] }) => {
   const { t } = useI18n();
   const [serverId, setServerId] = useState(servers[0]?.id || "");
-  const [tab, setTab] = useState("all"); // online | all
+  const [tab, setTab] = useState("online"); // online | all — default to online so admins see who's live first
   const [search, setSearch] = useState("");
   const [data, setData] = useState({ players: [], count: 0, online_count: 0 });
   const [loading, setLoading] = useState(false);
@@ -40,23 +40,31 @@ export const PlayersView = ({ servers = [] }) => {
     if (!serverId) return;
     setLoading(true);
     try {
+      // Always fetch the FULL roster (no `online=` filter) so both tab counts
+      // stay accurate when switching between "Online" and "All Players".
+      // The tab itself only changes what we render, not what we fetch.
       const params = {};
-      if (tab === "online") params.online = true;
       if (search) params.search = search;
       const r = await endpoints.listPlayers(serverId, params);
       setData(r);
     } finally { setLoading(false); }
   };
 
-  useEffect(() => { load(); /* eslint-disable-next-line */ }, [serverId, tab, search]);
+  useEffect(() => { load(); /* eslint-disable-next-line */ }, [serverId, search]);
 
   useEffect(() => {
     const t = setInterval(() => { load(); }, 15000);
     return () => clearInterval(t);
     // eslint-disable-next-line
-  }, [serverId, tab, search]);
+  }, [serverId, search]);
 
   const activeServer = useMemo(() => servers.find((s) => s.id === serverId), [servers, serverId]);
+
+  // Client-side tab filter — keeps `data.count` and `data.online_count` stable across tab switches.
+  const visiblePlayers = useMemo(
+    () => (tab === "online" ? (data.players || []).filter((p) => p.is_online) : (data.players || [])),
+    [data.players, tab],
+  );
 
   const openDetail = async (player) => {
     try {
@@ -132,7 +140,7 @@ export const PlayersView = ({ servers = [] }) => {
 
       {/* Table */}
       <div className="flex-1 overflow-y-auto scrollbar-thin bg-bg-deep">
-        {data.players.length === 0 ? (
+        {visiblePlayers.length === 0 ? (
           <div className="p-12 text-center">
             <Users size={40} className="mx-auto text-dim mb-4" />
             <h3 className="heading-stencil text-lg mb-2">{t("players_none_title")}</h3>
@@ -155,7 +163,7 @@ export const PlayersView = ({ servers = [] }) => {
               </tr>
             </thead>
             <tbody>
-              {data.players.map((p) => (
+              {visiblePlayers.map((p) => (
                 <tr
                   key={p.steam_id}
                   onClick={() => openDetail(p)}

@@ -22,6 +22,7 @@ reused by the live file watcher, the bulk importer, and pytest.
 from __future__ import annotations
 
 import hashlib
+import json
 import re
 from datetime import datetime, timezone
 from pathlib import Path
@@ -161,16 +162,56 @@ def parse_login_line(ts_iso: str, body: str) -> Optional[Dict[str, Any]]:
 
 
 def parse_kill_line(ts_iso: str, body: str) -> Optional[Dict[str, Any]]:
-    # Format observed in real servers:
-    #   Killer: NAME (STEAM_ID) -> Victim: NAME (STEAM_ID) | Weapon: X | Distance: 42.3m
-    # SCUM's own format varies across patches; we try the most common variants.
+    """Parse SCUM kill_*.log entries. Format is:
+        Died: VICTIM (STEAM_ID), Killer: KILLER (STEAM_ID) Weapon: X [Projectile]
+        S[KillerLoc: A,B,C VictimLoc: A,B,C, Distance: 42.12 m] C[...]
+
+    The server emits TWO lines per kill: a human-readable one (the one we want)
+    and a JSON companion. We ignore the JSON line (handled by early-return) but
+    keep it as `raw` if the regex misses.
+    """
+    # Skip the JSON companion line — it starts with '{"Killer":'
+    if body.lstrip().startswith("{"):
+        return {"_skip": True}
+
+    # Real format: "Died: NAME (SID), Killer: NAME (SID) Weapon: W [TAG]
+    #               S[... Distance: 1.91 m] C[... Distance: 2.07 m]"
+    # The C[...] block (client-side) has the most reliable "effective" distance
+    # after lag compensation; prefer it, fall back to S[...] (server-side).
     m = re.search(
-        r"Killer:\s*(?P<kn>[^\(]+)\((?P<ks>\d{17})\).*?Victim:\s*(?P<vn>[^\(]+)\((?P<vs>\d{17})\).*?Weapon:\s*(?P<w>[^\s|]+).*?Distance:\s*(?P<d>[0-9.]+)",
+        r"Died:\s*(?P<vn>[^(]+)\((?P<vs>\d{17})\),\s*"
+        r"Killer:\s*(?P<kn>[^(]+)\((?P<ks>\d{17})\)\s+"
+        r"Weapon:\s*(?P<w>Weapon_\S+|\S+?)(?:\s*\[[^\]]*\])?\s+"
+        r"S\[[^\]]*?Distance:\s*(?P<sd>[0-9.]+)\s*m\]",
         body,
-        flags=re.IGNORECASE,
     )
+    cd = None
+    if m:
+        cm = re.search(r"C\[[^\]]*?Distance:\s*([0-9.]+)\s*m\]", body)
+        if cm:
+            cd = cm.group(1)
     if not m:
-        return None
+        # Legacy variant "Killer: ... Victim: ..." kept as fallback for old servers
+        legacy = re.search(
+            r"Killer:\s*(?P<kn>[^\(]+)\((?P<ks>\d{17})\).*?"
+            r"Victim:\s*(?P<vn>[^\(]+)\((?P<vs>\d{17})\).*?"
+            r"Weapon:\s*(?P<w>\S+).*?Distance:\s*(?P<d>[0-9.]+)",
+            body, flags=re.IGNORECASE,
+        )
+        if not legacy:
+            return None
+        return {
+            "type": "kill", "ts": ts_iso,
+            "killer_name": legacy.group("kn").strip(),
+            "killer_steam_id": legacy.group("ks"),
+            "victim_name": legacy.group("vn").strip(),
+            "victim_steam_id": legacy.group("vs"),
+            "weapon": _clean_weapon(legacy.group("w")),
+            "distance_m": float(legacy.group("d")),
+            "raw": body,
+        }
+
+    dist_str = cd or m.group("sd")
     return {
         "type": "kill",
         "ts": ts_iso,
@@ -178,10 +219,22 @@ def parse_kill_line(ts_iso: str, body: str) -> Optional[Dict[str, Any]]:
         "killer_steam_id": m.group("ks"),
         "victim_name": m.group("vn").strip(),
         "victim_steam_id": m.group("vs"),
-        "weapon": m.group("w"),
-        "distance_m": float(m.group("d")),
+        "weapon": _clean_weapon(m.group("w")),
+        "distance_m": float(dist_str) if dist_str else None,
         "raw": body,
     }
+
+
+def _clean_weapon(w: str) -> str:
+    """Turn 'Weapon_M82A1_Black_C [Projectile]' into 'M82A1 Black' for display."""
+    s = (w or "").strip().rstrip(",")
+    # Strip the trailing "[Projectile]" / "[Melee]" tag
+    s = re.sub(r"\s*\[[^\]]*\]\s*$", "", s)
+    # Strip Weapon_ prefix and _C suffix, replace underscores
+    s = re.sub(r"^Weapon_", "", s)
+    s = re.sub(r"_C$", "", s)
+    s = s.replace("_", " ").strip()
+    return s or "Unknown"
 
 
 _TRADE_MAIN_RX = re.compile(
@@ -232,15 +285,67 @@ def parse_violations_line(ts_iso: str, body: str) -> Optional[Dict[str, Any]]:
 
 
 def parse_fame_line(ts_iso: str, body: str) -> Optional[Dict[str, Any]]:
-    m = re.search(r"(?P<name>[^(]+)\((?P<sid>\d{17})\).*?(?:gained|lost|awarded|deducted)\s+(?P<amt>-?\d+)\s+fame", body, flags=re.IGNORECASE)
+    """Parse SCUM fame/famepoints log. Multiple formats exist across patches:
+
+    Modern (1.x):  "'SID:Name(ID)' gained '5.00' fame for 'Surviving'"
+    Alt (older):   "Name (SID) gained 5 fame"
+    JSON-style:    '{"PlayerName":"X","UserId":"SID","FamePoints":5.00,"Reason":"..."}'
+    """
+    # --- JSON variant ---
+    if body.lstrip().startswith("{"):
+        try:
+            obj = json.loads(body)
+            sid = obj.get("UserId") or obj.get("SteamId") or obj.get("steam_id")
+            if not sid:
+                return None
+            return {
+                "type": "fame", "ts": ts_iso,
+                "player_name": obj.get("PlayerName") or obj.get("ProfileName") or obj.get("name"),
+                "steam_id": str(sid),
+                "delta": float(obj.get("FamePoints") or obj.get("Delta") or obj.get("Points") or 0),
+                "reason": obj.get("Reason") or obj.get("Description"),
+                "raw": body,
+            }
+        except Exception:
+            pass
+
+    # --- Modern: 'SID:Name(ID)' gained/lost 'N.NN' fame for 'Reason' ---
+    m = re.search(
+        r"'(?P<sid>\d{17}):(?P<name>[^(]+)\(\d+\)'\s+"
+        r"(?P<act>gained|lost|awarded|deducted|received)\s+'?(?P<amt>-?[0-9.]+)'?\s+"
+        r"(?:fame\s*(?:points?)?|points?)\s+"
+        r"(?:for\s+'(?P<reason>[^']+)')?",
+        body, flags=re.IGNORECASE,
+    )
+    if m:
+        amt = float(m.group("amt"))
+        if m.group("act").lower() in ("lost", "deducted"):
+            amt = -abs(amt)
+        return {
+            "type": "fame", "ts": ts_iso,
+            "player_name": m.group("name").strip(),
+            "steam_id": m.group("sid"),
+            "delta": amt,
+            "reason": (m.group("reason") or "").strip() or None,
+            "raw": body,
+        }
+
+    # --- Legacy: Name (SID) gained 5 fame ---
+    m = re.search(
+        r"(?P<name>[^(]+)\((?P<sid>\d{17})\).*?"
+        r"(?P<act>gained|lost|awarded|deducted|received)\s+(?P<amt>-?[0-9.]+)\s+fame",
+        body, flags=re.IGNORECASE,
+    )
     if not m:
         return None
+    amt = float(m.group("amt"))
+    if m.group("act").lower() in ("lost", "deducted"):
+        amt = -abs(amt)
     return {
-        "type": "fame",
-        "ts": ts_iso,
+        "type": "fame", "ts": ts_iso,
         "player_name": m.group("name").strip(),
         "steam_id": m.group("sid"),
-        "delta": int(m.group("amt")),
+        "delta": amt,
         "raw": body,
     }
 

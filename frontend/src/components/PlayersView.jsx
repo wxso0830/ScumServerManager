@@ -153,13 +153,14 @@ export const PlayersView = ({ servers = [] }) => {
                 <th className="label-overline px-4 py-3">{t("col_status")}</th>
                 <th className="label-overline px-4 py-3">{t("col_player")}</th>
                 <th className="label-overline px-4 py-3">Steam ID</th>
-                <th className="label-overline px-4 py-3">{t("col_first_seen")}</th>
+                <th className="label-overline px-4 py-3">{t("col_squad")}</th>
+                <th className="label-overline px-4 py-3 text-right">{t("col_fame")}</th>
                 <th className="label-overline px-4 py-3">{t("col_last_seen")}</th>
-                <th className="label-overline px-4 py-3 text-right">{t("col_events")}</th>
                 <th className="label-overline px-4 py-3 text-right">{t("col_kills")}</th>
                 <th className="label-overline px-4 py-3 text-right">{t("col_trade")}</th>
                 <th className="label-overline px-4 py-3 text-right">{t("col_flags")}</th>
-                <th className="label-overline px-4 py-3 text-right">{t("col_vehicles")}</th>
+                <th className="label-overline px-4 py-3 text-right" title={t("col_vehicles_self_tip")}>{t("col_vehicles_self")}</th>
+                <th className="label-overline px-4 py-3 text-right" title={t("col_vehicles_squad_tip")}>{t("col_vehicles_squad")}</th>
               </tr>
             </thead>
             <tbody>
@@ -194,12 +195,16 @@ export const PlayersView = ({ servers = [] }) => {
                     </div>
                   </td>
                   <td className="px-4 py-3 text-dim">{p.steam_id}</td>
-                  <td className="px-4 py-3 text-dim">{fmtFull(p.first_seen)}</td>
+                  <td className="px-4 py-3 text-dim">{p.squad_name || "—"}</td>
+                  <td className="px-4 py-3 text-right">
+                    <span className={p.fame > 0 ? "text-warning" : "text-dim"}>
+                      {p.fame != null ? Number(p.fame).toLocaleString(undefined, { maximumFractionDigits: 1 }) : "—"}
+                    </span>
+                  </td>
                   <td className="px-4 py-3">
                     <div>{fmtFull(p.last_seen)}</div>
                     <div className="text-[10px] text-muted">{relative(p.last_seen)}</div>
                   </td>
-                  <td className="px-4 py-3 text-right text-brand">{p.total_events}</td>
                   <td className="px-4 py-3 text-right">
                     <span className="text-brand">{p.kills}</span>
                     <span className="text-dim"> / {p.deaths}</span>
@@ -209,6 +214,11 @@ export const PlayersView = ({ servers = [] }) => {
                   </td>
                   <td className="px-4 py-3 text-right text-muted">{p.flag_count ?? "—"}</td>
                   <td className="px-4 py-3 text-right text-muted">{p.vehicle_count ?? "—"}</td>
+                  <td className="px-4 py-3 text-right text-muted">
+                    {p.squad_vehicle_count != null && p.squad_vehicle_count !== p.vehicle_count
+                      ? p.squad_vehicle_count
+                      : (p.squad_vehicle_count ?? "—")}
+                  </td>
                 </tr>
               ))}
             </tbody>
@@ -216,10 +226,10 @@ export const PlayersView = ({ servers = [] }) => {
         )}
       </div>
 
-      {/* Info strip for flags/vehicles caveat */}
+      {/* Info strip: SCUM.db live read status */}
       <div className="bg-surface border-t border-brand px-6 py-2 flex items-center gap-2 text-[10px] text-dim font-mono uppercase tracking-widest">
         <Info size={11} className="text-accent-brand" />
-        <span>{t("col_flags")} / {t("col_vehicles")}: {t("requires_savefiles")} (roadmap)</span>
+        <span>{t("players_db_source")}</span>
       </div>
 
       {detail && <PlayerDetailModal detail={detail} onClose={() => setDetail(null)} t={t} />}

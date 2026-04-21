@@ -25,6 +25,7 @@ from scum_parser import (
     parse_ini_sections,
     parse_input_ini,
 )
+import scum_db
 import scum_process as scum_proc
 import json as json_lib
 import io
@@ -1041,6 +1042,17 @@ async def list_players(server_id: str, online: Optional[bool] = None, search: Op
     ]
     deaths_map = {r["_id"]: r["deaths"] for r in await db.server_events.aggregate(deaths_pipe).to_list(5000)}
 
+    # SCUM.db enrichment — pull current fame / vehicle / flag / squad counts
+    # directly from the live game DB (SCUM.db). Log files only contain deltas,
+    # never current totals, so this is the only way to show real numbers.
+    srv_full = await db.servers.find_one({"id": server_id}, {"_id": 0, "folder_path": 1}) or {}
+    db_stats: Dict[str, Dict[str, Any]] = {}
+    if srv_full.get("folder_path"):
+        try:
+            db_stats = await asyncio.to_thread(scum_db.read_player_stats, srv_full["folder_path"])
+        except Exception as e:
+            logger.info("list_players: SCUM.db read failed (non-fatal): %s", e)
+
     players: List[Dict[str, Any]] = []
     for r in rows:
         types = r.pop("types", [])
@@ -1052,8 +1064,6 @@ async def list_players(server_id: str, online: Optional[bool] = None, search: Op
         last_login_action = ls.get("last_login_action") or ""
         last_login_ts = ls.get("last_login_ts")
         is_online = last_login_action in ("logged_in", "connected")
-        # Stale-session guard: if no disconnect but also no activity for N hours,
-        # consider the player offline (prevents "forever online" after a crash).
         if is_online and last_login_ts:
             try:
                 age_h = (now_dt - datetime.fromisoformat(last_login_ts)).total_seconds() / 3600
@@ -1061,23 +1071,29 @@ async def list_players(server_id: str, online: Optional[bool] = None, search: Op
                     is_online = False
             except Exception:
                 pass
+        db_row = db_stats.get(sid) or {}
+        # Prefer SCUM.db fame; fall back to sum of fame events if DB unavailable
+        fame = db_row.get("fame") if db_row.get("fame") is not None else float(r.get("fame_delta") or 0)
         player = {
             "steam_id": sid,
-            "name": r.get("last_name") or sid,
+            "name": db_row.get("db_name") or r.get("last_name") or sid,
             "first_seen": r.get("first_seen"),
             "last_seen": r.get("last_seen"),
             "is_online": is_online,
             "total_events": r.get("total_events", 0),
+            "fame": float(fame),
             "fame_delta": int(r.get("fame_delta") or 0),
             "trade_amount": int(r.get("trade_amount") or 0),
             "is_admin_invoker": bool(r.get("is_admin_invoker")),
             "kills": int(kills_map.get(sid, 0)),
             "deaths": int(deaths_map.get(sid, 0)),
             "by_type": by_type,
-            # Counts that require SCUM SaveFiles DB parsing are NOT available from logs alone.
-            # Reported as None so the UI can render "—" rather than a misleading 0.
-            "flag_count": None,
-            "vehicle_count": None,
+            # Live game-state — from SCUM.db. None means DB couldn't be read.
+            "flag_count": db_row.get("flag_count"),
+            "vehicle_count": db_row.get("vehicle_count"),
+            "squad_vehicle_count": db_row.get("squad_vehicle_count"),
+            "squad_name": db_row.get("squad_name"),
+            "squad_id": db_row.get("squad_id"),
         }
         players.append(player)
 

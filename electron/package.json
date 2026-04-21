@@ -35,7 +35,9 @@
     },
     "files": [
       "main.js",
-      "preload.js"
+      "preload.js",
+      "node_modules/**/*",
+      "package.json"
     ],
     "extraResources": [
       {
@@ -71,8 +73,24 @@
         }
       ],
       "icon": "installer/icon.ico",
-      "requestedExecutionLevel": "requireAdministrator"
+      "requestedExecutionLevel": "requireAdministrator",
+      "publish": [
+        {
+          "provider": "github",
+          "owner": "umutc-dev",
+          "repo": "ScumServerManager",
+          "releaseType": "release"
+        }
+      ]
     },
+    "publish": [
+      {
+        "provider": "github",
+        "owner": "umutc-dev",
+        "repo": "ScumServerManager",
+        "releaseType": "release"
+      }
+    ],
     "nsis": {
       "oneClick": false,
       "allowToChangeInstallationDirectory": true,

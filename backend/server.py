@@ -876,15 +876,13 @@ async def scan_server_logs(server_id: str, limit: int = 20):
 
     This is the "real server" path: when a SCUM server is actually writing logs on the
     host, calling this endpoint ingests everything new. Deduplication is by event id so
-    re-scans are safe.
+    re-scans are safe. Works on both Windows (backend bundled into Electron) and
+    Linux/macOS (dev preview) — `pathlib.Path` handles both separator styles natively.
     """
     srv = await db.servers.find_one({"id": server_id}, {"_id": 0})
     if not srv:
         raise HTTPException(status_code=404, detail="Server not found")
     folder = srv["folder_path"]
-    sep = "\\" if ("\\" in folder or (len(folder) >= 2 and folder[1] == ":")) else "/"
-    if sep != "/":
-        return {"error": "Windows path — use the Electron IPC to scan", "scanned": 0}
     logs_dir = Path(folder) / "SCUM" / "Saved" / "SaveFiles" / "Logs"
     if not logs_dir.exists():
         return {"error": f"Logs directory not found: {logs_dir}", "scanned": 0}
@@ -1797,6 +1795,38 @@ logger = logging.getLogger(__name__)
 _scheduler_task: Optional[asyncio.Task] = None
 _last_restart_tick: Dict[str, str] = {}   # server_id -> "YYYY-MM-DDTHH:MM" of last restart
 _last_update_check_at: Dict[str, float] = {}  # server_id -> epoch seconds
+_last_log_scan_at: Dict[str, float] = {}  # server_id -> epoch seconds
+LOG_SCAN_INTERVAL_SEC = 45   # how often the scheduler re-parses log files
+
+
+async def _auto_scan_logs(server_id: str, folder_path: str, limit: int = 10) -> Dict[str, int]:
+    """Background helper: parse the N most recent log files for this server and
+    forward new events to Discord. Safe to call repeatedly — events are de-duped
+    by their stable id. Runs the blocking filesystem walk in a worker thread so
+    we never stall the FastAPI event loop."""
+    logs_dir = Path(folder_path) / "SCUM" / "Saved" / "SaveFiles" / "Logs"
+    if not logs_dir.exists():
+        return {"scanned": 0, "stored": 0, "forwarded": 0}
+
+    def _collect() -> List[Dict[str, Any]]:
+        files = sorted(logs_dir.glob("*.log"),
+                       key=lambda p: p.stat().st_mtime, reverse=True)[:limit]
+        all_events: List[Dict[str, Any]] = []
+        for p in files:
+            try:
+                text = read_log_file(p)
+                lt = detect_log_type(p.name)
+                evs = parse_log_text(text, lt, filename=p.name, server_id=server_id)
+                all_events.extend(evs)
+            except Exception as e:
+                logger.info("auto-scan: %s parse failed: %s", p.name, e)
+        return all_events
+
+    events = await asyncio.to_thread(_collect)
+    if not events:
+        return {"scanned": 0, "stored": 0, "forwarded": 0}
+    res = await _store_events_and_forward(server_id, events)
+    return {"scanned": len(events), **res}
 
 
 async def _tick_scheduler():
@@ -1845,6 +1875,24 @@ async def _tick_scheduler():
                                     logger.info("Scheduler: update_available=True for %s", s.get("name"))
                         except Exception as e:
                             logger.info("Scheduler steam check failed: %s", e)
+
+                # --- Auto log scan (every LOG_SCAN_INTERVAL_SEC) ---
+                # SCUM writes new .log files every few minutes while the server is
+                # running. We tail them in the background so the Logs + Players
+                # views populate without requiring a manual "Scan" click.
+                if s.get("installed") and s.get("folder_path"):
+                    last_scan = _last_log_scan_at.get(sid, 0)
+                    if (now.timestamp() - last_scan) >= LOG_SCAN_INTERVAL_SEC:
+                        _last_log_scan_at[sid] = now.timestamp()
+                        try:
+                            r = await _auto_scan_logs(sid, s["folder_path"], limit=10)
+                            if r.get("stored"):
+                                logger.info(
+                                    "Auto-scan: %s → %d new events (%d forwarded)",
+                                    s.get("name"), r["stored"], r.get("forwarded", 0)
+                                )
+                        except Exception as e:
+                            logger.info("Auto-scan failed for %s: %s", s.get("name"), e)
         except Exception as e:
             logger.exception("Scheduler tick failed: %s", e)
         await asyncio.sleep(30)

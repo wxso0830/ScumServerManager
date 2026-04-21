@@ -175,6 +175,19 @@ Research outcome: SCUM has no RCON/API. Community bots (Prisoner Bot, scum_disco
 - `PUT /settings` with a new ServerName → value appears in `ServerSettings.ini` within 1s
 - External change to `ServerSettings.ini` → `POST /first-boot` parses it back into DB settings
 
+## Feb 2026 — Logs & Players Auto-Ingestion
+**Problem reported by user (Turkish)**: Logs & Players views were empty. The correct log path is `{folder}/SCUM/Saved/SaveFiles/Logs/` (which the backend already knew), but `POST /servers/{id}/logs/scan` was hard-blocked when the folder path used Windows separators (same legacy anti-Windows guard as `save-config`). There was also no background scanner, so the user had to click "Scan Logs Folder" manually every time.
+
+**Fixes shipped**:
+- Removed the Windows-path guard in `scan_server_logs`; `pathlib.Path` handles both separator styles natively on Windows so the PyInstaller backend now ingests real SCUM logs directly.
+- Scheduler loop: new `_auto_scan_logs(server_id, folder)` helper + 45s-interval per-server tick that parses the 10 most recent log files in the background, de-duplicates by event id, and forwards new events to Discord webhooks automatically. Runs the blocking filesystem walk in `asyncio.to_thread` so FastAPI stays responsive.
+- This makes the Players view self-populating (it aggregates from `server_events`), no manual click required.
+
+**Verified in Linux preview**:
+- Manual `POST /logs/scan` on Windows-style path → parsed 4/2 files (chat + login) without the legacy error
+- `/players` aggregation returned 2 unique players from those events
+- Dropped a synthetic `kill_*.log` → waited 55s → scheduler log showed `Auto-scan: TestServer → 5 new events`, kill event appeared in `/events` without any manual trigger
+
 ## Prioritized Backlog
 
 ### Desktop-Only Operations (clearly scoped)

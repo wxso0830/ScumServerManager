@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import {
-  Play, Square, Download, RefreshCw, Settings, Trash2, Users, Cpu, Activity,
+  Play, Square, Download, RefreshCw, RotateCw, ChevronsUp, Settings, Trash2, Users, Cpu, Activity,
   Server as ServerIcon, HardDrive, Clock, Network,
 } from "lucide-react";
 import { useI18n } from "../providers/I18nProvider";
@@ -217,15 +217,35 @@ export const ServerCard = ({ server, onOpen, onStart, onStop, onUpdate, onInstal
           </button>
         )}
 
+        {(isRunning || isStarting) && (
+          <button
+            className="btn-secondary flex items-center justify-center gap-2 px-3"
+            onClick={async (e) => {
+              e.stopPropagation();
+              try {
+                const updated = await endpoints.restartServer(server.id);
+                onChange?.(updated);
+              } catch (err) {
+                // non-fatal; parent toast will surface backend failures on next poll
+              }
+            }}
+            disabled={busy}
+            title={t("restart")}
+            data-testid={`card-restart-${server.folder_name}`}
+          >
+            <RotateCw size={13} />
+          </button>
+        )}
+
         {server.installed && (
           <button
             className={`btn-secondary flex items-center justify-center gap-2 px-3 ${server.update_available ? "update-pulse" : ""}`}
             onClick={(e) => { e.stopPropagation(); onUpdate?.(server); }}
             disabled={busy || processAlive}
-            title={server.update_available ? "Update available" : "Update"}
+            title={server.update_available ? t("update_available_label") : t("update_server")}
             data-testid={`card-update-${server.folder_name}`}
           >
-            <RefreshCw size={13} />
+            <ChevronsUp size={15} strokeWidth={2.5} />
           </button>
         )}
 

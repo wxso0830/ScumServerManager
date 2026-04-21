@@ -1,22 +1,24 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
   ScrollText, Upload, FolderSearch, Trash2, Search, RefreshCw, Users, Filter,
-  Wrench, MessageCircle, LogIn, Swords, Coins, AlertTriangle, Trophy, ShieldCheck, FileText,
+  Wrench, MessageCircle, LogIn, Swords, Coins, AlertTriangle, Trophy, ShieldCheck, FileText, Car, Key,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useI18n } from "../providers/I18nProvider";
 import { endpoints } from "../lib/api";
 
 const TYPE_META = {
-  admin:     { icon: Wrench, color: "var(--accent)",        labelKey: "event_type_admin" },
-  chat:      { icon: MessageCircle, color: "var(--info)",   labelKey: "event_type_chat" },
-  login:     { icon: LogIn, color: "var(--success)",        labelKey: "event_type_login" },
-  kill:      { icon: Swords, color: "var(--danger)",        labelKey: "event_type_kill" },
-  economy:   { icon: Coins, color: "var(--warning)",        labelKey: "event_type_economy" },
-  violation: { icon: AlertTriangle, color: "var(--danger)", labelKey: "event_type_violation" },
-  fame:      { icon: Trophy, color: "#9B59B6",              labelKey: "event_type_fame" },
-  raid:      { icon: ShieldCheck, color: "#607D8B",         labelKey: "event_type_raid" },
-  generic:   { icon: FileText, color: "var(--text-dim)",    labelKey: "event_type_generic" },
+  admin:               { icon: Wrench, color: "var(--accent)",        labelKey: "event_type_admin" },
+  chat:                { icon: MessageCircle, color: "var(--info)",   labelKey: "event_type_chat" },
+  login:               { icon: LogIn, color: "var(--success)",        labelKey: "event_type_login" },
+  kill:                { icon: Swords, color: "var(--danger)",        labelKey: "event_type_kill" },
+  economy:             { icon: Coins, color: "var(--warning)",        labelKey: "event_type_economy" },
+  violation:           { icon: AlertTriangle, color: "var(--danger)", labelKey: "event_type_violation" },
+  fame:                { icon: Trophy, color: "#9B59B6",              labelKey: "event_type_fame" },
+  raid:                { icon: ShieldCheck, color: "#607D8B",         labelKey: "event_type_raid" },
+  vehicle_destruction: { icon: Car,   color: "#FF6B4A",               labelKey: "event_type_vehicle_destruction" },
+  vehicle_claim:       { icon: Key,   color: "#22D36F",               labelKey: "event_type_vehicle_claim" },
+  generic:             { icon: FileText, color: "var(--text-dim)",    labelKey: "event_type_generic" },
 };
 
 const fmtTs = (iso) => {
@@ -82,6 +84,38 @@ const EventRow = ({ ev }) => {
       case "violation":
       case "fame":
         return <span className="text-brand">{ev.player_name} — {ev.description || (ev.delta != null ? `${ev.delta >= 0 ? "+" : ""}${ev.delta} fame` : "")}</span>;
+      case "vehicle_destruction":
+        return (
+          <>
+            <span className="font-mono text-accent-brand">{ev.vehicle_pretty || ev.vehicle_class}</span>
+            {ev.vehicle_id != null && <span className="text-dim"> #{ev.vehicle_id}</span>}
+            <span className="text-muted"> {ev.reason === "EntityTimeout" ? "despawned" : "destroyed"}</span>
+            {ev.owner_name && (
+              <>
+                <span className="text-muted"> · owner </span>
+                <span className="text-brand font-semibold">{ev.owner_name}</span>
+              </>
+            )}
+            {ev.killer_name && (
+              <>
+                <span className="text-muted"> · by </span>
+                <span className="text-danger font-semibold">{ev.killer_name}</span>
+              </>
+            )}
+          </>
+        );
+      case "vehicle_claim":
+        return (
+          <>
+            <span className="text-brand font-semibold">{ev.player_name || "?"}</span>
+            <span className="text-muted"> {ev.action === "transferred" ? "took over" : "claimed"} </span>
+            <span className="font-mono text-accent-brand">{ev.vehicle_pretty || ev.vehicle_class}</span>
+            {ev.vehicle_id != null && <span className="text-dim"> #{ev.vehicle_id}</span>}
+            {ev.action === "transferred" && ev.previous_owner_sid && (
+              <span className="text-muted"> (prev owner {ev.previous_owner_sid.slice(-4)})</span>
+            )}
+          </>
+        );
       default:
         return <span className="text-dim font-mono text-xs">{ev.raw}</span>;
     }

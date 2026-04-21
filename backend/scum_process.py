@@ -86,10 +86,17 @@ _PROGRESS_RE = re.compile(r"progress:\s*([\d.]+)\s*\(([\d.,]+)\s*/\s*([\d.,]+)\)
 
 
 def install_server(server_id: str, folder_path: str, manager_path: str,
-                   app_id: str = SCUM_APP_ID, on_complete=None) -> None:
+                   app_id: str = SCUM_APP_ID, on_complete=None,
+                   run_first_boot: bool = True) -> None:
     """Start SteamCMD in a background thread. Updates REGISTRY[server_id] with
     percent and recent log lines. If on_complete is provided, it's called with
     (success: bool, build_id: Optional[str], log_tail: str).
+
+    If `run_first_boot=True` (default) AND the download succeeds AND we're on
+    Windows, the runner then launches SCUMServer.exe briefly to let Unreal
+    generate the default `Saved/Config/WindowsServer/*.ini` files, then stops
+    it. This is essential — SCUM does not ship those configs and will overwrite
+    manager-written files on its first real run.
     """
     with _LOCK:
         REGISTRY.setdefault(server_id, {})
@@ -166,12 +173,45 @@ def install_server(server_id: str, folder_path: str, manager_path: str,
                     except Exception:
                         pass
 
+            # --- FIRST BOOT ----------------------------------------------------
+            # SCUM only writes Saved/Config/WindowsServer/*.ini on first boot,
+            # so immediately launch SCUMServer.exe for ~30-90s to generate them,
+            # then kill it. Without this, nothing the manager writes survives
+            # the real first boot the user performs later.
+            first_boot_result: Dict[str, Any] = {}
+            if ok and run_first_boot and _is_windows():
+                REGISTRY[server_id]["install"]["phase"] = "first_boot"
+                REGISTRY[server_id]["install"]["percent"] = 100.0
+                REGISTRY[server_id]["install"]["log_tail"] = (
+                    "\n".join(log_lines[-20:]) +
+                    "\n\n[LGSS] SteamCMD complete. Booting SCUMServer once to generate default config files..."
+                )
+                try:
+                    first_boot_result = first_boot(
+                        server_id=server_id,
+                        folder_path=folder_path,
+                        timeout_sec=180,
+                    )
+                    note = (
+                        f"[LGSS] First boot OK — generated: {', '.join(first_boot_result.get('files_found', []))} "
+                        f"(in {first_boot_result.get('duration_sec', 0)}s)"
+                        if first_boot_result.get("ok")
+                        else f"[LGSS] First boot WARN: {first_boot_result.get('error', 'unknown')}"
+                    )
+                    REGISTRY[server_id]["install"]["log_tail"] = (
+                        REGISTRY[server_id]["install"]["log_tail"] + "\n" + note
+                    )
+                except Exception as e:
+                    log.exception("first_boot during install failed")
+                    REGISTRY[server_id]["install"]["log_tail"] += f"\n[LGSS] First boot EXCEPTION: {e}"
+
             REGISTRY[server_id]["install"].update({
                 "running": False,
                 "percent": 100.0 if ok else REGISTRY[server_id]["install"].get("percent", 0.0),
                 "phase": "complete" if ok else "error",
                 "error": None if ok else f"SteamCMD exited with code {rc}",
                 "finished_at": time.time(),
+                "first_boot": first_boot_result or None,
             })
             build_id = None
             if ok:
@@ -289,6 +329,151 @@ def stop_server(server_id: str) -> bool:
     with _LOCK:
         REGISTRY.get(server_id, {}).pop("process", None)
     return True
+
+
+# -----------------------------------------------------------------------------
+# First-boot config generation
+# -----------------------------------------------------------------------------
+def first_boot(server_id: str, folder_path: str,
+               port: int = 7779, query_port: int = 7780, max_players: int = 64,
+               timeout_sec: int = 120, settle_sec: int = 5) -> Dict[str, Any]:
+    """Run SCUMServer.exe once so Unreal generates the default config files,
+    then stop it cleanly.
+
+    SCUM ships without `Saved/Config/WindowsServer/*.ini`; those files are
+    written the FIRST time the server boots. Until they exist on disk,
+    anything the manager writes is overwritten on first real boot. So after
+    SteamCMD install we do this controlled boot.
+
+    Returns:
+        { ok, duration_sec, files_found: [...], error: str|None,
+          config_dir: str }
+    """
+    result = {
+        "ok": False,
+        "duration_sec": 0,
+        "files_found": [],
+        "error": None,
+        "config_dir": str(Path(folder_path) / "SCUM" / "Saved" / "Config" / "WindowsServer"),
+    }
+    if not _is_windows():
+        result["error"] = "first_boot requires Windows (SCUMServer.exe)"
+        return result
+
+    # Stop any prior instance for this server_id so we don't collide
+    try:
+        stop_server(server_id)
+    except Exception:
+        pass
+
+    exe = _scum_exe(folder_path)
+    if not exe.exists():
+        result["error"] = f"SCUMServer.exe not found at {exe}"
+        return result
+
+    config_dir = Path(result["config_dir"])
+    # Target files SCUM writes on first boot (ServerSettings.ini is the canonical proof)
+    target_files = [
+        "ServerSettings.ini",
+        "GameUserSettings.ini",
+    ]
+
+    start_ts = time.time()
+    args = [
+        str(exe),
+        "-log",
+        "-stdout",
+        "-FORCELOGFLUSH",
+        "-ForceLogFlush",
+        f"-port={port}",
+        f"-QueryPort={query_port}",
+        f"-MaxPlayers={max_players}",
+    ]
+    log.info("first_boot: launching %s", " ".join(args))
+
+    CREATE_NO_WINDOW = 0x08000000
+    try:
+        proc = subprocess.Popen(
+            args,
+            cwd=str(exe.parent),
+            # Hidden: this is a one-shot config-generation boot, no UI needed.
+            creationflags=CREATE_NO_WINDOW,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+            close_fds=True,
+        )
+    except Exception as e:
+        result["error"] = f"Failed to launch SCUMServer.exe: {e}"
+        return result
+
+    with _LOCK:
+        REGISTRY.setdefault(server_id, {})
+        REGISTRY[server_id]["first_boot"] = {
+            "pid": proc.pid,
+            "started_at": start_ts,
+            "phase": "booting",
+        }
+
+    # Poll for the canonical ServerSettings.ini. SCUM writes it within ~30-60s.
+    deadline = start_ts + timeout_sec
+    seen_settings = False
+    while time.time() < deadline:
+        if proc.poll() is not None:
+            # process exited on its own before producing files
+            break
+        if (config_dir / "ServerSettings.ini").exists():
+            seen_settings = True
+            break
+        time.sleep(1.0)
+
+    # Give SCUM a few extra seconds to also write GameUserSettings, Economy, etc.
+    if seen_settings:
+        time.sleep(max(1, settle_sec))
+
+    # Snapshot what we actually got on disk
+    found: list[str] = []
+    if config_dir.exists():
+        for name in target_files:
+            if (config_dir / name).exists():
+                found.append(name)
+        # Also list any other .ini/.json the game happened to produce
+        for p in config_dir.glob("*"):
+            if p.name not in found and p.is_file():
+                found.append(p.name)
+
+    # Kill SCUM tree
+    try:
+        p = psutil.Process(proc.pid)
+        for child in p.children(recursive=True):
+            _safe_kill(child)
+        _safe_kill(p)
+    except psutil.NoSuchProcess:
+        pass
+    except Exception:
+        log.exception("first_boot stop failed")
+
+    # Belt-and-suspenders: taskkill by image in case a rogue child outlived us
+    for img in ("SCUMServer.exe", "SCUMServer-Win64-Shipping.exe", "CrashReportClient.exe"):
+        try:
+            subprocess.run(
+                ["taskkill", "/F", "/IM", img, "/T"],
+                capture_output=True, timeout=5,
+                creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0),
+            )
+        except Exception:
+            pass
+
+    with _LOCK:
+        REGISTRY.get(server_id, {}).pop("first_boot", None)
+
+    duration = int(time.time() - start_ts)
+    result.update({
+        "ok": seen_settings,
+        "duration_sec": duration,
+        "files_found": found,
+        "error": None if seen_settings else "ServerSettings.ini was not generated before timeout",
+    })
+    return result
 
 
 def _safe_kill(p: psutil.Process) -> None:

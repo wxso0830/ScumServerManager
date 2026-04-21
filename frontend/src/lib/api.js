@@ -31,6 +31,8 @@ export const endpoints = {
   updateAutomation: (id, payload) => api.put(`/servers/${id}/automation`, payload).then(r => r.data),
   generateNotifications: (id) => api.post(`/servers/${id}/automation/generate-notifications`).then(r => r.data),
   postInstall: (id) => api.post(`/servers/${id}/post-install`).then(r => r.data),
+  firstBoot: (id, timeout_sec = 120) => api.post(`/servers/${id}/first-boot`, null, { params: { timeout_sec }, timeout: (timeout_sec + 30) * 1000 }).then(r => r.data),
+  firstBootResult: (id) => api.get(`/servers/${id}/first-boot/result`).then(r => r.data),
   steamCheckUpdate: () => api.get("/steam/check-update").then(r => r.data),
   steamPublishBuild: (build_id, notes = "") => api.post("/steam/publish-build", { build_id, notes }).then(r => r.data),
   restartServer: (id) => api.post(`/servers/${id}/restart`).then(r => r.data),

@@ -13,6 +13,7 @@ import uuid
 from datetime import datetime, timezone, timedelta
 from scum_parser import (
     load_defaults,
+    parse_real_config_dir,
     render_server_settings_ini,
     render_gameusersettings_ini,
     render_input_ini,
@@ -27,6 +28,7 @@ from scum_parser import (
 import scum_process as scum_proc
 import json as json_lib
 import io
+import asyncio
 
 
 ROOT_DIR = Path(__file__).parent
@@ -351,6 +353,15 @@ async def update_server_settings(server_id: str, payload: ServerSettingsUpdate):
             merged[category] = values
     await db.servers.update_one({"id": server_id}, {"$set": {"settings": merged}})
     doc["settings"] = merged
+    # Auto-persist to real .ini/.json files so manager edits are never lost.
+    # Only if the server has been installed AND the config directory already
+    # exists (i.e. first-boot already ran). Otherwise SCUM will overwrite
+    # anything we write here on its first boot.
+    if doc.get("installed"):
+        try:
+            _write_config_files_for_doc(doc)
+        except Exception:
+            logger.exception("update_server_settings: auto-write config failed")
     return ServerProfile(**doc)
 
 
@@ -467,17 +478,39 @@ async def install_server(server_id: str):
 
     # Real Windows install via SteamCMD in a background thread
     def _on_complete(ok: bool, build_id: Optional[str], _log_tail: str):
-        import asyncio
+        import asyncio as _asyncio
         async def _update():
             if ok:
-                await db.servers.update_one({"id": server_id}, {"$set": {
+                update_fields: Dict[str, Any] = {
                     "installed": True, "status": "Stopped",
                     "installed_build_id": build_id, "update_available": False,
-                }})
+                }
+                # After install + first-boot, parse any generated config files back
+                # into the manager settings so the UI reflects REAL values and any
+                # edits the user makes write to the files SCUM actually reads.
+                try:
+                    parsed = parse_real_config_dir(doc["folder_path"])
+                    current_doc = await db.servers.find_one({"id": server_id}, {"_id": 0}) or doc
+                    current_settings = current_doc.get("settings", {}) or {}
+                    merged = {**current_settings}
+                    for k, v in parsed.items():
+                        if isinstance(v, (list, dict)) and not v:
+                            continue
+                        merged[k] = v
+                    if not parsed.get("notifications"):
+                        merged["notifications"] = current_settings.get("notifications", [])
+                    if not parsed.get("custom_ini"):
+                        merged["custom_ini"] = current_settings.get("custom_ini", {
+                            "ExtraServerSettings": "", "ExtraGameSettings": "", "ExtraEngineSettings": "",
+                        })
+                    update_fields["settings"] = merged
+                except Exception:
+                    logger.exception("install on_complete: parse_real_config_dir failed")
+                await db.servers.update_one({"id": server_id}, {"$set": update_fields})
             else:
                 await db.servers.update_one({"id": server_id}, {"$set": {"status": "Stopped"}})
         try:
-            asyncio.run(_update())
+            _asyncio.run(_update())
         except Exception:
             logger.exception("install on_complete db update failed")
 
@@ -1073,24 +1106,12 @@ async def test_discord_webhook(server_id: str, payload: DiscordTestPayload):
     return {"sent": sent}
 
 
-@api_router.post("/servers/{server_id}/save-config")
-async def save_server_config(server_id: str, write_to_disk: bool = True):
-    """Render all manager settings into actual SCUM config files and write them to disk.
-
-    Target directory: {folder_path}/SCUM/Saved/Config/WindowsServer/
-
-    Writes are performed by the backend directly on the host filesystem when `write_to_disk=True`
-    (default). This is a REAL filesystem operation — not a simulation. In Electron desktop the
-    shell can also receive the same plan via `window.lgss.writeConfigFiles` for cross-process
-    verification.
-    """
-    doc = await db.servers.find_one({"id": server_id}, {"_id": 0})
-    if not doc:
-        raise HTTPException(status_code=404, detail="Server not found")
-    settings = doc.get("settings", {})
-    folder = doc["folder_path"]
-    sep = "\\" if ("\\" in folder or (len(folder) >= 2 and folder[1] == ":")) else "/"
-    config_dir = f"{folder}{sep}SCUM{sep}Saved{sep}Config{sep}WindowsServer"
+def _plan_config_files(settings: Dict[str, Any], folder_path: str) -> tuple[str, List[Dict[str, str]]]:
+    """Return (config_dir, files) where files = [{path, content}, ...].
+    Uses the correct path separator for the host OS so the plan is usable both
+    for Electron IPC (Windows) and direct backend writes."""
+    sep = "\\" if ("\\" in folder_path or (len(folder_path) >= 2 and folder_path[1] == ":")) else "/"
+    config_dir = f"{folder_path}{sep}SCUM{sep}Saved{sep}Config{sep}WindowsServer"
     files = [
         {"path": f"{config_dir}{sep}ServerSettings.ini", "content": render_server_settings_ini(settings)},
         {"path": f"{config_dir}{sep}AdminUsers.ini", "content": render_user_list(settings.get("users_admins", []))},
@@ -1104,24 +1125,29 @@ async def save_server_config(server_id: str, write_to_disk: bool = True):
         {"path": f"{config_dir}{sep}Notifications.json", "content": render_notifications_json(settings)},
         {"path": f"{config_dir}{sep}Input.ini", "content": render_input_ini(settings)},
     ]
+    return config_dir, files
 
+
+def _write_config_files_for_doc(doc: Dict[str, Any]) -> Dict[str, Any]:
+    """Write rendered SCUM config files directly to disk for the given server doc.
+    Works on both Windows (backend bundled into Electron) and Linux/macOS (dev).
+    Returns {written_count, written, errors, config_dir}."""
+    settings = doc.get("settings", {}) or {}
+    folder = doc["folder_path"]
+    config_dir, files = _plan_config_files(settings, folder)
     written: List[str] = []
     errors: List[Dict[str, str]] = []
-    if write_to_disk:
-        # Only attempt direct write when backend host uses forward slashes (Linux/macOS container).
-        # On Windows paths we defer to the Electron shell (runs on the target machine).
-        if sep == "/":
+    try:
+        Path(config_dir).mkdir(parents=True, exist_ok=True)
+        for f in files:
             try:
-                Path(config_dir).mkdir(parents=True, exist_ok=True)
-                for f in files:
-                    p = Path(f["path"])
-                    p.write_text(f["content"], encoding="utf-8")
-                    written.append(str(p))
+                p = Path(f["path"])
+                p.write_text(f["content"], encoding="utf-8")
+                written.append(str(p))
             except Exception as e:
-                errors.append({"path": config_dir, "error": str(e)})
-        else:
-            errors.append({"path": config_dir, "error": "Windows path — requires Electron desktop to write"})
-
+                errors.append({"path": f["path"], "error": str(e)})
+    except Exception as e:
+        errors.append({"path": config_dir, "error": str(e)})
     return {
         "config_dir": config_dir,
         "files": files,
@@ -1131,6 +1157,128 @@ async def save_server_config(server_id: str, write_to_disk: bool = True):
         "errors": errors,
         "wrote_to_disk": bool(written),
     }
+
+
+@api_router.post("/servers/{server_id}/save-config")
+async def save_server_config(server_id: str, write_to_disk: bool = True):
+    """Render all manager settings into actual SCUM config files and write them to disk.
+
+    Target directory: {folder_path}/SCUM/Saved/Config/WindowsServer/
+
+    The backend writes files directly on whichever OS it runs on. When shipped
+    inside the Electron app (PyInstaller bundle on Windows) this produces the
+    real files SCUM reads. In Electron desktop the shell can also receive the
+    same plan via `window.lgss.writeConfigFiles` for cross-process verification.
+    """
+    doc = await db.servers.find_one({"id": server_id}, {"_id": 0})
+    if not doc:
+        raise HTTPException(status_code=404, detail="Server not found")
+    settings = doc.get("settings", {}) or {}
+    folder = doc["folder_path"]
+    config_dir, files = _plan_config_files(settings, folder)
+
+    if not write_to_disk:
+        return {
+            "config_dir": config_dir,
+            "files": files,
+            "count": len(files),
+            "written_count": 0,
+            "written": [],
+            "errors": [],
+            "wrote_to_disk": False,
+        }
+
+    res = _write_config_files_for_doc(doc)
+    return res
+
+
+@api_router.post("/servers/{server_id}/first-boot", response_model=ServerProfile)
+async def first_boot_server(server_id: str, timeout_sec: int = 120):
+    """Run SCUMServer.exe once for a few seconds so the game generates its
+    default `Saved/Config/WindowsServer/*.ini` files, then stop it and parse
+    those real files back into the manager's settings.
+
+    Called automatically by the frontend after a successful SteamCMD install.
+    Safe to call manually afterwards (re-parses whatever is on disk).
+
+    On non-Windows hosts this is a no-op (SCUMServer.exe is Windows-only) but
+    we still parse any existing config files that may have been placed manually.
+    """
+    doc = await db.servers.find_one({"id": server_id}, {"_id": 0})
+    if not doc:
+        raise HTTPException(status_code=404, detail="Server not found")
+    if not doc.get("installed"):
+        raise HTTPException(status_code=400, detail="Server not installed yet")
+
+    folder = doc["folder_path"]
+    port = int(doc.get("game_port") or 7779)
+    query_port = int(doc.get("query_port") or 7780)
+    max_players = int(doc.get("max_players") or 64)
+
+    # Actually boot SCUMServer.exe so it produces its config files.
+    # Runs the blocking scum_proc.first_boot in a thread so we don't stall the
+    # FastAPI event loop for 60+ seconds.
+    def _run_boot() -> Dict[str, Any]:
+        return scum_proc.first_boot(
+            server_id=server_id,
+            folder_path=folder,
+            port=port,
+            query_port=query_port,
+            max_players=max_players,
+            timeout_sec=timeout_sec,
+        )
+    try:
+        boot_result = await asyncio.to_thread(_run_boot)
+    except Exception as e:
+        logger.exception("first_boot failed")
+        raise HTTPException(status_code=500, detail=f"first_boot failed: {e}")
+
+    # Parse whatever config files now exist (partial is OK; missing sections fall back to defaults).
+    parsed = parse_real_config_dir(folder)
+    # Merge parsed REAL values over the current settings; keep manager-only keys
+    # like `notifications`, `custom_ini`, and `economy_traders` if the game didn't
+    # produce them. SCUM never writes Notifications.json itself — preserve ours.
+    current = {**(doc.get("settings") or {})}
+    merged = {**current}
+    for k, v in parsed.items():
+        # Never overwrite manager-authored list/dict categories with empty parsed data
+        if isinstance(v, (list, dict)) and not v:
+            continue
+        merged[k] = v
+    # Explicitly keep manager-managed fields if parse produced blanks
+    if not parsed.get("notifications"):
+        merged["notifications"] = current.get("notifications", [])
+    if not parsed.get("custom_ini"):
+        merged["custom_ini"] = current.get("custom_ini", {
+            "ExtraServerSettings": "", "ExtraGameSettings": "", "ExtraEngineSettings": "",
+        })
+
+    await db.servers.update_one({"id": server_id}, {"$set": {"settings": merged, "status": "Stopped"}})
+    doc["settings"] = merged
+    doc["status"] = "Stopped"
+
+    # Persist anything we have back to disk so next boot reflects what the user sees.
+    try:
+        _write_config_files_for_doc(doc)
+    except Exception:
+        logger.exception("first_boot: post-parse write failed (non-fatal)")
+
+    # Attach boot telemetry to the response via a side-channel (saved under meta).
+    # (ServerProfile does not include these fields, but the frontend polls /first-boot for the raw result.)
+    REGISTRY_KEY = f"lgss-first-boot-{server_id}"
+    await db.app_meta.update_one(
+        {"_id": REGISTRY_KEY},
+        {"$set": {**boot_result, "at": datetime.now(timezone.utc).isoformat()}},
+        upsert=True,
+    )
+    return ServerProfile(**doc)
+
+
+@api_router.get("/servers/{server_id}/first-boot/result")
+async def first_boot_result(server_id: str):
+    """Returns the most recent `first-boot` outcome for this server."""
+    doc = await db.app_meta.find_one({"_id": f"lgss-first-boot-{server_id}"}, {"_id": 0})
+    return doc or {"ok": False, "files_found": [], "error": "never_run"}
 
 
 # ---------- MANAGER VERSION / SELF-UPDATE ----------
@@ -1644,7 +1792,7 @@ logger = logging.getLogger(__name__)
 #   * Runs an auto-update check every automation.update_check_interval_min minutes
 #   * If auto_update_enabled and a new build is detected while server is Stopped,
 #     trigger an update cycle (Updating -> Stopped with new build id)
-import asyncio
+
 
 _scheduler_task: Optional[asyncio.Task] = None
 _last_restart_tick: Dict[str, str] = {}   # server_id -> "YYYY-MM-DDTHH:MM" of last restart

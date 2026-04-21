@@ -76,7 +76,9 @@ export const InstallProgressModal = ({ open, server, onClose, onDone }) => {
           <div>
             <div className="flex items-center justify-between mb-1.5">
               <div className="font-mono text-[11px] text-dim uppercase tracking-[0.22em]">
-                {state.phase?.toUpperCase() || "INITIALIZING"}
+                {t(`install_phase_${state.phase || "starting"}`)?.startsWith("install_phase_")
+                  ? (state.phase?.toUpperCase() || "INITIALIZING")
+                  : t(`install_phase_${state.phase || "starting"}`)}
               </div>
               <div className="font-mono text-sm text-brand">
                 {state.percent?.toFixed(1) ?? "0.0"}%
@@ -91,6 +93,11 @@ export const InstallProgressModal = ({ open, server, onClose, onDone }) => {
                 }}
               />
             </div>
+            {state.phase === "first_boot" && (
+              <div className="mt-2 font-mono text-[10px] text-dim leading-relaxed">
+                {t("first_boot_generating")}
+              </div>
+            )}
           </div>
 
           {/* Status line */}

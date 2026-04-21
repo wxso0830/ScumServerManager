@@ -156,6 +156,27 @@ Research outcome: SCUM has no RCON/API. Community bots (Prisoner Bot, scum_disco
 
 **Testing**: `iteration_8.json` — **100% pass (15/15 backend + frontend)**, 0 issues, 0 regressions.
 
+## Feb 2026 — Config Persistence Fix (First-Boot + Auto-Write)
+**Problem reported by user (Turkish)**: SteamCMD downloads SCUM but `Saved/Config/WindowsServer/*.ini` files don't exist until the server has been booted once. All settings edited in the manager were only saved to MongoDB, never reaching actual `.ini` files on disk. Even when the "Save Config Files" button was clicked, the save was blocked on Windows paths.
+
+**Fixes shipped**:
+- `scum_process.first_boot()` — launches `SCUMServer.exe` hidden for up to 180s after a successful SteamCMD install, polls for `ServerSettings.ini` to appear, waits 5s extra so GameUserSettings/Economy also drop, then kills the tree (including stray `SCUMServer-Win64-Shipping.exe` / `CrashReportClient.exe` via `taskkill /F /T`).
+- `install_server._runner` automatically chains: SteamCMD download → `first_boot` → phase `first_boot` exposed via `/install/progress` (users see a dedicated status tile in the InstallProgressModal).
+- `scum_parser.parse_real_config_dir(folder_path)` parses the REAL generated files from `{folder}/SCUM/Saved/Config/WindowsServer/` back into the manager settings model. Missing sections fall back to bundled defaults.
+- `install_server._on_complete` callback now merges real config values into the server's `settings` doc, preserving manager-only fields (`notifications`, `custom_ini`).
+- `save_server_config` refactored — no longer blocks on Windows path separators; writes directly on both Windows (PyInstaller bundle) and Linux (dev preview).
+- `update_server_settings` now auto-writes to disk after every DB update for installed servers. Every toggle/slider the user flips is immediately reflected in the `.ini` files SCUM reads.
+- New endpoints: `POST /api/servers/{id}/first-boot`, `GET /api/servers/{id}/first-boot/result`.
+- I18n: new `first_boot_*` and `install_phase_*` strings (TR + EN).
+- InstallProgressModal shows localized phase names and a subtitle during first-boot generation.
+
+**Verified in Linux preview (curl)**:
+- `save-config` → 11/11 files written to `/tmp/LGSSManagers/Servers/Server1/SCUM/Saved/Config/WindowsServer/`
+- `PUT /settings` with a new ServerName → value appears in `ServerSettings.ini` within 1s
+- External change to `ServerSettings.ini` → `POST /first-boot` parses it back into DB settings
+
+## Prioritized Backlog
+
 ### Desktop-Only Operations (clearly scoped)
 These require Electron + Windows because they spawn external binaries; in the web preview they fallback to a simulation of status toggling but real behavior requires Electron IPC (`window.lgss.*`):
 - `installServer` → SteamCMD `app_update 3792580`

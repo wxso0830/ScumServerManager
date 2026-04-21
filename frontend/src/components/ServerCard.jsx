@@ -242,7 +242,7 @@ export const ServerCard = ({ server, onOpen, onStart, onStop, onUpdate, onInstal
             className={`btn-secondary flex items-center justify-center gap-2 px-3 ${server.update_available ? "update-pulse" : ""}`}
             onClick={(e) => { e.stopPropagation(); onUpdate?.(server); }}
             disabled={busy || processAlive}
-            title={server.update_available ? t("update_available_label") : t("update_server")}
+            title={t("card_btn_update")}
             data-testid={`card-update-${server.folder_name}`}
           >
             <ChevronsUp size={15} strokeWidth={2.5} />

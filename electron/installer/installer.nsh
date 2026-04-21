@@ -1,34 +1,46 @@
 ; LGSS Manager NSIS custom installer script
 ; Bundles and installs Visual C++ Redistributable 2015-2022 (x64) silently
 ; so end users never have to install it manually.
+; Also terminates any running LGSS / SteamCMD / MongoDB processes so an
+; update overwrites files cleanly (prevents "file in use" errors).
 
 !macro customInit
-  ; Runs BEFORE files are copied — good place to run redist installer
-  DetailPrint "Visual C++ Redistributable 2015-2022 (x64) kontrol ediliyor..."
+  DetailPrint "Calisan LGSS Manager / yardimci servisler kapatiliyor..."
+  nsExec::Exec 'taskkill /F /IM "LGSS Manager.exe" /T'
+  nsExec::Exec 'taskkill /F /IM "lgss-backend.exe" /T'
+  nsExec::Exec 'taskkill /F /IM "mongod.exe" /T'
+  nsExec::Exec 'taskkill /F /IM "steamcmd.exe" /T'
+  nsExec::Exec 'taskkill /F /IM "steamservice.exe" /T'
+  nsExec::Exec 'taskkill /F /IM "steamerrorreporter.exe" /T'
+  Sleep 1200
 
-  ; Extract bundled VC++ redist to $PLUGINSDIR (cleaned up automatically)
+  DetailPrint "Visual C++ Redistributable 2015-2022 (x64) kontrol ediliyor..."
   SetOutPath "$PLUGINSDIR"
   File "${BUILD_RESOURCES_DIR}\vc_redist.x64.exe"
-
   DetailPrint "Visual C++ 2015-2022 (x64) yukleniyor..."
   ExecWait '"$PLUGINSDIR\vc_redist.x64.exe" /install /quiet /norestart' $0
-
-  ; 0 = installed, 1638 = already installed newer version, 3010 = reboot required
   ${If} $0 == 0
     DetailPrint "Visual C++ Redistributable yuklendi."
   ${ElseIf} $0 == 1638
     DetailPrint "Visual C++ Redistributable zaten mevcut (daha yeni surum)."
   ${ElseIf} $0 == 3010
-    DetailPrint "Visual C++ Redistributable yuklendi (yeniden baslatma gerekiyor)."
+    DetailPrint "Visual C++ yuklendi (yeniden baslatma gerekiyor)."
   ${Else}
-    DetailPrint "Visual C++ Redistributable yukleme kodu: $0"
+    DetailPrint "VC++ yukleme kodu: $0"
   ${EndIf}
 !macroend
 
+!macro customUnInit
+  ; Also kill on uninstall, otherwise uninstaller cannot delete files
+  nsExec::Exec 'taskkill /F /IM "LGSS Manager.exe" /T'
+  nsExec::Exec 'taskkill /F /IM "lgss-backend.exe" /T'
+  nsExec::Exec 'taskkill /F /IM "mongod.exe" /T'
+  nsExec::Exec 'taskkill /F /IM "steamcmd.exe" /T'
+  nsExec::Exec 'taskkill /F /IM "steamservice.exe" /T'
+  Sleep 1000
+!macroend
+
 !macro customInstall
-  ; Runs AFTER files are copied — create ProgramData directory with proper
-  ; permissions so the app can write its MongoDB database and logs there.
   CreateDirectory "$APPDATA\LGSS Manager"
   CreateDirectory "$APPDATA\LGSS Manager\logs"
-  CreateDirectory "$APPDATA\LGSS Manager\mongo-db"
 !macroend

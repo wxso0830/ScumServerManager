@@ -275,9 +275,21 @@ function killChild(proc, name) {
   } catch (e) { console.warn(`[${name}] kill failed:`, e.message); }
 }
 
+function killByImage(name) {
+  // Belt-and-suspenders: kill any orphaned image of this name. Windows only.
+  if (process.platform !== 'win32') return;
+  try {
+    execFile('taskkill', ['/f', '/t', '/im', name], () => {});
+  } catch (_) {}
+}
+
 function shutdownChildren() {
   killChild(backendProcess, 'backend'); backendProcess = null;
   killChild(mongodProcess, 'mongo');    mongodProcess = null;
+  // Also sweep by image name in case a previous run left an orphan running
+  killByImage('lgss-backend.exe');
+  killByImage('steamcmd.exe');
+  killByImage('steamservice.exe');
 }
 
 // ---------- Splash (live status updates) ----------

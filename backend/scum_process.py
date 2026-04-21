@@ -151,6 +151,21 @@ def install_server(server_id: str, folder_path: str, manager_path: str,
 
             rc = proc.wait()
             ok = rc == 0
+
+            # Kill any leftover SteamCMD helper processes that may linger
+            # (steamservice.exe, steam client helpers). Prevents orphan procs
+            # and makes the installer console actually close on Windows.
+            if _is_windows():
+                for img in ("steamcmd.exe", "steamservice.exe", "steamerrorreporter.exe"):
+                    try:
+                        subprocess.run(
+                            ["taskkill", "/F", "/IM", img, "/T"],
+                            capture_output=True, timeout=5,
+                            creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0),
+                        )
+                    except Exception:
+                        pass
+
             REGISTRY[server_id]["install"].update({
                 "running": False,
                 "percent": 100.0 if ok else REGISTRY[server_id]["install"].get("percent", 0.0),

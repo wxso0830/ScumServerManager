@@ -98,6 +98,50 @@ const EventRow = ({ ev }) => {
   );
 };
 
+
+/**
+ * LiveDot — compact heartbeat indicator showing auto-refresh freshness.
+ * Pulses green for ~2s after each successful poll, grey otherwise. Lets the
+ * user confirm at a glance that the Logs page is actively syncing, without
+ * depending on toasts or relying on visual event changes.
+ */
+const LiveDot = ({ lastRefreshAt, loading }) => {
+  const [, setTick] = useState(0);
+  useEffect(() => {
+    const id = setInterval(() => setTick((n) => (n + 1) % 1e6), 500);
+    return () => clearInterval(id);
+  }, []);
+  if (!lastRefreshAt) {
+    return (
+      <span className="text-[10px] font-mono text-dim uppercase tracking-widest opacity-70 hidden sm:inline">
+        LIVE · —
+      </span>
+    );
+  }
+  const sec = Math.max(0, Math.floor((Date.now() - lastRefreshAt) / 1000));
+  const isPulsing = loading || sec < 2;
+  return (
+    <span
+      className="text-[10px] font-mono uppercase tracking-widest shrink-0 hidden sm:flex items-center gap-1.5"
+      title={`Last refresh ${sec}s ago — auto-refreshes every 10s`}
+      data-testid="logs-live-indicator"
+    >
+      <span
+        className="inline-block w-1.5 h-1.5 rounded-full"
+        style={{
+          background: isPulsing ? "var(--success)" : "var(--text-dim)",
+          boxShadow: isPulsing ? "0 0 6px var(--success)" : "none",
+          transition: "background 200ms, box-shadow 200ms",
+        }}
+      />
+      <span style={{ color: isPulsing ? "var(--success)" : "var(--text-dim)" }}>
+        LIVE · {sec}s
+      </span>
+    </span>
+  );
+};
+
+
 export const LogsView = ({ servers = [] }) => {
   const { t } = useI18n();
   const [serverId, setServerId] = useState(servers[0]?.id || "");
@@ -120,10 +164,23 @@ export const LogsView = ({ servers = [] }) => {
     if (typeFilter !== "chat") setChatChannel("");
   }, [typeFilter]);
 
-  const load = async () => {
+  const [lastRefreshAt, setLastRefreshAt] = useState(null);
+
+  // `scan` flag toggles an active log-folder scan before the query. We only do
+  // that on visible/auto refreshes (not on filter-change navigations), so
+  // clicking between categories stays instantaneous. Every 10s the user sees
+  // the freshest possible data — no need to switch tabs or click Refresh.
+  const load = async ({ scan = false } = {}) => {
     if (!serverId) return;
     setLoading(true);
     try {
+      if (scan) {
+        // Fire-and-forget: we don't block the fetch on it. If scan produces
+        // new events, the very-next poll (10s later) will pick them up, but
+        // in practice the scan completes within 1-2s so the same fetch sees
+        // them already.
+        endpoints.scanLogs(serverId, 20).catch(() => {});
+      }
       const params = { limit: 300 };
       if (typeFilter) params.type = typeFilter;
       if (playerFilter) params.player = playerFilter;
@@ -133,14 +190,17 @@ export const LogsView = ({ servers = [] }) => {
       ]);
       setEvents(evs.events || []);
       setStats(st);
+      setLastRefreshAt(Date.now());
     } finally { setLoading(false); }
   };
 
   useEffect(() => { load(); /* eslint-disable-next-line */ }, [serverId, typeFilter, playerFilter]);
 
-  // Auto-refresh every 10s
+  // Auto-refresh every 10s — AND actively rescan the log folder on each tick
+  // so new chat lines / admin commands surface without requiring the user
+  // to switch filters or press the manual Refresh button.
   useEffect(() => {
-    const t = setInterval(() => { load(); }, 10000);
+    const t = setInterval(() => { load({ scan: true }); }, 10000);
     return () => clearInterval(t);
     // eslint-disable-next-line
   }, [serverId, typeFilter, playerFilter]);
@@ -229,7 +289,8 @@ export const LogsView = ({ servers = [] }) => {
         <button className="btn-secondary flex items-center gap-2" onClick={handleScan} data-testid="logs-scan-btn">
           <FolderSearch size={13} /> {t("scan_logs_folder")}
         </button>
-        <button className="icon-btn" onClick={load} title="Refresh" data-testid="logs-refresh-btn">
+        <LiveDot lastRefreshAt={lastRefreshAt} loading={loading} />
+        <button className="icon-btn" onClick={() => load({ scan: true })} title={t("refresh_now")} data-testid="logs-refresh-btn">
           <RefreshCw size={14} className={loading ? "animate-spin" : ""} />
         </button>
         <button className="icon-btn" onClick={handleClear} title={t("clear_events")} data-testid="logs-clear-btn">

@@ -1067,6 +1067,8 @@ async def download_server_backup(server_id: str, backup_id: str):
 class DiscordBotConfig(BaseModel):
     enabled: Optional[bool] = None
     token: Optional[str] = None
+    status_guild_id: Optional[str] = None
+    status_channel_id: Optional[str] = None
 
 
 def _discord_state_collector() -> Dict[str, Any]:
@@ -1079,11 +1081,26 @@ def _discord_state_collector() -> Dict[str, Any]:
 _discord_state_collector._cache = {"servers": []}  # type: ignore[attr-defined]
 
 
+async def _discord_message_id_store(folder_name: str, message_id: str) -> None:
+    """Callback handed to the Discord bot so it can persist the message id
+    it just posted. Used by the status-channel loop so restarting the bot
+    doesn't spawn duplicate embeds — it edits the existing message instead."""
+    setup = await db.setup.find_one({"_id": SETUP_DOC_ID}, {"_id": 0}) or {}
+    cfg = {**(setup.get("discord_bot") or {})}
+    ids = {**(cfg.get("status_message_ids") or {})}
+    ids[folder_name] = message_id
+    cfg["status_message_ids"] = ids
+    await db.setup.update_one(
+        {"_id": SETUP_DOC_ID}, {"$set": {"discord_bot": cfg}}, upsert=True,
+    )
+
+
 async def _refresh_discord_state_cache():
     """Rebuild the Discord state cache from live DB + A2S queries.
-    Called once per scheduler tick so the bot's presence stays within 10s
-    of the real state without hammering UDP for every presence update."""
+    Called once per scheduler tick so the bot's presence + status channel
+    embeds stay within 10s of the real state without hammering UDP."""
     servers_out: List[Dict[str, Any]] = []
+    now_ts = datetime.now(timezone.utc).timestamp()
     async for s in db.servers.find({}, {"_id": 0}):
         query_port = int(s.get("query_port") or 7780)
         max_p = int((s.get("settings") or {}).get("srv_general", {}).get("scum.MaxPlayers")
@@ -1092,18 +1109,44 @@ async def _refresh_discord_state_cache():
         players: List[Dict[str, Any]] = []
         if metrics.get("ready"):
             try:
-                players = await asyncio.to_thread(
+                raw = await asyncio.to_thread(
                     scum_proc.a2s_player_query, "127.0.0.1", query_port, 1.0,
                 )
+                # Enrich with squad info from SCUM.db (best-effort: matches on
+                # db_name, which is the in-game display name). We do this once
+                # per tick rather than per player so SQLite stays happy.
+                name_to_squad: Dict[str, str] = {}
+                if s.get("folder_path"):
+                    try:
+                        stats = await asyncio.to_thread(scum_db.read_player_stats, s["folder_path"])
+                        for sid, st in stats.items():
+                            nm = (st.get("db_name") or "").strip()
+                            if nm and st.get("squad_name"):
+                                name_to_squad[nm] = st["squad_name"]
+                    except Exception:
+                        pass
+                for p in raw:
+                    players.append({
+                        "name": p["name"],
+                        "duration_s": p["duration_s"],
+                        "squad": name_to_squad.get(p["name"]),
+                    })
             except Exception:
                 players = []
+
+        uptime_s = int(metrics.get("online_uptime_seconds") or 0)
         servers_out.append({
+            "id": s["id"],
             "name": s.get("name"),
             "folder_name": s.get("folder_name"),
             "status": s.get("status"),
             "ready": bool(metrics.get("ready")),
             "max_players": max_p,
             "players": players,
+            "uptime_s": uptime_s,
+            "game_port": s.get("game_port"),
+            "query_port": query_port,
+            "snapshot_ts": now_ts,
         })
     _discord_state_collector._cache = {"servers": servers_out}  # type: ignore[attr-defined]
 
@@ -1118,6 +1161,8 @@ async def get_discord_bot_config():
         "enabled": bool(cfg.get("enabled")),
         "token_set": bool(tok),
         "token_preview": (tok[:6] + "…" + tok[-4:]) if len(tok) > 12 else "",
+        "status_guild_id": cfg.get("status_guild_id") or "",
+        "status_channel_id": cfg.get("status_channel_id") or "",
         "status": scum_discord.get_status(),
     }
 
@@ -1133,6 +1178,15 @@ async def update_discord_bot_config(payload: DiscordBotConfig):
         cfg["token"] = (data["token"] or "").strip()
     if "enabled" in data:
         cfg["enabled"] = bool(data["enabled"])
+    if "status_guild_id" in data:
+        cfg["status_guild_id"] = (data["status_guild_id"] or "").strip()
+    if "status_channel_id" in data:
+        new_ch = (data["status_channel_id"] or "").strip()
+        if new_ch != (cfg.get("status_channel_id") or ""):
+            # Channel changed — clear remembered message ids so a fresh embed
+            # is posted in the new channel.
+            cfg["status_message_ids"] = {}
+        cfg["status_channel_id"] = new_ch
     await db.setup.update_one(
         {"_id": SETUP_DOC_ID},
         {"$set": {"discord_bot": cfg}},
@@ -1142,7 +1196,13 @@ async def update_discord_bot_config(payload: DiscordBotConfig):
     if cfg.get("enabled") and cfg.get("token"):
         if scum_discord.get_status().get("running"):
             await scum_discord.stop_bot()
-        await scum_discord.start_bot(cfg["token"], _discord_state_collector)
+        await scum_discord.start_bot(
+            cfg["token"],
+            _discord_state_collector,
+            status_channel_id=cfg.get("status_channel_id") or None,
+            message_id_store=_discord_message_id_store,
+            initial_message_ids=cfg.get("status_message_ids") or {},
+        )
     else:
         await scum_discord.stop_bot()
 
@@ -2430,7 +2490,13 @@ async def _start_scheduler():
         setup = await db.setup.find_one({"_id": SETUP_DOC_ID}, {"_id": 0}) or {}
         bot_cfg = setup.get("discord_bot") or {}
         if bot_cfg.get("enabled") and bot_cfg.get("token"):
-            await scum_discord.start_bot(bot_cfg["token"], _discord_state_collector)
+            await scum_discord.start_bot(
+                bot_cfg["token"],
+                _discord_state_collector,
+                status_channel_id=bot_cfg.get("status_channel_id") or None,
+                message_id_store=_discord_message_id_store,
+                initial_message_ids=bot_cfg.get("status_message_ids") or {},
+            )
             logger.info("Discord bot auto-started from saved token")
     except Exception as e:
         logger.info("Discord bot auto-start skipped: %s", e)

@@ -12,8 +12,10 @@ import { endpoints } from "../lib/api";
  */
 export const DiscordBotSettings = () => {
   const { t } = useI18n();
-  const [cfg, setCfg] = useState({ enabled: false, token_set: false, token_preview: "", status: {} });
+  const [cfg, setCfg] = useState({ enabled: false, token_set: false, token_preview: "", status_guild_id: "", status_channel_id: "", status: {} });
   const [token, setToken] = useState("");
+  const [guildId, setGuildId] = useState("");
+  const [channelId, setChannelId] = useState("");
   const [saving, setSaving] = useState(false);
   const [showToken, setShowToken] = useState(false);
 
@@ -21,6 +23,8 @@ export const DiscordBotSettings = () => {
     try {
       const r = await endpoints.getDiscordBot();
       setCfg(r);
+      setGuildId(r.status_guild_id || "");
+      setChannelId(r.status_channel_id || "");
     } catch (e) {
       toast.error(e.response?.data?.detail || e.message);
     }
@@ -173,6 +177,57 @@ export const DiscordBotSettings = () => {
               {cfg.token_set ? t("discord_bot_update_token") : t("discord_bot_save_start")}
             </button>
           </div>
+        </div>
+      </div>
+
+      {/* Status channel panel — auto-edited embed every 60s */}
+      <div className="panel corner-brackets">
+        <div className="px-4 py-3 border-b border-brand flex items-center gap-3">
+          <ExternalLink size={15} className="text-accent-brand" />
+          <span className="heading-stencil text-sm">{t("discord_bot_status_channel_title")}</span>
+        </div>
+        <div className="p-5 space-y-4">
+          <p className="text-xs text-dim flex items-start gap-2">
+            <Info size={12} className="mt-0.5 shrink-0 text-accent-brand" />
+            {t("discord_bot_status_channel_hint")}
+          </p>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div>
+              <label className="label-accent block mb-2">{t("discord_bot_guild_id")}</label>
+              <input
+                type="text"
+                className="input-field font-mono"
+                placeholder="Guild (Server) ID"
+                value={guildId}
+                onChange={(e) => setGuildId(e.target.value.replace(/\D/g, ""))}
+                data-testid="discord-bot-guild-id-input"
+              />
+            </div>
+            <div>
+              <label className="label-accent block mb-2">{t("discord_bot_channel_id")}</label>
+              <input
+                type="text"
+                className="input-field font-mono"
+                placeholder="Channel ID"
+                value={channelId}
+                onChange={(e) => setChannelId(e.target.value.replace(/\D/g, ""))}
+                data-testid="discord-bot-channel-id-input"
+              />
+            </div>
+          </div>
+          <div className="flex justify-end">
+            <button
+              className="btn-primary text-xs"
+              onClick={() => handleSave({ status_guild_id: guildId, status_channel_id: channelId })}
+              disabled={saving || (guildId === (cfg.status_guild_id || "") && channelId === (cfg.status_channel_id || ""))}
+              data-testid="discord-bot-channel-save-btn"
+            >
+              {t("discord_bot_status_channel_save")}
+            </button>
+          </div>
+          <p className="text-[10px] text-dim">
+            {t("discord_bot_status_channel_howto")}
+          </p>
         </div>
       </div>
 

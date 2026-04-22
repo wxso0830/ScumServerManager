@@ -1,69 +1,80 @@
 # SCUM Server Manager — PRD
 
 ## Original Problem Statement
-Electron-based desktop server manager for SCUM game. On first launch: ask user to select a physical disk drive, show capacities, request Admin privileges. Create workspace `LGSSManagers/Servers/ServerN/`. Parse, manage, and save all official SCUM configuration files (ServerSettings.ini, EconomyOverride.json, etc.) into functional, easy-to-use categories.
+Electron-based desktop server manager for SCUM game. On first launch: ask user to select a physical disk drive, show capacities, request Admin privileges. Create workspace `LGSSManagers/Servers/ServerN/`. Parse, manage, and save all official SCUM configuration files.
 
-**Stack:** React Frontend + FastAPI backend + Electron shell + SteamCMD integration.
+**Stack:** React + FastAPI + Electron + SteamCMD + Discord.py.
 **User language:** Turkish (TR) — always respond in TR.
 
 ## Architecture
 ```
 /app/
-├── backend/         FastAPI + scum_process + scum_parser + scum_logs + scum_db + scum_backup
-├── frontend/        React SPA (ServerCard, LogsView, BackupsView, PlayersView, AutomationEditor)
-├── electron/        Electron main + electron-builder (NSIS + GitHub publish)
-└── scripts/         Logo/icon generation
+├── backend/
+│   ├── server.py              FastAPI routes + scheduler
+│   ├── scum_process.py        SCUMServer/SteamCMD + A2S_INFO + A2S_PLAYER
+│   ├── scum_parser.py         INI/JSON parser
+│   ├── scum_logs.py           log regex (chat/kill/admin/vehicle)
+│   ├── scum_db.py             SCUM.db SQLite reader
+│   ├── scum_backup.py         zip snapshot + restore
+│   ├── scum_discord.py        Discord bot (discord.py 2.x)
+│   └── tests/                 pytest regression suite
+├── frontend/src/components/   React SPA (ServerCard, BackupsView, DiscordBotSettings, AutomationEditor, …)
+├── electron/                  Electron main + electron-builder (NSIS + GitHub publish)
+└── scripts/                   logo generation
 ```
 
 ## Implemented Features
-- First-boot flow (drive selection, admin, workspace creation)
-- Full `.ini` + JSON config persistence (UI → SCUM config files)
-- Log parser (Chat w/ filters, Kills, Admin events, Vehicle destruction/lock)
-- Player tracking via `SCUM.db` SQLite (Fame, Squads, Flags, Vehicles)
-- UDP A2S_INFO polling for accurate Online detection
-- Live Logs UI with auto-refresh
-- Backup & Restore system (auto-backups, pre-restore safety snapshot)
-  - Expected-stop tracking: admin Stop/Restart/Update no longer mis-labeled as crash
-  - Crash auto-recovery: on next start after real crash, latest good backup is auto-restored
-  - UI-configurable auto-save interval (`backup_interval_min`) + retention (`backup_keep_count`)
+- First-boot flow (drive select, admin, workspace)
+- Full `.ini` + JSON config persistence
+- Log parser (Chat, Kill, Admin, Vehicle destruction/lock/claim)
+- Player tracking via SCUM.db SQLite
+- UDP A2S_INFO polling for live Online detection
+- **Live active-player count** on ServerCard (`N/M`) via A2S_INFO
+- Auto-Save backup system with:
+  - Admin-configurable interval + retention in **Backups page** UI
+  - Non-blocking: SQLite online-backup API + `asyncio.to_thread`
+  - Expected-stop tracking (admin Stop/Restart/Update never mis-labeled as crash)
+  - Crash auto-recovery on next start (preferred: crash backup > auto > manual)
+- **Discord integration (dedicated section)**:
+  - Webhook Channels (existing) — 8 channel types
+  - **Discord Bot** (new): token input, start/stop on toggle, live status
+  - Bot presence: "X SCUM · Y oyuncu" every 30s (X = local manager servers)
+  - `/online` slash command → player list per server via A2S_PLAYER
 - Auto-Updater via `electron-updater` + GitHub Releases
-- Custom rainbow grunge "S" logo
-- Simplified NSIS installer (`perMachine`, desktop shortcut prompt)
-- Bulk operations (start all / restart all / update all)
-- ServerCard action buttons (Start/Stop, Restart, Update, Settings)
+- NSIS installer (perMachine, desktop shortcut prompt)
+- Bulk ops (start/restart/stop all)
+- Schema cleanup: removed `client` section + client_mouse/video/graphics/sound; moved `client_game` under `gameplay`
 
 ## Recent Changes
-- **2026-02**: ServerCard update button tooltip simplified to "Güncelle" / "Update".
-- **2026-02**: Fixed crash-backup false positives — admin-driven stops now tracked via `mark_expected_stop()`; scheduler skips crash snapshot and the `crash_recovery_pending` flag for these transitions.
-- **2026-02**: Real crash → set `crash_recovery_pending=True` + capture crash ZIP. On next `start_server`, latest non-crash backup is auto-restored over SaveFiles.
-- **2026-02**: Exposed backup settings in AutomationEditor (toggle, interval, keep-count). Backend defaults: enabled=true, 120min, keep=30.
+- **2026-02 (ServerCard)**: Update button tooltip → "Güncelle" only.
+- **2026-02 (Backup)**: Expected-stop tracking via `mark_expected_stop()` in stop/restart/update/bulk/scheduled endpoints. Real crash sets `crash_recovery_pending` + captures crash ZIP. `start_server` auto-restores latest crash/auto/manual backup if flag set.
+- **2026-02 (Iteration 11)**: Discord Bot integration (discord.py 2.x, scum_discord.py). New endpoints GET/PUT `/api/discord/bot` + `/api/discord/bot/status`. DiscordBotSettings.jsx component. Auto-backup UI moved from AutomationEditor → BackupsView (AutoSavePanel). Schema: `discord` section + `discord_webhooks` + `discord_bot` categories; `client` section removed; `gameplay_client_game` under `gameplay`. `get_metrics` now returns `players` + `max_players_live` from A2S_INFO. `a2s_player_query` added for Discord `/online` command.
 
-## Backlog / Next Action Items
-### P1 — Upcoming
-- **Router Port Forwarding Wizard (UPnP)**: Auto-open `game_port` + `query_port`. Fixes "server not visible in in-game list".
-- **Discord Bot Integration (RCON alternative)**: Discord commands + log piping.
+## Backlog
+### P1
+- **Router Port Forwarding Wizard (UPnP)** — fixes "server not visible in in-game list".
 
-### P2 — Future
-- **"Load Preset" for Configs**: Custom templates vs SCUM Vanilla defaults.
+### P2
+- "Load Preset" for Configs (Vanilla/Max Loot/Custom Traders templates).
 
 ### Refactoring
-- `server.py` (~2100 lines) — split into `/app/backend/routes/` modules.
+- `server.py` (~2400 lines) — split into `/app/backend/routes/`.
 
-## Key API Endpoints
-- `POST /api/servers/{id}/start` — auto-restores if `crash_recovery_pending`, then spawns EXE
-- `POST /api/servers/{id}/stop` — marks expected-stop, kills process, sets Stopped
-- `POST /api/servers/{id}/restart` — marks expected-stop, cycles status
-- `POST /api/servers/{id}/update` — marks expected-stop, starts SteamCMD cycle
-- `PUT /api/servers/{id}/automation` — now accepts `backup_enabled`, `backup_interval_min`, `backup_keep_count`
-- `POST /api/servers/{id}/backups` — manual backup create
-- `POST /api/servers/{id}/backups/{bid}/restore` — admin restore
+## Key API Endpoints (Iteration 11)
+- `GET /api/discord/bot` — returns `{enabled, token_set, token_preview, status}`
+- `PUT /api/discord/bot` — body `{enabled?, token?}`, starts/stops bot
+- `GET /api/discord/bot/status` — live status poll (used by UI every 5s)
+- `PUT /api/servers/{id}/automation` — accepts `backup_enabled`, `backup_interval_min`, `backup_keep_count`
+- `GET /api/servers/{id}/metrics` — now includes `players`, `max_players_live`
 
 ## DB Schema
-- `server_profiles`: adds `crash_recovery_pending: bool`, `last_crash_at: iso_str`
-- `automation`: adds `backup_enabled`, `backup_interval_min`, `backup_keep_count`
+- `setup.discord_bot`: `{enabled: bool, token: str}` (token never returned to client)
+- `server_profiles`: `crash_recovery_pending`, `last_crash_at`
+- `automation`: `backup_enabled`, `backup_interval_min`, `backup_keep_count`
 
 ## Critical Constraints
-- Windows target — use `os.path.join`/`Path`, never hardcode `/` paths
+- Windows target — always `os.path.join`/`Path`
 - Server "Online" = EXE alive AND UDP A2S_INFO responds
+- Discord bot coexists on FastAPI's asyncio loop (no threads)
+- State cache refresh tied to scheduler tick (10s) — bot queries cache, never hammers A2S per presence update
 - User communicates only in Turkish
-- Auto-backup uses SQLite online-backup API → non-blocking, invisible to players

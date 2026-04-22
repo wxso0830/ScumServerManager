@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { Archive, Download, RefreshCw, Save, Trash2, Upload, AlertTriangle, Clock, HardDrive } from "lucide-react";
+import { Archive, Download, RefreshCw, Save, Trash2, Upload, AlertTriangle, Clock, HardDrive, Timer, Info } from "lucide-react";
 import { toast } from "sonner";
 import { endpoints, API } from "../lib/api";
 import { useI18n } from "../providers/I18nProvider";
@@ -113,6 +113,100 @@ const DiskUsageStrip = ({ data, t }) => {
     </div>
   );
 };
+
+/**
+ * AutoSavePanel — inline auto-save settings on the Backups page. Writes to
+ * the server's automation object (backup_enabled / backup_interval_min /
+ * backup_keep_count) via the existing PUT /automation endpoint. Uses local
+ * draft + explicit "Save" button so a mistyped interval doesn't immediately
+ * reconfigure the scheduler.
+ */
+const AutoSavePanel = ({ server }) => {
+  const { t } = useI18n();
+  const automation = server.automation || {};
+  const [enabled, setEnabled] = useState(automation.backup_enabled ?? true);
+  const [interval, setIntervalMin] = useState(automation.backup_interval_min ?? 120);
+  const [keep, setKeep] = useState(automation.backup_keep_count ?? 30);
+  const [saving, setSaving] = useState(false);
+
+  const dirty =
+    enabled !== (automation.backup_enabled ?? true) ||
+    interval !== (automation.backup_interval_min ?? 120) ||
+    keep !== (automation.backup_keep_count ?? 30);
+
+  const handleSave = async () => {
+    setSaving(true);
+    try {
+      await endpoints.updateAutomation(server.id, {
+        backup_enabled: enabled,
+        backup_interval_min: interval,
+        backup_keep_count: keep,
+      });
+      toast.success(t("toast_settings_saved"));
+    } catch (e) {
+      toast.error(e.response?.data?.detail || e.message);
+    } finally { setSaving(false); }
+  };
+
+  return (
+    <div className="bg-surface border-b border-brand px-6 py-4" data-testid="auto-save-panel">
+      <div className="flex items-center gap-3 mb-3">
+        <Timer size={14} className="text-accent-brand" />
+        <span className="heading-stencil text-sm">{t("auto_backup_title")}</span>
+        <label className="flex items-center gap-2 ml-auto cursor-pointer select-none" data-testid="auto-backup-toggle">
+          <input
+            type="checkbox"
+            checked={enabled}
+            onChange={(e) => setEnabled(e.target.checked)}
+            className="w-4 h-4 accent-[var(--accent)]"
+          />
+          <span className="text-xs text-brand">{t("auto_backup_enabled")}</span>
+        </label>
+      </div>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-3 items-end">
+        <div>
+          <label className="label-overline block mb-1">{t("auto_backup_interval")}</label>
+          <input
+            type="number"
+            min={1}
+            max={1440}
+            className="input-field text-xs"
+            value={interval}
+            onChange={(e) => setIntervalMin(Math.max(1, parseInt(e.target.value || 120, 10)))}
+            data-testid="auto-backup-interval-input"
+          />
+        </div>
+        <div>
+          <label className="label-overline block mb-1">{t("auto_backup_keep")}</label>
+          <input
+            type="number"
+            min={3}
+            max={500}
+            className="input-field text-xs"
+            value={keep}
+            onChange={(e) => setKeep(Math.max(3, parseInt(e.target.value || 30, 10)))}
+            data-testid="auto-backup-keep-input"
+          />
+        </div>
+        <div className="flex justify-end">
+          <button
+            className="btn-primary text-xs"
+            onClick={handleSave}
+            disabled={!dirty || saving}
+            data-testid="auto-backup-save-btn"
+          >
+            {saving ? t("backup_creating") : t("save")}
+          </button>
+        </div>
+      </div>
+      <p className="text-[10px] text-dim flex items-start gap-1.5 mt-2">
+        <Info size={10} className="mt-0.5 shrink-0 text-accent-brand" />
+        {t("auto_backup_hint")}
+      </p>
+    </div>
+  );
+};
+
 
 
 export const BackupsView = ({ servers = [] }) => {
@@ -241,6 +335,16 @@ export const BackupsView = ({ servers = [] }) => {
           many are protected from auto-prune. Gives admin an at-a-glance read
           on "am I about to run out of disk?" */}
       <DiskUsageStrip data={data} t={t} />
+
+      {/* Auto-Save settings panel — admin configures silent background snapshot
+          interval. The scheduler reads this and snapshots SaveFiles using the
+          SQLite online-backup API, so players never feel a freeze. */}
+      {activeServer && (
+        <AutoSavePanel
+          key={activeServer.id}
+          server={activeServer}
+        />
+      )}
 
       {/* Running-state warning strip */}
       {isRunning && (

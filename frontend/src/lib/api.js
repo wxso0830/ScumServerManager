@@ -58,6 +58,10 @@ export const endpoints = {
   createBackup: (id, backup_type = "manual") => api.post(`/servers/${id}/backups`, null, { params: { backup_type }, timeout: 120000 }).then(r => r.data),
   deleteBackup: (id, bid) => api.delete(`/servers/${id}/backups/${bid}`).then(r => r.data),
   restoreBackup: (id, bid) => api.post(`/servers/${id}/backups/${bid}/restore`, null, { timeout: 180000 }).then(r => r.data),
+  // Discord bot
+  getDiscordBot: () => api.get("/discord/bot").then(r => r.data),
+  updateDiscordBot: (payload) => api.put("/discord/bot", payload).then(r => r.data),
+  getDiscordBotStatus: () => api.get("/discord/bot/status").then(r => r.data),
   downloadBackupUrl: (id, bid) => `${API}/servers/${id}/backups/${bid}/download`,
   importLog: (id, file) => {
     const fd = new FormData();

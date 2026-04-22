@@ -258,17 +258,96 @@ def _a2s_info_alive(host: str, port: int, timeout: float = 1.2) -> bool:
     level-stream warm-up and starts answering Steam browser queries. Much more
     accurate than a "wait N seconds" heuristic.
     """
-    import socket  # local import keeps module lightweight
+    return _a2s_info_query(host, port, timeout) is not None
+
+
+def _a2s_info_query(host: str, port: int, timeout: float = 1.2) -> Optional[Dict[str, Any]]:
+    """Send an A2S_INFO request and return a parsed dict, or None on failure.
+
+    Parsed fields: players (byte), max_players (byte), bots (byte),
+    server_name, map_name, game_name. SCUM's reply uses the Source
+    layout (header 'I'), but we only rely on the first byte-sized player
+    counters so the parser is deliberately lenient.
+    """
+    import socket
     packet = b"\xff\xff\xff\xffTSource Engine Query\x00"
     try:
         with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as sock:
             sock.settimeout(timeout)
             sock.sendto(packet, (host, port))
             data, _ = sock.recvfrom(4096)
-            # A2S_INFO reply starts with 0xFF 0xFF 0xFF 0xFF 0x49 ('I')
-            return len(data) >= 5 and data[:5] == b"\xff\xff\xff\xffI"
     except (OSError, socket.timeout):
-        return False
+        return None
+    if len(data) < 6 or data[:5] != b"\xff\xff\xff\xffI":
+        return None
+    try:
+        i = 5                           # skip header + type byte
+        i += 1                          # protocol byte
+        def _cstr(off: int) -> (str, int):
+            end = data.index(b"\x00", off)
+            return data[off:end].decode("utf-8", errors="replace"), end + 1
+        server_name, i = _cstr(i)
+        map_name, i = _cstr(i)
+        _folder, i = _cstr(i)           # folder
+        game_name, i = _cstr(i)
+        i += 2                          # app id (short)
+        players = data[i]; i += 1
+        max_players = data[i]; i += 1
+        bots = data[i]; i += 1
+        return {
+            "players": int(players),
+            "max_players": int(max_players),
+            "bots": int(bots),
+            "server_name": server_name,
+            "map_name": map_name,
+            "game_name": game_name,
+        }
+    except (IndexError, ValueError, UnicodeDecodeError):
+        # Malformed packet — just report alive=True with unknown counts.
+        return {"players": -1, "max_players": -1, "bots": 0}
+
+
+def a2s_player_query(host: str, port: int, timeout: float = 1.2) -> list:
+    """A2S_PLAYER challenge-response. Returns list of {name, score, duration_s}.
+    Used by the Discord /online slash command and any "who is on" UI. Steam
+    requires a 2-step challenge exchange; we do that inline and ignore bot
+    entries SCUM never reports anyway.
+    """
+    import socket
+    import struct
+    sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    sock.settimeout(timeout)
+    try:
+        sock.sendto(b"\xff\xff\xff\xffU\xff\xff\xff\xff", (host, port))
+        data, _ = sock.recvfrom(4096)
+        if len(data) < 9 or data[4:5] != b"A":
+            return []
+        challenge = data[5:9]
+        sock.sendto(b"\xff\xff\xff\xffU" + challenge, (host, port))
+        data, _ = sock.recvfrom(8192)
+    except (OSError, socket.timeout):
+        return []
+    finally:
+        sock.close()
+
+    if len(data) < 6 or data[4:5] != b"D":
+        return []
+    count = data[5]
+    i = 6
+    out = []
+    try:
+        for _ in range(count):
+            i += 1
+            end = data.index(b"\x00", i)
+            name = data[i:end].decode("utf-8", errors="replace")
+            i = end + 1
+            score = struct.unpack_from("<i", data, i)[0]; i += 4
+            duration = struct.unpack_from("<f", data, i)[0]; i += 4
+            out.append({"name": name, "score": int(score), "duration_s": int(duration)})
+    except (IndexError, struct.error, ValueError):
+        pass
+    return out
+
 
 
 def start_server(server_id: str, folder_path: str, port: int = 7779,
@@ -715,6 +794,31 @@ def get_metrics(server_id: str, folder_path: Optional[str] = None) -> Dict[str, 
     online_uptime = int(now - online_at) if online_at else 0
     phase = "online" if ready else ("starting" if running else "stopped")
 
+    # --- Live player count via A2S_INFO --------------------------------------
+    # We query the Steam browser endpoint once per metrics call (cheap UDP
+    # round-trip, ~1ms loopback). Only meaningful when server is ready. A
+    # small TTL cache avoids spamming the socket if /metrics is polled
+    # aggressively by multiple UI tabs.
+    players = None
+    max_players_live = None
+    query_port = rec.get("query_port")
+    if ready and query_port:
+        cache_key = f"a2s_{server_id}"
+        cached = _METRICS_CACHE.get(cache_key) or {}
+        if now - cached.get("ts", 0) < 4.0:
+            players = cached.get("players")
+            max_players_live = cached.get("max_players")
+        else:
+            info = _a2s_info_query("127.0.0.1", int(query_port), timeout=1.0)
+            if info and info.get("players", -1) >= 0:
+                players = info["players"]
+                max_players_live = info.get("max_players") or None
+                _METRICS_CACHE[cache_key] = {
+                    "ts": now,
+                    "players": players,
+                    "max_players": max_players_live,
+                }
+
     return {
         "running": running,
         "ready": ready,
@@ -731,6 +835,8 @@ def get_metrics(server_id: str, folder_path: Optional[str] = None) -> Dict[str, 
         "installed_size_gb": size_gb,
         "last_updated_iso": last_updated_iso,
         "scum_exe_exists": scum_exists,
+        "players": players,                       # None = unknown, int = live count
+        "max_players_live": max_players_live,
     }
 
 

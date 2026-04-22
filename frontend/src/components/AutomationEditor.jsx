@@ -36,9 +36,6 @@ export const AutomationEditor = ({ server, onChange }) => {
     auto_update_enabled: !!automation.auto_update_enabled,
     update_check_interval_min: automation.update_check_interval_min ?? 360,
     bilingual: automation.bilingual ?? true,
-    backup_enabled: automation.backup_enabled ?? true,
-    backup_interval_min: automation.backup_interval_min ?? 120,
-    backup_keep_count: automation.backup_keep_count ?? 30,
   });
   const [preRaw, setPreRaw] = useState(draft.pre_warning_minutes.join(", "));
   const [busy, setBusy] = useState(false);
@@ -302,62 +299,6 @@ export const AutomationEditor = ({ server, onChange }) => {
                 {t("last_check")}: {new Date(steamInfo.checked_at).toLocaleString()}
               </span>
             )}
-          </div>
-        </div>
-      </div>
-
-      {/* ===== Auto-Save / Backup ===== */}
-      <div className="panel corner-brackets">
-        <div className="px-4 py-3 border-b border-brand flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <Archive size={15} className="text-accent-brand" />
-            <span className="heading-stencil text-sm">{t("auto_backup_title")}</span>
-          </div>
-          <label className="flex items-center gap-2 cursor-pointer select-none" data-testid="auto-backup-toggle">
-            <input
-              type="checkbox"
-              checked={draft.backup_enabled}
-              onChange={(e) => setField("backup_enabled", e.target.checked)}
-              className="w-4 h-4 accent-[var(--accent)]"
-            />
-            <span className="text-sm text-brand">{t("auto_backup_enabled")}</span>
-          </label>
-        </div>
-
-        <div className="p-5 space-y-5">
-          <p className="text-xs text-dim flex items-start gap-2">
-            <Info size={12} className="mt-0.5 shrink-0 text-accent-brand" />
-            {t("auto_backup_hint")}
-          </p>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="label-accent block mb-2">{t("auto_backup_interval")}</label>
-              <input
-                type="number"
-                min={5}
-                max={1440}
-                className="input-field"
-                value={draft.backup_interval_min}
-                onChange={(e) => setField("backup_interval_min", Math.max(5, parseInt(e.target.value || 120, 10)))}
-                data-testid="auto-backup-interval-input"
-              />
-              <p className="text-xs text-dim mt-1">{t("auto_backup_interval_hint")}</p>
-            </div>
-
-            <div>
-              <label className="label-accent block mb-2">{t("auto_backup_keep")}</label>
-              <input
-                type="number"
-                min={3}
-                max={500}
-                className="input-field"
-                value={draft.backup_keep_count}
-                onChange={(e) => setField("backup_keep_count", Math.max(3, parseInt(e.target.value || 30, 10)))}
-                data-testid="auto-backup-keep-input"
-              />
-              <p className="text-xs text-dim mt-1">{t("auto_backup_keep_hint")}</p>
-            </div>
           </div>
         </div>
       </div>

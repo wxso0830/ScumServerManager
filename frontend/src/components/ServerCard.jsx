@@ -108,7 +108,16 @@ export const ServerCard = ({ server, onOpen, onStart, onStop, onUpdate, onInstal
 
       {/* Vitals row 1 — players / CPU / uptime */}
       <div className="grid grid-cols-3 gap-2 mb-2">
-        <MetricTile icon={Users} label={t("players")} value={`0/${maxPlayers}`} testId={`metric-players-${server.folder_name}`} />
+        <MetricTile
+          icon={Users}
+          label={t("players")}
+          value={
+            metrics?.ready && typeof metrics?.players === "number"
+              ? `${metrics.players}/${metrics.max_players_live || maxPlayers}`
+              : `0/${maxPlayers}`
+          }
+          testId={`metric-players-${server.folder_name}`}
+        />
         <MetricTile
           icon={Cpu}
           label="CPU"

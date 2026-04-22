@@ -1,0 +1,122 @@
+{
+  "summary": "Completed comprehensive testing of LGSS SCUM Server Manager Iteration 11 - Discord Bot integration, Auto-Backup settings relocation, Schema changes. All 16 backend API tests passed (100%), 1 skipped. All frontend UI elements verified successfully.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_lgss_iteration11_discord_backup.py",
+    "/app/test_reports/pytest/pytest_iteration11.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "GET /api/settings/schema correctly returns 'discord' section with discord_webhooks and discord_bot categories",
+    "GET /api/settings/schema correctly removes 'client' section and client_mouse/video/graphics/sound categories",
+    "GET /api/settings/schema correctly places gameplay_client_game under 'gameplay' section",
+    "GET /api/discord/bot returns {enabled, token_set, token_preview, status} structure",
+    "PUT /api/discord/bot with empty token accepts but keeps token_set=false",
+    "PUT /api/discord/bot with fake token persists and attempts bot start (status.error becomes 'login_failed')",
+    "PUT /api/discord/bot with enabled=false stops the bot",
+    "GET /api/servers/{id}/metrics includes 'players' and 'max_players_live' keys (null when server stopped)",
+    "PUT /api/servers/{id}/automation correctly persists backup_enabled, backup_interval_min, backup_keep_count",
+    "POST /api/servers/{id}/stop marks expected-stop (no crash backup created)",
+    "ServerCard players metric displays N/M format (e.g., '0/64')",
+    "AutoSavePanel correctly moved from AutomationEditor to BackupsView",
+    "Discord section tab visible in ServerDashboard with Webhooks and Bot sub-categories",
+    "Client Game category correctly appears under Gameplay section (not in separate Client section)"
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_lgss_iteration11_discord_backup.py"
+  ],
+  "success_rate": {
+    "backend": "100% (16/16 tests passed, 1 skipped)",
+    "frontend": "100% (all flows verified)"
+  },
+  "test_credentials": "No authentication required",
+  "seed_data_creation": "Tests use POST /api/setup/reset to clear state. PUT /api/setup with {is_admin_confirmed:true, selected_disk:'/', manager_path:'/tmp/LGSSManagers', completed:true} to setup. POST /api/servers/{id}/install to install server (simulated on Linux).",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Iteration 11 adds: (1) Discord Bot integration - GET/PUT /api/discord/bot endpoints, token management, bot start/stop, status polling. (2) Auto-backup settings moved from AutomationEditor to BackupsView - AutoSavePanel component with data-testid='auto-save-panel', interval input (data-testid='auto-backup-interval-input'), keep input (data-testid='auto-backup-keep-input'), toggle (data-testid='auto-backup-toggle'), save button (data-testid='auto-backup-save-btn'). (3) Schema changes - 'discord' section added with discord_webhooks and discord_bot categories, 'client' section removed, client_mouse/video/graphics/sound categories removed, gameplay_client_game moved to 'gameplay' section. (4) Server metrics now include 'players' and 'max_players_live' keys for live player count display. (5) ServerCard displays players as N/M format (e.g., '0/64'). Key data-testids: discord-bot-settings, discord-bot-token-input, discord-bot-enabled-toggle, discord-bot-save-btn, auto-save-panel, auto-backup-interval-input, auto-backup-keep-input, auto-backup-toggle, auto-backup-save-btn, section-tab-discord, panel-discord_bot, panel-discord_webhooks, panel-gameplay_client_game.",
+  "features_verified": {
+    "backend": {
+      "settings_schema": {
+        "endpoint": "GET /api/settings/schema",
+        "discord_section": "Present with discord_webhooks and discord_bot categories",
+        "client_section": "Correctly removed",
+        "client_categories_removed": ["client_mouse", "client_video", "client_graphics", "client_sound"],
+        "gameplay_client_game": "Present under gameplay section"
+      },
+      "discord_bot": {
+        "get_config": "GET /api/discord/bot returns {enabled, token_set, token_preview, status}",
+        "put_empty_token": "PUT with empty token accepts, token_set stays false",
+        "put_fake_token": "PUT with fake token persists, attempts start, status.error='login_failed'",
+        "put_disable": "PUT with enabled=false stops bot",
+        "get_status": "GET /api/discord/bot/status returns live status"
+      },
+      "server_metrics": {
+        "endpoint": "GET /api/servers/{id}/metrics",
+        "players_key": "Present (null when stopped)",
+        "max_players_live_key": "Present (null when stopped)"
+      },
+      "automation_backup": {
+        "endpoint": "PUT /api/servers/{id}/automation",
+        "backup_enabled": "Persists correctly",
+        "backup_interval_min": "Persists correctly",
+        "backup_keep_count": "Persists correctly"
+      },
+      "expected_stop": {
+        "stop_endpoint": "POST /api/servers/{id}/stop marks expected-stop",
+        "restart_endpoint": "POST /api/servers/{id}/restart marks expected-stop",
+        "no_crash_backup": "Verified no crash backup created after /stop"
+      }
+    },
+    "frontend": {
+      "discord_section": {
+        "section_tab": "[data-testid='section-tab-discord'] visible",
+        "webhooks_panel": "[data-testid='panel-discord_webhooks'] present",
+        "bot_panel": "[data-testid='panel-discord_bot'] present"
+      },
+      "discord_bot_settings": {
+        "component": "[data-testid='discord-bot-settings'] renders",
+        "token_input": "[data-testid='discord-bot-token-input'] present",
+        "enabled_toggle": "[data-testid='discord-bot-enabled-toggle'] present",
+        "save_button": "[data-testid='discord-bot-save-btn'] present"
+      },
+      "auto_save_panel_in_backups": {
+        "panel": "[data-testid='auto-save-panel'] in BackupsView",
+        "interval_input": "[data-testid='auto-backup-interval-input'] present",
+        "keep_input": "[data-testid='auto-backup-keep-input'] present",
+        "toggle": "[data-testid='auto-backup-toggle'] present",
+        "save_button": "[data-testid='auto-backup-save-btn'] present",
+        "save_works": "Clicking save persists values via PUT /automation"
+      },
+      "auto_save_panel_not_in_automation": {
+        "verified": "AutoSavePanel NOT present in AutomationEditor"
+      },
+      "client_game_in_gameplay": {
+        "panel": "[data-testid='panel-gameplay_client_game'] under Gameplay section"
+      },
+      "no_client_section": {
+        "verified": "No 'client' section tab in sidebar"
+      },
+      "server_card_players": {
+        "metric": "[data-testid='metric-players-Server1'] displays '0/64' format"
+      }
+    },
+    "regression": {
+      "dashboard_view": "Working - server cards, add button",
+      "configs_view": "Working - server dashboard, settings panels",
+      "backups_view": "Working - backup list, create/restore/delete",
+      "automation_section": "Working - restart schedule, update monitor"
+    }
+  },
+  "mocked_apis": {
+    "note": "NO MOCKED APIs. All features are REAL: Discord bot endpoints, automation backup settings, server metrics.",
+    "list": []
+  }
+}

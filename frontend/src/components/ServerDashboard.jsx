@@ -10,6 +10,7 @@ import { TradersEditor } from "./TradersEditor";
 import { InputEditor } from "./InputEditor";
 import { AutomationEditor } from "./AutomationEditor";
 import { DiscordSettings } from "./DiscordSettings";
+import { DiscordBotSettings } from "./DiscordBotSettings";
 import { ConfirmModal } from "./ConfirmModal";
 import { ImportExportModal } from "./ImportExportModal";
 import { NetworkPortsPanel } from "./NetworkPortsPanel";
@@ -33,7 +34,7 @@ const SECTION_ICONS = {
   users: "Users",
   advanced: "Wrench",
   automation: "Clock",
-  client: "Monitor",
+  discord: "MessageSquare",
 };
 
 const downloadFile = (filename, content) => {
@@ -279,6 +280,8 @@ export const ServerDashboard = ({
         return <AutomationEditor server={server} onChange={onChange} />;
       case "discord":
         return <DiscordSettings server={server} />;
+      case "discord_bot":
+        return <DiscordBotSettings server={server} onChange={onChange} />;
       case "dynamic":
       default:
         return (

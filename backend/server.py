@@ -28,6 +28,7 @@ from scum_parser import (
 import scum_db
 import scum_backup
 import scum_process as scum_proc
+import scum_discord
 import json as json_lib
 import io
 import asyncio
@@ -1059,6 +1060,102 @@ async def download_server_backup(server_id: str, backup_id: str):
     return FileResponse(str(p), media_type="application/zip", filename=p.name)
 
 
+# ============================================================
+# Discord Bot — token management + state collector
+# ============================================================
+
+class DiscordBotConfig(BaseModel):
+    enabled: Optional[bool] = None
+    token: Optional[str] = None
+
+
+def _discord_state_collector() -> Dict[str, Any]:
+    """Return the latest cached snapshot of all managed servers for the
+    Discord bot (presence + /online command). The cache is refreshed every
+    10s by `_refresh_discord_state_cache()` inside the scheduler tick."""
+    return _discord_state_collector._cache  # type: ignore[attr-defined]
+
+
+_discord_state_collector._cache = {"servers": []}  # type: ignore[attr-defined]
+
+
+async def _refresh_discord_state_cache():
+    """Rebuild the Discord state cache from live DB + A2S queries.
+    Called once per scheduler tick so the bot's presence stays within 10s
+    of the real state without hammering UDP for every presence update."""
+    servers_out: List[Dict[str, Any]] = []
+    async for s in db.servers.find({}, {"_id": 0}):
+        query_port = int(s.get("query_port") or 7780)
+        max_p = int((s.get("settings") or {}).get("srv_general", {}).get("scum.MaxPlayers")
+                    or s.get("max_players") or 64)
+        metrics = scum_proc.get_metrics(s["id"], s.get("folder_path"))
+        players: List[Dict[str, Any]] = []
+        if metrics.get("ready"):
+            try:
+                players = await asyncio.to_thread(
+                    scum_proc.a2s_player_query, "127.0.0.1", query_port, 1.0,
+                )
+            except Exception:
+                players = []
+        servers_out.append({
+            "name": s.get("name"),
+            "folder_name": s.get("folder_name"),
+            "status": s.get("status"),
+            "ready": bool(metrics.get("ready")),
+            "max_players": max_p,
+            "players": players,
+        })
+    _discord_state_collector._cache = {"servers": servers_out}  # type: ignore[attr-defined]
+
+
+@api_router.get("/discord/bot")
+async def get_discord_bot_config():
+    """Return current bot config. Token is never returned — only a masked preview."""
+    setup = await db.setup.find_one({"_id": SETUP_DOC_ID}, {"_id": 0}) or {}
+    cfg = setup.get("discord_bot") or {}
+    tok = cfg.get("token") or ""
+    return {
+        "enabled": bool(cfg.get("enabled")),
+        "token_set": bool(tok),
+        "token_preview": (tok[:6] + "…" + tok[-4:]) if len(tok) > 12 else "",
+        "status": scum_discord.get_status(),
+    }
+
+
+@api_router.put("/discord/bot")
+async def update_discord_bot_config(payload: DiscordBotConfig):
+    """Persist token/enabled flag and start or stop the bot. Token is stored
+    in the manager setup doc but never returned to the client."""
+    setup = await db.setup.find_one({"_id": SETUP_DOC_ID}, {"_id": 0}) or {}
+    cfg = {**(setup.get("discord_bot") or {})}
+    data = payload.model_dump(exclude_none=True)
+    if "token" in data:
+        cfg["token"] = (data["token"] or "").strip()
+    if "enabled" in data:
+        cfg["enabled"] = bool(data["enabled"])
+    await db.setup.update_one(
+        {"_id": SETUP_DOC_ID},
+        {"$set": {"discord_bot": cfg}},
+        upsert=True,
+    )
+    # Apply: start or stop the bot
+    if cfg.get("enabled") and cfg.get("token"):
+        if scum_discord.get_status().get("running"):
+            await scum_discord.stop_bot()
+        await scum_discord.start_bot(cfg["token"], _discord_state_collector)
+    else:
+        await scum_discord.stop_bot()
+
+    return await get_discord_bot_config()
+
+
+@api_router.get("/discord/bot/status")
+async def get_discord_bot_status():
+    return scum_discord.get_status()
+
+
+
+
 
 @api_router.post("/servers/{server_id}/logs/scan")
 async def scan_server_logs(server_id: str, limit: int = 20):
@@ -1791,7 +1888,7 @@ async def get_settings_schema():
             {"key": "users", "labelKey": "sec_users"},
             {"key": "advanced", "labelKey": "sec_advanced"},
             {"key": "automation", "labelKey": "sec_automation"},
-            {"key": "client", "labelKey": "sec_client"},
+            {"key": "discord", "labelKey": "sec_discord"},
         ],
         "categories": [
             # ------ ESSENTIALS ------
@@ -1992,20 +2089,16 @@ async def get_settings_schema():
             # ------ AUTOMATION ------
             {"key": "automation_main", "labelKey": "cat_automation_main", "icon": "Clock", "section": "automation",
              "renderer": "automation"},
-            {"key": "automation_discord", "labelKey": "discord_integration", "icon": "Webhook", "section": "automation",
-             "renderer": "discord"},
 
-            # ------ CLIENT DEFAULTS ------
-            {"key": "client_game", "labelKey": "cat_client_game", "icon": "Gamepad2", "section": "client",
+            # ------ DISCORD (webhooks + bot) ------
+            {"key": "discord_webhooks", "labelKey": "cat_discord_webhooks", "icon": "Webhook", "section": "discord",
+             "renderer": "discord"},
+            {"key": "discord_bot", "labelKey": "cat_discord_bot", "icon": "Bot", "section": "discord",
+             "renderer": "discord_bot"},
+
+            # ------ CLIENT GAME (moved under Gameplay) ------
+            {"key": "gameplay_client_game", "labelKey": "cat_client_game", "icon": "Gamepad2", "section": "gameplay",
              "renderer": "dynamic", "sourceKey": "client_game", "exportKey": "gameusersettings"},
-            {"key": "client_mouse", "labelKey": "cat_client_mouse", "icon": "Mouse", "section": "client",
-             "renderer": "dynamic", "sourceKey": "client_mouse", "exportKey": "gameusersettings"},
-            {"key": "client_video", "labelKey": "cat_client_video", "icon": "Monitor", "section": "client",
-             "renderer": "dynamic", "sourceKey": "client_video", "exportKey": "gameusersettings"},
-            {"key": "client_graphics", "labelKey": "cat_client_graphics", "icon": "Layers", "section": "client",
-             "renderer": "dynamic", "sourceKey": "client_graphics", "exportKey": "gameusersettings"},
-            {"key": "client_sound", "labelKey": "cat_client_sound", "icon": "Volume2", "section": "client",
-             "renderer": "dynamic", "sourceKey": "client_sound", "exportKey": "gameusersettings"},
         ],
     }
 
@@ -2096,6 +2189,15 @@ async def _tick_scheduler():
             hhmm = now.strftime("%H:%M")
             day_tag = now.strftime("%Y-%m-%dT%H:%M")
             servers = await db.servers.find({}, {"_id": 0}).to_list(500)
+
+            # Refresh the Discord state cache so the bot's presence/command
+            # responses reflect reality without hammering A2S per request.
+            if scum_discord.get_status().get("running"):
+                try:
+                    await _refresh_discord_state_cache()
+                except Exception as e:
+                    logger.info("discord cache refresh failed: %s", e)
+
             for s in servers:
                 auto = s.get("automation") or {}
                 sid = s["id"]
@@ -2323,6 +2425,15 @@ async def _start_scheduler():
     if _scheduler_task is None:
         _scheduler_task = asyncio.create_task(_tick_scheduler())
         logger.info("LGSS automation scheduler started (tick=10s)")
+    # Auto-start Discord bot if the user has saved a token in a previous session.
+    try:
+        setup = await db.setup.find_one({"_id": SETUP_DOC_ID}, {"_id": 0}) or {}
+        bot_cfg = setup.get("discord_bot") or {}
+        if bot_cfg.get("enabled") and bot_cfg.get("token"):
+            await scum_discord.start_bot(bot_cfg["token"], _discord_state_collector)
+            logger.info("Discord bot auto-started from saved token")
+    except Exception as e:
+        logger.info("Discord bot auto-start skipped: %s", e)
 
 
 @app.on_event("shutdown")
@@ -2330,4 +2441,8 @@ async def shutdown_db_client():
     global _scheduler_task
     if _scheduler_task:
         _scheduler_task.cancel()
+    try:
+        await scum_discord.stop_bot()
+    except Exception:
+        pass
     client.close()

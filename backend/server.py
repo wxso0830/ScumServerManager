@@ -106,6 +106,9 @@ class ServerProfile(BaseModel):
         "auto_update_enabled": False,
         "update_check_interval_min": 360,  # 6 hours default per user preference
         "bilingual": True,  # write TR+EN like the user's own template
+        "backup_enabled": True,               # periodic SaveFiles snapshots
+        "backup_interval_min": 120,           # every 2h by default
+        "backup_keep_count": 30,              # prune to newest N auto-backups
     })
 
 
@@ -117,6 +120,9 @@ class AutomationUpdate(BaseModel):
     auto_update_enabled: Optional[bool] = None
     update_check_interval_min: Optional[int] = None
     bilingual: Optional[bool] = None
+    backup_enabled: Optional[bool] = None
+    backup_interval_min: Optional[int] = None
+    backup_keep_count: Optional[int] = None
 
 
 class ServerCreate(BaseModel):
@@ -380,6 +386,53 @@ async def start_server(server_id: str):
     doc = await db.servers.find_one({"id": server_id}, {"_id": 0})
     if not doc:
         raise HTTPException(status_code=404, detail="Server not found")
+
+    # --- Crash auto-recovery ---------------------------------------------
+    # If the server was flagged for recovery on its previous shutdown (i.e.
+    # scheduler detected an unexpected Running→Stopped transition), restore
+    # the most recent safe backup BEFORE spawning SCUMServer.exe. We prefer
+    # a 'crash' backup (captured at the moment of the crash) and fall back
+    # to the newest 'auto'/'manual' snapshot if none exists.
+    if doc.get("crash_recovery_pending"):
+        try:
+            setup_doc = await db.setup.find_one({"_id": SETUP_DOC_ID}, {"_id": 0}) or {}
+            manager_path = setup_doc.get("manager_path")
+            server_folder = doc.get("folder_name") or f"Server{doc.get('index', 1)}"
+            if manager_path and doc.get("folder_path"):
+                backups = await asyncio.to_thread(
+                    scum_backup.list_backups,
+                    server_id=server_id,
+                    manager_path=manager_path,
+                    server_folder=server_folder,
+                )
+                # Prefer newest crash backup; fallback to newest auto/manual.
+                preferred = next((b for b in backups if b["backup_type"] == "crash"), None)
+                if preferred is None:
+                    preferred = next(
+                        (b for b in backups if b["backup_type"] in ("auto", "manual")),
+                        None,
+                    )
+                if preferred:
+                    logger.warning(
+                        "Crash-recovery: restoring %s before starting %s",
+                        preferred["filename"], doc.get("name"),
+                    )
+                    await asyncio.to_thread(
+                        scum_backup.restore_backup,
+                        server_id=server_id,
+                        folder_path=doc["folder_path"],
+                        manager_path=manager_path,
+                        server_folder=server_folder,
+                        backup_id=preferred["id"],
+                    )
+        except Exception as e:
+            logger.exception("crash-recovery restore failed: %s", e)
+        # Clear the flag regardless — a failed restore shouldn't re-trigger.
+        await db.servers.update_one(
+            {"id": server_id},
+            {"$set": {"crash_recovery_pending": False}},
+        )
+
     # Real process spawn (Windows only). If not installed or exe missing, fail cleanly.
     try:
         port = int(doc.get("game_port") or 7779)
@@ -414,6 +467,9 @@ async def stop_server(server_id: str):
     doc = await db.servers.find_one({"id": server_id}, {"_id": 0})
     if not doc:
         raise HTTPException(status_code=404, detail="Server not found")
+    # Flag this upcoming Running→Stopped transition as admin-driven so the
+    # scheduler's crash detector skips the emergency backup.
+    mark_expected_stop(server_id)
     try:
         scum_proc.stop_server(server_id)
     except Exception:
@@ -431,6 +487,8 @@ async def update_server(server_id: str):
     doc = await db.servers.find_one({"id": server_id}, {"_id": 0})
     if not doc:
         raise HTTPException(status_code=404, detail="Server not found")
+    # SteamCMD update requires stopping the EXE. Mark as admin-driven stop.
+    mark_expected_stop(server_id)
     # Preserve settings; just toggle status to simulate update cycle
     await db.servers.update_one({"id": server_id}, {"$set": {"status": "Updating"}})
     doc["status"] = "Updating"
@@ -1681,6 +1739,7 @@ async def restart_server(server_id: str):
         raise HTTPException(status_code=404, detail="Server not found")
     if not doc.get("installed"):
         raise HTTPException(status_code=400, detail="Server not installed")
+    mark_expected_stop(server_id)
     await db.servers.update_one({"id": server_id}, {"$set": {"status": "Updating"}})
     await asyncio.sleep(0.4)
     await db.servers.update_one({"id": server_id}, {"$set": {"status": "Stopped"}})
@@ -1694,6 +1753,7 @@ async def restart_server(server_id: str):
 async def stop_all_servers():
     servers = await db.servers.find({"installed": True, "status": "Running"}, {"_id": 0}).to_list(500)
     for s in servers:
+        mark_expected_stop(s["id"])
         await db.servers.update_one({"id": s["id"]}, {"$set": {"status": "Stopped"}})
     return {"stopped": len(servers)}
 
@@ -1704,6 +1764,7 @@ async def restart_all_servers():
     affected = 0
     for s in servers:
         if s.get("status") == "Running":
+            mark_expected_stop(s["id"])
             await db.servers.update_one({"id": s["id"]}, {"$set": {"status": "Stopped"}})
             await asyncio.sleep(0.2)
             await db.servers.update_one({"id": s["id"]}, {"$set": {"status": "Running"}})
@@ -1979,6 +2040,20 @@ _last_log_scan_at: Dict[str, float] = {}  # server_id -> epoch seconds
 _last_config_reimport_at: Dict[str, float] = {}  # server_id -> epoch seconds
 _last_backup_at: Dict[str, float] = {}    # server_id -> epoch seconds
 _crash_watch: Dict[str, Dict[str, Any]] = {}  # server_id -> {"was_running": bool, "pid": int}
+# Set of server_ids whose next Running→Stopped transition is an ADMIN-driven
+# stop (manual Stop / Restart / Update / scheduled restart). The scheduler's
+# crash detector consults this set and, if present, skips the "crash" backup
+# and does NOT set the crash_recovery_pending flag. The entry is popped after
+# the first stop transition is observed.
+_expected_stops: set = set()
+
+
+def mark_expected_stop(server_id: str) -> None:
+    """Record that the next Running→Stopped transition for this server is an
+    expected admin operation (not a crash). Safe to call multiple times."""
+    _expected_stops.add(server_id)
+
+
 _vehicle_ownership_snapshot: Dict[str, Dict[int, Dict[str, Any]]] = {}   # server_id -> {vid: {owner_sid, ...}}
 LOG_SCAN_INTERVAL_SEC = 20   # how often the scheduler re-parses log files
 CONFIG_REIMPORT_INTERVAL_SEC = 60  # how often we re-read on-disk configs into DB
@@ -2030,6 +2105,7 @@ async def _tick_scheduler():
                     if hhmm in restart_times and _last_restart_tick.get(sid) != day_tag:
                         _last_restart_tick[sid] = day_tag
                         logger.info("Scheduler: restart trigger for %s at %s", s.get("name"), hhmm)
+                        mark_expected_stop(sid)
                         await db.servers.update_one({"id": sid}, {"$set": {"status": "Updating"}})
                         await asyncio.sleep(2)
                         await db.servers.update_one({"id": sid}, {"$set": {"status": "Stopped"}})
@@ -2152,27 +2228,37 @@ async def _tick_scheduler():
                         # (2) Crash detector
                         prev = _crash_watch.get(sid, {})
                         if prev.get("was_running") and not running_now:
-                            # State transitioned from alive → dead. Was this an
-                            # admin stop (in which case we'd already have status
-                            # set to 'Stopped' this tick) or a real crash?
-                            # We treat any unexpected "Running → Stopped" that
-                            # happens in the scheduler as a crash, since admin
-                            # Stop flips status via the API and we pick it up on
-                            # the next tick, producing the same transition. In
-                            # practice the emergency backup fires for both but
-                            # that's fine — over-backup is safe.
-                            try:
-                                await asyncio.to_thread(
-                                    scum_backup.create_backup,
-                                    server_id=sid,
-                                    folder_path=s["folder_path"],
-                                    manager_path=manager_path,
-                                    server_folder=server_folder,
-                                    backup_type="crash",
+                            # Running → dead transition. If this was triggered
+                            # by an admin action (Stop / Restart / Update /
+                            # scheduled restart), the endpoint marked it via
+                            # mark_expected_stop() — we pop that flag here and
+                            # skip the crash backup entirely. Otherwise we
+                            # treat it as a real crash: capture a snapshot and
+                            # flag the server for auto-recovery on next start.
+                            if sid in _expected_stops:
+                                _expected_stops.discard(sid)
+                                logger.info(
+                                    "Stop transition for %s was admin-initiated; no crash backup.",
+                                    s.get("name"),
                                 )
-                                logger.warning("Crash backup captured for %s", s.get("name"))
-                            except Exception as e:
-                                logger.info("Crash backup failed for %s: %s", s.get("name"), e)
+                            else:
+                                try:
+                                    await asyncio.to_thread(
+                                        scum_backup.create_backup,
+                                        server_id=sid,
+                                        folder_path=s["folder_path"],
+                                        manager_path=manager_path,
+                                        server_folder=server_folder,
+                                        backup_type="crash",
+                                    )
+                                    await db.servers.update_one(
+                                        {"id": sid},
+                                        {"$set": {"crash_recovery_pending": True,
+                                                  "last_crash_at": now.isoformat()}},
+                                    )
+                                    logger.warning("Crash backup captured for %s", s.get("name"))
+                                except Exception as e:
+                                    logger.info("Crash backup failed for %s: %s", s.get("name"), e)
                         _crash_watch[sid] = {"was_running": running_now}
 
                 # --- Vehicle-claim detector (SCUM.db owner-diff) ---

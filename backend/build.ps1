@@ -41,11 +41,38 @@ if ($LASTEXITCODE -ne 0) {
     exit 1
 }
 
-# 3. Clean old build
-if ($Clean) {
-    if (Test-Path build) { Remove-Item -Recurse -Force build }
-    if (Test-Path dist)  { Remove-Item -Recurse -Force dist }
+# 2b. ALWAYS sync runtime dependencies before building.
+# Rationale: if requirements.txt gained a new package (e.g. discord.py)
+# but the user's .venv is stale, PyInstaller silently produces an exe
+# that is missing that module and crashes at runtime with
+# "ModuleNotFoundError: No module named 'discord'".
+Write-Host "Syncing runtime dependencies from requirements.txt..." -ForegroundColor Yellow
+python -m pip install --disable-pip-version-check -r requirements.txt
+if ($LASTEXITCODE -ne 0) {
+    Write-Host "FAIL: pip install -r requirements.txt failed" -ForegroundColor Red
+    exit 1
 }
+
+# 2c. Sanity-check: every module the spec marks as a hidden import
+# must actually be importable in this venv, otherwise the produced
+# exe will crash on first launch.
+Write-Host "Verifying critical modules are importable..." -ForegroundColor Yellow
+$critical = @('discord', 'discord.ext.commands', 'fastapi', 'uvicorn', 'motor', 'pymongo', 'aiohttp')
+foreach ($mod in $critical) {
+    python -c "import $mod" 2>$null
+    if ($LASTEXITCODE -ne 0) {
+        Write-Host "FAIL: Python cannot import '$mod'. Install it into this venv before building." -ForegroundColor Red
+        Write-Host "      python -m pip install -r requirements.txt" -ForegroundColor White
+        exit 1
+    }
+}
+Write-Host "OK  all critical modules importable" -ForegroundColor Green
+
+# 3. Clean old build
+# Always clean so a stale build/ cache can never bake in old bytecode
+# that references a module which is no longer present.
+if (Test-Path build) { Remove-Item -Recurse -Force build }
+if (Test-Path dist)  { Remove-Item -Recurse -Force dist }
 
 # 4. Build
 Write-Host "Running PyInstaller... (this takes 3-5 minutes)" -ForegroundColor Cyan

@@ -382,21 +382,24 @@ const InlineKindNotifications = ({ serverId, all = [], kind, automation, onChang
   const mine = all.filter((n) => (n?.kind || "restart") === kind);
   const others = all.filter((n) => (n?.kind || "restart") !== kind);
 
-  // Auto-seed on first view: if this kind has no entries AND we're looking
-  // at restart and the admin has at least one restart time configured, call
-  // the backend seed generator. Silent — no toast, just a one-time sync.
+  // Auto-seed on first view: if this kind has no entries, populate a default
+  // template the admin can tweak. Restart → 7 pre-warning messages
+  // (15/10/5/4/3/2/1 min) so the admin immediately sees the standard
+  // countdown. Update kind stays empty (admins compose those themselves).
   React.useEffect(() => {
-    if (kind !== "restart") return;
     if (mine.length > 0) return;
-    const times = automation.restart_times || [];
-    if (times.length === 0) return;
-    (async () => {
-      try {
-        const srv = await endpoints.generateNotifications(serverId);
-        const next = srv?.settings?.notifications || [];
-        onChange(next);
-      } catch {}
-    })();
+    if (kind !== "restart") return;
+    const PRE = [15, 10, 5, 4, 3, 2, 1];
+    const seed = PRE.map((m) => ({
+      day: "Everyday",
+      time: automation.restart_times || [],  // may be empty; admin fills later
+      duration: "10",
+      message: m === 1
+        ? "Server will automatically restart in 1 minute. (Release the keyboard)"
+        : `Server will automatically restart in ${m} minutes.`,
+      kind: "restart",
+    }));
+    onChange([...others, ...seed]);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 

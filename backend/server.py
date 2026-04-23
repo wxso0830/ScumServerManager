@@ -645,7 +645,7 @@ def _generate_notifications_from_schedule(automation: Dict[str, Any]) -> List[Di
         out.append({
             "day": "Everyday",
             "time": stamps,
-            "duration": "15",
+            "duration": "10",
             "message": _fmt_restart_message(m),
             "kind": "restart",
         })

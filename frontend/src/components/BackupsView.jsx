@@ -125,13 +125,13 @@ const AutoSavePanel = ({ server }) => {
   const { t } = useI18n();
   const automation = server.automation || {};
   const [enabled, setEnabled] = useState(automation.backup_enabled ?? true);
-  const [interval, setIntervalMin] = useState(automation.backup_interval_min ?? 120);
+  const [interval, setIntervalMin] = useState(automation.backup_interval_min ?? 10);
   const [keep, setKeep] = useState(automation.backup_keep_count ?? 30);
   const [saving, setSaving] = useState(false);
 
   const dirty =
     enabled !== (automation.backup_enabled ?? true) ||
-    interval !== (automation.backup_interval_min ?? 120) ||
+    interval !== (automation.backup_interval_min ?? 10) ||
     keep !== (automation.backup_keep_count ?? 30);
 
   const handleSave = async () => {

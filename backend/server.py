@@ -107,7 +107,7 @@ class ServerProfile(BaseModel):
         "auto_update_enabled": False,
         "update_check_interval_min": 360,  # 6 hours default per user preference
         "backup_enabled": True,               # periodic SaveFiles snapshots
-        "backup_interval_min": 120,           # every 2h by default
+        "backup_interval_min": 10,            # every 10 min by default
         "backup_keep_count": 30,              # prune to newest N auto-backups
     })
 
@@ -2507,7 +2507,7 @@ async def _tick_scheduler():
 
                         # (1) Periodic
                         if auto.get("backup_enabled"):
-                            interval_min = int(auto.get("backup_interval_min") or 120)
+                            interval_min = int(auto.get("backup_interval_min") or 10)
                             last_bk = _last_backup_at.get(sid, 0)
                             if (now.timestamp() - last_bk) >= interval_min * 60:
                                 _last_backup_at[sid] = now.timestamp()

@@ -25,7 +25,7 @@ const TimeSlot = ({ value, onChange, onRemove, idx }) => (
   </div>
 );
 
-export const AutomationEditor = ({ server, onChange }) => {
+export const AutomationEditor = ({ server, onChange, mode = "both" }) => {
   const { t } = useI18n();
   const automation = server.automation || {};
   const [draft, setDraft] = useState({

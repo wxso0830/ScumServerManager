@@ -790,6 +790,31 @@ def get_metrics(server_id: str, folder_path: Optional[str] = None) -> Dict[str, 
     # Ready means the server answered its Steam A2S_INFO query. "Warmup uptime"
     # tracks the boot phase, "online uptime" is what admins actually care about.
     ready = bool(rec.get("ready"))
+    query_port = rec.get("query_port")
+
+    # --- Self-healing readiness check ---------------------------------------
+    # If the background watcher thread was lost (backend restart, thread died,
+    # etc.) the server process keeps running but `ready` is stuck at False —
+    # so the UI strands at "STARTING" forever and player count never updates.
+    # Every metrics call, if we're running-but-not-ready, probe A2S_INFO once
+    # and flip to ready on success. Costs one UDP round-trip on loopback.
+    if running and not ready and query_port:
+        probe_cache_key = f"ready_probe_{server_id}"
+        last_probe = _METRICS_CACHE.get(probe_cache_key, {}).get("ts", 0)
+        if now - last_probe > 5.0:
+            _METRICS_CACHE[probe_cache_key] = {"ts": now}
+            probe_info = _a2s_info_query("127.0.0.1", int(query_port), timeout=1.0)
+            if probe_info is not None:
+                with _LOCK:
+                    rec_now = REGISTRY.get(server_id, {}).get("process")
+                    if rec_now and not rec_now.get("ready"):
+                        rec_now["ready"] = True
+                        rec_now["online_at"] = now
+                        rec_now["ready_reason"] = "metrics_self_heal"
+                        log.info("SCUM %s READY via metrics_self_heal (watcher thread was absent)", server_id)
+                ready = True
+                rec = REGISTRY.get(server_id, {}).get("process") or rec
+
     online_at = rec.get("online_at") if running else None
     online_uptime = int(now - online_at) if online_at else 0
     phase = "online" if ready else ("starting" if running else "stopped")
@@ -801,7 +826,6 @@ def get_metrics(server_id: str, folder_path: Optional[str] = None) -> Dict[str, 
     # aggressively by multiple UI tabs.
     players = None
     max_players_live = None
-    query_port = rec.get("query_port")
     if ready and query_port:
         cache_key = f"a2s_{server_id}"
         cached = _METRICS_CACHE.get(cache_key) or {}

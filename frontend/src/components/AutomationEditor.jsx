@@ -1,8 +1,9 @@
 import React, { useMemo, useState } from "react";
-import { Plus, Trash2, Clock, RefreshCw, CheckCircle2, AlertCircle, Sparkles, FileJson, Info, Archive } from "lucide-react";
+import { Plus, Trash2, Clock, RefreshCw, CheckCircle2, AlertCircle, Sparkles, FileJson, Info, Archive, Bell } from "lucide-react";
 import { toast } from "sonner";
 import { useI18n } from "../providers/I18nProvider";
 import { endpoints } from "../lib/api";
+import { NotificationsEditor } from "./NotificationsEditor";
 
 const isValidTime = (s) => /^\d{2}:\d{2}$/.test(s || "") && (() => {
   const [h, m] = s.split(":").map(Number);
@@ -318,7 +319,34 @@ export const AutomationEditor = ({ server, onChange, mode = "both" }) => {
         </button>
       </div>
 
-      {/* ===== Preview (restart-only) ===== */}
+      {/* ===== Inline Notifications Editor (filtered by mode's kind) ===== */}
+      {mode !== "both" && (
+        <div className="panel corner-brackets">
+          <div className="px-4 py-3 border-b border-brand flex items-center gap-3">
+            <Bell size={15} className="text-accent-brand" />
+            <span className="heading-stencil text-sm">
+              {mode === "update" ? t("update_notifications_inline_title") : t("restart_notifications_inline_title")}
+            </span>
+          </div>
+          <div className="p-4">
+            <InlineKindNotifications
+              serverId={server.id}
+              all={preview}
+              kind={mode === "update" ? "update" : "restart"}
+              automation={{
+                restart_times: draft.restart_times,
+                pre_warning_minutes: draft.pre_warning_minutes,
+              }}
+              onChange={async (newAll) => {
+                await endpoints.updateSettings(server.id, { notifications: newAll });
+                onChange?.({ ...server, settings: { ...(server.settings || {}), notifications: newAll } });
+              }}
+            />
+          </div>
+        </div>
+      )}
+
+      {/* ===== Preview (restart-only, raw JSON for debugging) ===== */}
       {mode !== "update" && preview.length > 0 && (
         <div className="panel">
           <div className="px-4 py-3 border-b border-brand flex items-center justify-between">
@@ -333,11 +361,54 @@ export const AutomationEditor = ({ server, onChange, mode = "both" }) => {
           </div>
           {showPreview && (
             <pre className="px-4 py-3 text-[11px] font-mono text-dim leading-relaxed max-h-96 overflow-auto bg-bg-deep border-t border-brand">
-{JSON.stringify({ Notifications: preview }, null, 2)}
+{JSON.stringify({ Notifications: preview.map((n) => { const { kind, ...rest } = n; return rest; }) }, null, 2)}
             </pre>
           )}
         </div>
       )}
     </div>
+  );
+};
+
+
+/**
+ * InlineKindNotifications — embedded notifications editor filtered by kind.
+ * When the admin opens the Restart Schedule category for the FIRST time and
+ * no restart-kind notifications exist, we auto-seed from the current restart
+ * schedule (15/10/5/4/3/2/1 defaults) so the user sees a ready-to-use list
+ * instead of an empty state. They can edit/translate/delete from there.
+ */
+const InlineKindNotifications = ({ serverId, all = [], kind, automation, onChange }) => {
+  const mine = all.filter((n) => (n?.kind || "restart") === kind);
+  const others = all.filter((n) => (n?.kind || "restart") !== kind);
+
+  // Auto-seed on first view: if this kind has no entries AND we're looking
+  // at restart and the admin has at least one restart time configured, call
+  // the backend seed generator. Silent — no toast, just a one-time sync.
+  React.useEffect(() => {
+    if (kind !== "restart") return;
+    if (mine.length > 0) return;
+    const times = automation.restart_times || [];
+    if (times.length === 0) return;
+    (async () => {
+      try {
+        const srv = await endpoints.generateNotifications(serverId);
+        const next = srv?.settings?.notifications || [];
+        onChange(next);
+      } catch {}
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  return (
+    <NotificationsEditor
+      entries={mine}
+      kind={kind}
+      onChange={(list) => {
+        const tagged = list.map((n) => ({ ...n, kind }));
+        onChange([...others, ...tagged]);
+      }}
+      testId={`inline-notifications-${kind}`}
+    />
   );
 };

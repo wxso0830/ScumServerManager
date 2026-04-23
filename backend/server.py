@@ -2132,21 +2132,15 @@ async def get_settings_schema():
              "renderer": "dynamic", "sourceKey": "custom_ini", "exportKey": None},
 
             # ------ AUTOMATION ------
-            # Split into 4 categories so admins configure restart + its
-            # notifications together, then update + its notifications.
-            # All notifications are stored in one list (SCUM only reads a
-            # single Notifications.json) but the `kind` metadata tag lets the
-            # UI show only the relevant subset in each editor.
+            # Two categories: restart and update. Each category shows both
+            # the schedule/options AND the notifications for that kind,
+            # inline on the same page. Single `Notifications.json` file is
+            # still produced for SCUM (the `kind` metadata is stripped on
+            # export — see render_notifications_json).
             {"key": "automation_restart", "labelKey": "cat_automation_restart", "icon": "RefreshCw", "section": "automation",
              "renderer": "automation_restart"},
-            {"key": "automation_restart_notifications", "labelKey": "cat_automation_restart_notifications", "icon": "Bell", "section": "automation",
-             "renderer": "notifications_kind", "notificationKind": "restart",
-             "sourceKey": "notifications", "exportKey": "notifications"},
             {"key": "automation_update", "labelKey": "cat_automation_update", "icon": "Download", "section": "automation",
              "renderer": "automation_update"},
-            {"key": "automation_update_notifications", "labelKey": "cat_automation_update_notifications", "icon": "Bell", "section": "automation",
-             "renderer": "notifications_kind", "notificationKind": "update",
-             "sourceKey": "notifications", "exportKey": "notifications"},
 
             # ------ DISCORD (webhooks + bot) ------
             {"key": "discord_webhooks", "labelKey": "cat_discord_webhooks", "icon": "Webhook", "section": "discord",

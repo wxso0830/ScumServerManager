@@ -55,7 +55,7 @@ Write-Host "Syncing runtime dependencies from requirements.txt..." -ForegroundCo
 python -m pip install --disable-pip-version-check -r requirements.txt
 if ($LASTEXITCODE -ne 0) {
     Write-Host "WARN: 'pip install -r requirements.txt' reported errors (likely pod-only packages)." -ForegroundColor Yellow
-    Write-Host "      Continuing — the sanity check below will fail loudly if a module the exe needs is missing." -ForegroundColor Yellow
+    Write-Host "      Continuing - the sanity check below will fail loudly if a module the exe needs is missing." -ForegroundColor Yellow
 }
 
 # 2c. Sanity-check: every module the spec marks as a hidden import

@@ -2,9 +2,12 @@ import React from "react";
 import { Trash2, Plus } from "lucide-react";
 import { useI18n } from "../providers/I18nProvider";
 
-export const NotificationsEditor = ({ entries = [], onChange, testId = "notifications" }) => {
+export const NotificationsEditor = ({ entries = [], onChange, testId = "notifications", kind = null }) => {
   const { t } = useI18n();
-  const add = () => onChange([...entries, { message: "Welcome to the server!", "interval-minutes": 30 }]);
+  const seed = kind === "update"
+    ? { message: "Update available — server will restart soon.", "interval-minutes": 30 }
+    : { message: "Welcome to the server!", "interval-minutes": 30 };
+  const add = () => onChange([...entries, seed]);
   const update = (idx, patch) => onChange(entries.map((e, i) => (i === idx ? { ...e, ...patch } : e)));
   const remove = (idx) => onChange(entries.filter((_, i) => i !== idx));
   return (

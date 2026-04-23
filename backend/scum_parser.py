@@ -241,7 +241,14 @@ def render_raid_times_json(settings: Dict[str, Any]) -> str:
 
 
 def render_notifications_json(settings: Dict[str, Any]) -> str:
-    return json.dumps({"Notifications": settings.get("notifications", [])}, indent=2)
+    # `kind` is a manager-side metadata tag (restart/update) used only to
+    # split the UI editor view. SCUM doesn't know about it, so strip it
+    # before writing to Notifications.json.
+    clean = []
+    for n in settings.get("notifications", []) or []:
+        if isinstance(n, dict):
+            clean.append({k: v for k, v in n.items() if k != "kind"})
+    return json.dumps({"Notifications": clean}, indent=2)
 
 
 # Fields SCUM recognizes per tradeable entry. Anything else (e.g. `image_url` for the manager UI)

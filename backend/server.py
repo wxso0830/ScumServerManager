@@ -632,6 +632,9 @@ def _minus_minutes(hhmm: str, m: int) -> str:
 
 
 def _generate_notifications_from_schedule(automation: Dict[str, Any]) -> List[Dict[str, Any]]:
+    """Generate RESTART notifications from the schedule. Each entry is tagged
+    kind='restart' so the UI can filter restart vs update notifications. The
+    tag is stripped before the file is written to disk."""
     times: List[str] = [t for t in (automation.get("restart_times") or []) if t]
     pre: List[int] = sorted(set([int(x) for x in (automation.get("pre_warning_minutes") or [])]), reverse=True)
     if not times:
@@ -644,6 +647,7 @@ def _generate_notifications_from_schedule(automation: Dict[str, Any]) -> List[Di
             "time": stamps,
             "duration": "15",
             "message": _fmt_restart_message(m),
+            "kind": "restart",
         })
     return out
 
@@ -672,7 +676,11 @@ async def generate_notifications(server_id: str):
     automation = doc.get("automation") or {}
     generated = _generate_notifications_from_schedule(automation)
     settings = {**(doc.get("settings") or {})}
-    settings["notifications"] = generated
+    # Preserve any non-restart (e.g. "update") notifications the admin has
+    # authored; only replace the restart ones generated from the schedule.
+    existing = settings.get("notifications") or []
+    kept = [n for n in existing if isinstance(n, dict) and (n.get("kind") or "restart") != "restart"]
+    settings["notifications"] = generated + kept
     await db.servers.update_one({"id": server_id}, {"$set": {"settings": settings}})
     doc["settings"] = settings
     return ServerProfile(**doc)
@@ -2124,13 +2132,21 @@ async def get_settings_schema():
              "renderer": "dynamic", "sourceKey": "custom_ini", "exportKey": None},
 
             # ------ AUTOMATION ------
-            {"key": "automation_main", "labelKey": "cat_automation_main", "icon": "Clock", "section": "automation",
-             "renderer": "automation"},
-            # Notifications moved from Advanced → Automation (sits right under
-            # the auto-restart schedule). Admins edit messages freely (default
-            # seed is English; users translate to their own language).
-            {"key": "automation_notifications", "labelKey": "cat_automation_notifications", "icon": "Bell", "section": "automation",
-             "renderer": "notifications", "sourceKey": "notifications", "exportKey": "notifications"},
+            # Split into 4 categories so admins configure restart + its
+            # notifications together, then update + its notifications.
+            # All notifications are stored in one list (SCUM only reads a
+            # single Notifications.json) but the `kind` metadata tag lets the
+            # UI show only the relevant subset in each editor.
+            {"key": "automation_restart", "labelKey": "cat_automation_restart", "icon": "RefreshCw", "section": "automation",
+             "renderer": "automation_restart"},
+            {"key": "automation_restart_notifications", "labelKey": "cat_automation_restart_notifications", "icon": "Bell", "section": "automation",
+             "renderer": "notifications_kind", "notificationKind": "restart",
+             "sourceKey": "notifications", "exportKey": "notifications"},
+            {"key": "automation_update", "labelKey": "cat_automation_update", "icon": "Download", "section": "automation",
+             "renderer": "automation_update"},
+            {"key": "automation_update_notifications", "labelKey": "cat_automation_update_notifications", "icon": "Bell", "section": "automation",
+             "renderer": "notifications_kind", "notificationKind": "update",
+             "sourceKey": "notifications", "exportKey": "notifications"},
 
             # ------ DISCORD (webhooks + bot) ------
             {"key": "discord_webhooks", "labelKey": "cat_discord_webhooks", "icon": "Webhook", "section": "discord",

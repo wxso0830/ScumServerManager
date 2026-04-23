@@ -114,8 +114,9 @@ export const AutomationEditor = ({ server, onChange }) => {
   const invalidTimes = draft.restart_times.filter((x) => !isValidTime(x));
 
   return (
-    <div className="space-y-6" data-testid="automation-editor">
+    <div className="space-y-6" data-testid={`automation-editor-${mode}`}>
       {/* ===== Restart Schedule ===== */}
+      {mode !== "update" && (
       <div className="panel corner-brackets">
         <div className="px-4 py-3 border-b border-brand flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -204,8 +205,10 @@ export const AutomationEditor = ({ server, onChange }) => {
           </div>
         </div>
       </div>
+      )}
 
       {/* ===== Update Monitor ===== */}
+      {mode !== "restart" && (
       <div className="panel corner-brackets">
         <div className="px-4 py-3 border-b border-brand flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -290,18 +293,21 @@ export const AutomationEditor = ({ server, onChange }) => {
           </div>
         </div>
       </div>
+      )}
 
       {/* ===== Actions ===== */}
       <div className="flex items-center justify-end gap-3">
-        <button
-          className="btn-secondary flex items-center gap-2"
-          onClick={handleGenerate}
-          disabled={busy || draft.restart_times.length === 0}
-          data-testid="generate-notifications-btn"
-          title={draft.restart_times.length === 0 ? "Add at least one restart time" : ""}
-        >
-          <FileJson size={13} /> {t("generate_notifications")}
-        </button>
+        {mode !== "update" && (
+          <button
+            className="btn-secondary flex items-center gap-2"
+            onClick={handleGenerate}
+            disabled={busy || draft.restart_times.length === 0}
+            data-testid="generate-notifications-btn"
+            title={draft.restart_times.length === 0 ? "Add at least one restart time" : ""}
+          >
+            <FileJson size={13} /> {t("generate_notifications")}
+          </button>
+        )}
         <button
           className="btn-primary flex items-center gap-2"
           onClick={handleSave}
@@ -312,8 +318,8 @@ export const AutomationEditor = ({ server, onChange }) => {
         </button>
       </div>
 
-      {/* ===== Preview ===== */}
-      {preview.length > 0 && (
+      {/* ===== Preview (restart-only) ===== */}
+      {mode !== "update" && preview.length > 0 && (
         <div className="panel">
           <div className="px-4 py-3 border-b border-brand flex items-center justify-between">
             <div className="flex items-center gap-3">

@@ -262,6 +262,27 @@ export const ServerDashboard = ({
         return <RaidTimesEditor entries={value || []} onChange={(list) => setCategory(sourceKey, list)} testId={`editor-${cat.key}`} />;
       case "notifications":
         return <NotificationsEditor entries={value || []} onChange={(list) => setCategory(sourceKey, list)} testId={`editor-${cat.key}`} />;
+      case "notifications_kind": {
+        // Show only entries of this category's kind; write back with the kind
+        // tag preserved + entries of other kinds untouched. This keeps both
+        // restart and update notifications inside a single Notifications.json
+        // file (SCUM only reads one) while splitting the UI by purpose.
+        const all = value || [];
+        const myKind = cat.notificationKind || "restart";
+        const mine = all.filter((n) => (n?.kind || "restart") === myKind);
+        const others = all.filter((n) => (n?.kind || "restart") !== myKind);
+        return (
+          <NotificationsEditor
+            entries={mine}
+            kind={myKind}
+            onChange={(list) => {
+              const tagged = list.map((n) => ({ ...n, kind: myKind }));
+              setCategory(sourceKey, [...others, ...tagged]);
+            }}
+            testId={`editor-${cat.key}`}
+          />
+        );
+      }
       case "traders":
         return <TradersEditor traders={value || {}} onChange={(obj) => setCategory(sourceKey, obj)} testId={`editor-${cat.key}`} />;
       case "input":
@@ -278,6 +299,10 @@ export const ServerDashboard = ({
         );
       case "automation":
         return <AutomationEditor server={server} onChange={onChange} />;
+      case "automation_restart":
+        return <AutomationEditor server={server} onChange={onChange} mode="restart" />;
+      case "automation_update":
+        return <AutomationEditor server={server} onChange={onChange} mode="update" />;
       case "discord":
         return <DiscordSettings server={server} />;
       case "discord_bot":

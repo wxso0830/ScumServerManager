@@ -617,11 +617,16 @@ async def server_metrics(server_id: str):
 
 # ---------- AUTOMATION (auto-restart + auto-update) ----------
 def _fmt_restart_message(minutes_left: int) -> str:
-    """Default English restart warning. Users are expected to edit these in
-    the Notifications editor to fit their community's language."""
-    if minutes_left == 1:
-        return "Server will automatically restart in 1 minute. (Release the keyboard)"
-    return f"Server will automatically restart in {minutes_left} minutes."
+    """Default restart warning. Users are expected to edit these in the
+    Notifications editor to fit their community's language."""
+    return f"The server will restart in {minutes_left} minutes."
+
+
+def _restart_duration_for(minutes_left: int) -> str:
+    """On-screen banner duration. The final 1-minute warning stays 10s for
+    extra visibility; the earlier reminders are 5s each so they don't spam
+    the screen during active play."""
+    return "10" if minutes_left == 1 else "5"
 
 
 def _minus_minutes(hhmm: str, m: int) -> str:
@@ -645,7 +650,7 @@ def _generate_notifications_from_schedule(automation: Dict[str, Any]) -> List[Di
         out.append({
             "day": "Everyday",
             "time": stamps,
-            "duration": "10",
+            "duration": _restart_duration_for(m),
             "message": _fmt_restart_message(m),
             "kind": "restart",
         })

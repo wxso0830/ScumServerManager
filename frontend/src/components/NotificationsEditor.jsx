@@ -17,7 +17,7 @@ import { useI18n } from "../providers/I18nProvider";
  */
 export const NotificationsEditor = ({ entries = [], onChange, testId = "notifications", kind = null }) => {
   const { t } = useI18n();
-  const makeSeed = (msg) => ({ message: msg, duration: "10" });
+  const makeSeed = (msg) => ({ message: msg, duration: "5" });
 
   // "Add" button seed — a reasonable placeholder for the current kind so the
   // admin doesn't start from a blank line.
@@ -60,8 +60,8 @@ export const NotificationsEditor = ({ entries = [], onChange, testId = "notifica
                     min={1}
                     max={120}
                     className="input-field font-mono"
-                    value={parseInt(e.duration, 10) || 10}
-                    onChange={(ev) => update(idx, { duration: String(Math.max(1, Number(ev.target.value) || 10)) })}
+                    value={parseInt(e.duration, 10) || 5}
+                    onChange={(ev) => update(idx, { duration: String(Math.max(1, Number(ev.target.value) || 5)) })}
                     data-testid={`${testId}-row-${idx}-duration`}
                   />
                   <p className="text-[10px] text-dim mt-1">{t("notification_duration_hint")}</p>

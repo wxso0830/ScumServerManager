@@ -393,10 +393,8 @@ const InlineKindNotifications = ({ serverId, all = [], kind, automation, onChang
     const seed = PRE.map((m) => ({
       day: "Everyday",
       time: automation.restart_times || [],  // may be empty; admin fills later
-      duration: "10",
-      message: m === 1
-        ? "Server will automatically restart in 1 minute. (Release the keyboard)"
-        : `Server will automatically restart in ${m} minutes.`,
+      duration: m === 1 ? "10" : "5",          // 1-min warning lingers longer
+      message: `The server will restart in ${m} minutes.`,
       kind: "restart",
     }));
     onChange([...others, ...seed]);

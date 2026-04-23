@@ -373,7 +373,18 @@ const PlayerDetailModal = ({ detail, allPlayers = [], onClose, t }) => {
             color={p.kills > p.deaths ? "var(--success)" : "var(--text)"}
           />
           <DetailStat icon={Trophy} label={t("col_fame")} value={p.fame != null ? Number(p.fame).toLocaleString(undefined, { maximumFractionDigits: 1 }) : "—"} color="var(--warning)" />
-          <DetailStat icon={Wallet} label={t("col_money")} value={p.money != null ? Number(p.money).toLocaleString() : "—"} color="var(--warning)" />
+          <DetailStat
+            icon={Wallet}
+            label={t("col_cash")}
+            value={p.cash != null ? Number(p.cash).toLocaleString() : "—"}
+            color="var(--warning)"
+          />
+          <DetailStat
+            icon={Wallet}
+            label={t("col_money")}
+            value={p.account_balance != null ? Number(p.account_balance).toLocaleString() : "—"}
+            color={p.account_balance != null && p.account_balance < 0 ? "var(--danger)" : "var(--warning)"}
+          />
           <DetailStat icon={Gem} label={t("col_gold")} value={p.gold != null ? Number(p.gold).toLocaleString() : "—"} color="var(--accent)" />
           <DetailStat icon={Coins} label={t("col_trade")} value={p.trade_amount ? p.trade_amount.toLocaleString() : "0"} color="var(--warning)" />
           <DetailStat icon={Flag} label={t("col_flags")} value={p.flag_count ?? "—"} />

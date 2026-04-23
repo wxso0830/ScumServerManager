@@ -1492,6 +1492,22 @@ async def list_players(server_id: str, online: Optional[bool] = None, search: Op
         except Exception as e:
             logger.info("list_players: SCUM.db read failed (non-fatal): %s", e)
 
+    # Latest balance snapshot per player from economy log. Emitted by
+    # parse_economy_line for every "[Trade] After" line — gives us live
+    # cash / account_balance / gold even when SCUM.db columns are absent.
+    balance_pipe = [
+        {"$match": {"server_id": server_id, "type": "balance_snapshot", "steam_id": {"$nin": [None, ""]}}},
+        {"$sort": {"ts": 1}},
+        {"$group": {
+            "_id": "$steam_id",
+            "cash": {"$last": "$cash"},
+            "account_balance": {"$last": "$account_balance"},
+            "gold": {"$last": "$gold"},
+            "balance_ts": {"$last": "$ts"},
+        }},
+    ]
+    balance_map = {r["_id"]: r for r in await db.server_events.aggregate(balance_pipe).to_list(5000)}
+
     players: List[Dict[str, Any]] = []
     for r in rows:
         types = r.pop("types", [])
@@ -1511,8 +1527,14 @@ async def list_players(server_id: str, online: Optional[bool] = None, search: Op
             except Exception:
                 pass
         db_row = db_stats.get(sid) or {}
+        bal_row = balance_map.get(sid) or {}
         # Prefer SCUM.db fame; fall back to sum of fame events if DB unavailable
         fame = db_row.get("fame") if db_row.get("fame") is not None else float(r.get("fame_delta") or 0)
+        # Wallet: log snapshot is ground truth (has cash + bank separately),
+        # SCUM.db is fallback when no trade has happened yet.
+        cash_val = bal_row.get("cash") if bal_row.get("cash") is not None else db_row.get("money")
+        bank_val = bal_row.get("account_balance")  # SCUM.db usually doesn't carry this
+        gold_val = bal_row.get("gold") if bal_row.get("gold") is not None else db_row.get("gold")
         player = {
             "steam_id": sid,
             "name": db_row.get("db_name") or r.get("last_name") or sid,
@@ -1533,9 +1555,13 @@ async def list_players(server_id: str, online: Optional[bool] = None, search: Op
             "squad_vehicle_count": db_row.get("squad_vehicle_count"),
             "squad_name": db_row.get("squad_name"),
             "squad_id": db_row.get("squad_id"),
-            # Wallet + playtime — from SCUM.db (nullable: column may not exist on this patch)
-            "money": db_row.get("money"),
-            "gold": db_row.get("gold"),
+            # Wallet — log snapshots win (have cash + bank separately); SCUM.db fills gaps.
+            "cash": cash_val,
+            "account_balance": bank_val,
+            "gold": gold_val,
+            "balance_ts": bal_row.get("balance_ts"),
+            # Legacy alias kept for the table view (single number).
+            "money": cash_val,
             "play_time_seconds": db_row.get("play_time_seconds"),
         }
         players.append(player)

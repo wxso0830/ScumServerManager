@@ -46,12 +46,16 @@ Electron-based desktop server manager for SCUM game. On first launch: ask user t
 - Schema cleanup: removed `client` section + client_mouse/video/graphics/sound; moved `client_game` under `gameplay`
 
 ## Recent Changes
-- **2026-02 (Player Detail UX)**: Player detail modal now shows **bank cash (money)**, **gold**, and **total play-time** — all read from SCUM.db `user_profile` (tolerant multi-column fallback because SCUM renames columns across patches). If the DB column is missing, play-time is **computed by pairing login/logout events** in server_events (still-online sessions count up to now). Date format changed from "23 Nis 2026 13:38" to `DD.MM.YYYY HH:MM` (admin-requested). K/D now displays raw counts + ratio: `300 / 100 (3.00)`. New translation keys: `col_money`, `col_gold`, `col_playtime`, `col_kd_ratio`.
-- **2026-02 (Flag/Vehicle-lock tracking)**: Documented that SCUM does NOT write flag-place or vehicle-lock events to any log file. Manager already tracks these via direct SCUM.db polling (`_FLAG_QUERIES`, `_VEHICLE_LOCKED_QUERIES` in `scum_db.py`) — this is the only reliable source.
-- **2026-02 (build.ps1 hardening)**: Auto-installs `requirements.txt`, sanity-checks critical imports (`discord`, `fastapi`, `uvicorn`, `motor`, `pymongo`, `aiohttp`), tolerates pod-only packages, pure ASCII (no em-dash parse errors), always cleans `build/`+`dist/`.
-- **2026-02 (requirements.txt)**: Removed `emergentintegrations==0.1.0` (pod-internal, not on PyPI).
-- **2026-02 (Electron error surface)**: Reverted `dialog.showMessageBox` → `dialog.showErrorBox` so init failures are visible.
-- **2026-02 (ServerCard)**: Update button tooltip → "Güncelle" only.
+- **2026-02 (Economy log parser expansion)**: `scum_logs.parse_economy_line` now recognizes 3 new patterns from SCUM 1.2+ economy log:
+  - `[Trade] Tradeable (Item (health: X, uses: N)) sold/purchased by NAME(SID) for N to trader X` — modern format (legacy `(xN)` kept as fallback).
+  - `[Trade] Before/After ... player NAME(SID) had/has C cash, B account balance and G gold ... trader had/has F funds` → emitted as `balance_snapshot` event. Gives live `cash`, `account_balance`, `gold` per trade.
+  - `[Bank] NAME(ID:SID)(Account Number:N) purchased/deposited/withdrew ... new account balance is X credits` → emitted as `bank` event.
+  `list_players` now aggregates the **latest balance_snapshot per player** and surfaces `cash` (pocket) + `account_balance` (bank, **can be negative**) + `gold`. Player detail modal shows all three. SCUM.db values are fallback only. Verified end-to-end: uploaded real user log → API returned `cash:293, account_balance:-750, gold:0`.
+- **2026-02 (Player Detail UX)**: modal shows bank cash, gold, total play-time (SCUM.db or computed from login/logout pairs). Dates: `DD.MM.YYYY HH:MM`. K/D shows raw + ratio `300 / 100 (3.00)`.
+- **2026-02 (Flag/Vehicle-lock tracking)**: Documented — SCUM does NOT log these; tracked via direct SCUM.db polling.
+- **2026-02 (build.ps1 hardening)**: Auto-installs requirements, sanity-checks critical imports, pure ASCII, cleans build/ dist/.
+- **2026-02 (requirements.txt)**: Removed `emergentintegrations==0.1.0`.
+- **2026-02 (Electron error surface)**: Reverted to `showErrorBox` for visible init failures.
 - **2026-02 (Backup)**: Expected-stop tracking via `mark_expected_stop()` in stop/restart/update/bulk/scheduled endpoints. Real crash sets `crash_recovery_pending` + captures crash ZIP. `start_server` auto-restores latest crash/auto/manual backup if flag set.
 - **2026-02 (Iteration 11)**: Discord Bot integration (discord.py 2.x, scum_discord.py). New endpoints GET/PUT `/api/discord/bot` + `/api/discord/bot/status`. DiscordBotSettings.jsx component. Auto-backup UI moved from AutomationEditor → BackupsView (AutoSavePanel). Schema: `discord` section + `discord_webhooks` + `discord_bot` categories; `client` section removed; `gameplay_client_game` under `gameplay`. `get_metrics` now returns `players` + `max_players_live` from A2S_INFO. `a2s_player_query` added for Discord `/online` command.
 

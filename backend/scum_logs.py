@@ -244,27 +244,115 @@ _TRADE_MAIN_RX = re.compile(
     flags=re.IGNORECASE,
 )
 
+# Modern SCUM 1.2+ trade line. Item has no "(xN)" wrapper and uses
+# health/uses stats instead. Example:
+#   [Trade] Tradeable (Boar_Skinned (health: 100.00, uses: 1)) sold by WXSO(76561199169074640)
+#   for 293 (293 + 0 worth of contained items) to trader Z_3_Saloon, old amount in store is 3, new amount is 4
+_TRADE_MODERN_RX = re.compile(
+    r"\[Trade\]\s+Tradeable\s+\((?P<item>[A-Za-z0-9_]+)\s*\([^)]*\)\)\s+"
+    r"(?P<action>purchased|sold)\s+by\s+(?P<name>[^(]+)\((?P<sid>\d{17})\)\s+"
+    r"(?:for|to)\s+(?P<amt>\d+)\s+"
+    r"(?:\([^)]*\)\s+)?"
+    r"(?:from|to)\s+trader\s+(?P<trader>[A-Za-z0-9_]+)",
+    flags=re.IGNORECASE,
+)
+
+# "[Trade] Before ... player NAME(SID) had C cash, B account balance and G gold and trader had F funds."
+# "[Trade] After ...  player NAME(SID) has  C cash, B account balance and G gold and trader has  F funds."
+# Emits a `balance_snapshot` event so the UI can show live cash/bank/gold
+# without querying SCUM.db.
+_TRADE_BALANCE_RX = re.compile(
+    r"\[Trade\]\s+(?P<phase>Before|After)\b.*?"
+    r"player\s+(?P<name>[^(]+)\((?P<sid>\d{17})\)\s+"
+    r"(?:had|has)\s+(?P<cash>-?\d+)\s+cash\s*,\s*"
+    r"(?P<bal>-?\d+)\s+account\s+balance\s+and\s+(?P<gold>-?\d+)\s+gold\s+"
+    r"and\s+trader\s+(?:had|has)\s+(?P<funds>-?\d+)\s+funds",
+    flags=re.IGNORECASE,
+)
+
+# "[Bank] NAME(ID:SID)(Account Number:N) purchased Gold card (free renewal: no), new account balance is X credits, at X=... Y=... Z=..."
+# "[Bank] NAME(ID:SID)(Account Number:N) deposited N money, new account balance is X credits..."
+_BANK_RX = re.compile(
+    r"\[Bank\]\s+(?P<name>[^(]+)\(ID:(?P<sid>\d{17})\)"
+    r"(?:\(Account\s+Number:(?P<acct>\d+)\))?\s+"
+    r"(?P<action>[a-z][a-z ]+?)\s+"
+    r"(?P<detail>.*?),?\s+new\s+account\s+balance\s+is\s+(?P<bal>-?\d+)\s+credits",
+    flags=re.IGNORECASE,
+)
+
 
 def parse_economy_line(ts_iso: str, body: str) -> Optional[Dict[str, Any]]:
+    # --- [Bank] lines (Gold card purchase, deposit, withdrawal, etc.) ---
+    if body.startswith("[Bank]"):
+        bm = _BANK_RX.search(body)
+        if bm:
+            return {
+                "type": "bank",
+                "ts": ts_iso,
+                "action": bm.group("action").strip().lower(),
+                "detail": (bm.group("detail") or "").strip().rstrip(","),
+                "account_balance": int(bm.group("bal")),
+                "account_number": bm.group("acct"),
+                "player_name": bm.group("name").strip(),
+                "steam_id": bm.group("sid"),
+                "raw": body,
+            }
+        # Unknown [Bank] format — fall through to generic so the raw text is kept.
+        return None
+
     if not body.startswith("[Trade]"):
         return None
-    # Skip the before/after balance companion lines (only emit the main transaction line).
+
+    # Parse Before/After balance snapshots — gives us live cash/bank/gold
+    # per player with zero SCUM.db reads.
     if body.startswith("[Trade] Before ") or body.startswith("[Trade] After "):
-        return {"_skip": True}  # sentinel: don't fall back to generic
+        bm = _TRADE_BALANCE_RX.search(body)
+        if bm:
+            return {
+                "type": "balance_snapshot",
+                "ts": ts_iso,
+                "phase": bm.group("phase").lower(),
+                "cash": int(bm.group("cash")),
+                "account_balance": int(bm.group("bal")),
+                "gold": int(bm.group("gold")),
+                "trader_funds": int(bm.group("funds")),
+                "player_name": bm.group("name").strip(),
+                "steam_id": bm.group("sid"),
+                "raw": body,
+            }
+        # If it didn't match the balance line regex, skip entirely — these
+        # are companion lines and shouldn't be stored as generic.
+        return {"_skip": True}
+
+    # Try modern SCUM 1.2+ format first; fall back to legacy "money" format.
+    m_mod = _TRADE_MODERN_RX.search(body)
+    if m_mod:
+        g = m_mod.groupdict()
+        return {
+            "type": "economy",
+            "ts": ts_iso,
+            "action": g["action"].lower(),
+            "item_code": g["item"].strip(),
+            "quantity": 1,  # modern log encodes stack via "uses", not count
+            "amount": int(g["amt"]),
+            "currency": "money",
+            "trader": g["trader"].rstrip(",."),
+            "player_name": g["name"].strip(),
+            "steam_id": g["sid"],
+            "raw": body,
+        }
     m = _TRADE_MAIN_RX.search(body)
     if not m:
         return None
-    item = m.group(1).strip()
-    trader = m.group("trader").rstrip(",.")
     return {
         "type": "economy",
         "ts": ts_iso,
         "action": m.group("action").lower(),
-        "item_code": item,
+        "item_code": m.group(1).strip(),
         "quantity": int(m.group(2)),
         "amount": int(m.group("amt")),
         "currency": "money",
-        "trader": trader,
+        "trader": m.group("trader").rstrip(",."),
         "player_name": m.group("name").strip(),
         "steam_id": m.group("sid"),
         "raw": body,

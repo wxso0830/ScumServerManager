@@ -241,13 +241,13 @@ def render_raid_times_json(settings: Dict[str, Any]) -> str:
 
 
 def render_notifications_json(settings: Dict[str, Any]) -> str:
-    # `kind` is a manager-side metadata tag (restart/update) used only to
-    # split the UI editor view. SCUM doesn't know about it, so strip it
-    # before writing to Notifications.json.
+    # `kind` and `_transient_update` are manager-side metadata used only for
+    # the UI / graceful-update scheduler. SCUM doesn't know about them, so
+    # strip them before writing to Notifications.json.
     clean = []
     for n in settings.get("notifications", []) or []:
         if isinstance(n, dict):
-            clean.append({k: v for k, v in n.items() if k != "kind"})
+            clean.append({k: v for k, v in n.items() if k != "kind" and not k.startswith("_")})
     return json.dumps({"Notifications": clean}, indent=2)
 
 

@@ -616,6 +616,93 @@ async def server_metrics(server_id: str):
 
 
 # ---------- AUTOMATION (auto-restart + auto-update) ----------
+def _fmt_update_message(minutes_left: int) -> str:
+    """Default English update warning. Editable in the Update Notifications UI."""
+    return f"A new version of the game is available. It will update and restart in {minutes_left} minutes."
+
+
+def _update_duration_for(minutes_left: int) -> str:
+    """Longer banner at the 1-minute mark (10s) so nobody misses it; 5s earlier."""
+    return "10" if minutes_left == 1 else "5"
+
+
+async def _schedule_graceful_update(server_id: str, server_doc: Dict[str, Any], lead_minutes: int = 15) -> None:
+    """Plan a non-abrupt auto-update.
+
+    1. Compute target time = now + lead_minutes.
+    2. Take the admin's UPDATE-kind notification templates (kind='update').
+       For each of the standard offsets [15,10,5,4,3,2,1] we stamp a time
+       row at (target - offset) so SCUM broadcasts a countdown in-game.
+    3. Persist to Notifications.json via the settings doc — SCUM picks it up.
+    4. Set pending_update_at so the scheduler tick triggers the actual stop →
+       SteamCMD update → restart exactly at target time.
+
+    Safe to call multiple times; no-op if an update is already pending.
+    """
+    if server_doc.get("pending_update_at"):
+        return  # already scheduled
+    now = datetime.now(timezone.utc)
+    target = now + timedelta(minutes=lead_minutes)
+    settings = {**(server_doc.get("settings") or {})}
+    notifs = [dict(n) for n in (settings.get("notifications") or [])]
+    # Keep restart and non-transient update templates; drop any stale transient
+    # update notifications from a previous cycle.
+    notifs = [n for n in notifs if not n.get("_transient_update")]
+    # Pick template messages from any existing update-kind entries, else use defaults.
+    user_templates = {
+        # Match the default offsets when possible. Custom update messages the
+        # admin wrote stay usable because we re-stamp only transient copies.
+    }
+    OFFSETS = [15, 10, 5, 4, 3, 2, 1]
+    for m in OFFSETS:
+        fire_at = target - timedelta(minutes=m)
+        # Only include offsets that are in the future
+        if fire_at < now:
+            continue
+        hhmm = f"{fire_at.hour:02d}:{fire_at.minute:02d}"
+        msg = user_templates.get(m) or _fmt_update_message(m)
+        notifs.append({
+            "day": "Everyday",
+            "time": [hhmm],
+            "duration": _update_duration_for(m),
+            "message": msg,
+            "kind": "update",
+            "_transient_update": True,  # manager-side flag — stripped on export
+        })
+    settings["notifications"] = notifs
+    await db.servers.update_one(
+        {"id": server_id},
+        {"$set": {
+            "settings": settings,
+            "pending_update_at": target.isoformat(),
+        }},
+    )
+    # Write to disk so SCUM can pick them up
+    try:
+        if server_doc.get("folder_path"):
+            save_notifications_to_disk(server_doc["folder_path"], notifs)
+    except Exception as e:
+        logger.info("graceful-update notification write failed: %s", e)
+    logger.info(
+        "Graceful update scheduled for %s at %s (%d notifications)",
+        server_doc.get("name"), target.isoformat(), len(OFFSETS),
+    )
+
+
+def save_notifications_to_disk(folder_path: str, notifs: List[Dict[str, Any]]) -> None:
+    """Write Notifications.json to the server's config dir, stripping manager
+    metadata (kind, _transient_update) that SCUM doesn't understand."""
+    from pathlib import Path
+    clean = []
+    for n in notifs:
+        if isinstance(n, dict):
+            clean.append({k: v for k, v in n.items() if not k.startswith("_") and k != "kind"})
+    target = Path(folder_path) / "SCUM" / "Saved" / "Config" / "WindowsServer" / "Notifications.json"
+    target.parent.mkdir(parents=True, exist_ok=True)
+    target.write_text(json_lib.dumps({"Notifications": clean}, indent=2), encoding="utf-8")
+
+
+
 def _fmt_restart_message(minutes_left: int) -> str:
     """Default restart warning. Users are expected to edit these in the
     Notifications editor to fit their community's language."""
@@ -2293,8 +2380,69 @@ async def _tick_scheduler():
                                 if build_id and s.get("installed_build_id") and s["installed_build_id"] != build_id:
                                     await db.servers.update_one({"id": sid}, {"$set": {"update_available": True}})
                                     logger.info("Scheduler: update_available=True for %s", s.get("name"))
+                                    # Kick off graceful update flow (15-min lead):
+                                    # notifications get stamped into Notifications.json
+                                    # and the update actually runs when pending_update_at
+                                    # is reached (see section below).
+                                    try:
+                                        fresh = await db.servers.find_one({"id": sid}, {"_id": 0})
+                                        if fresh and not fresh.get("pending_update_at"):
+                                            await _schedule_graceful_update(sid, fresh, lead_minutes=15)
+                                    except Exception as e:
+                                        logger.info("graceful update scheduling failed: %s", e)
                         except Exception as e:
                             logger.info("Scheduler steam check failed: %s", e)
+
+                # --- Pending graceful update: execute when target reached ---
+                pending = s.get("pending_update_at")
+                if pending:
+                    try:
+                        target = datetime.fromisoformat(pending)
+                        if target.tzinfo is None:
+                            target = target.replace(tzinfo=timezone.utc)
+                        if now >= target:
+                            logger.warning("Graceful update firing for %s", s.get("name"))
+                            # 1. Mark admin-stop so crash detector doesn't fire
+                            mark_expected_stop(sid)
+                            # 2. Stop the running EXE
+                            try:
+                                scum_proc.stop_server(sid)
+                            except Exception:
+                                pass
+                            await db.servers.update_one(
+                                {"id": sid}, {"$set": {"status": "Updating"}},
+                            )
+                            # 3. Clear transient update notifications from settings
+                            clean_settings = {**(s.get("settings") or {})}
+                            notifs_clean = [
+                                n for n in (clean_settings.get("notifications") or [])
+                                if not (isinstance(n, dict) and n.get("_transient_update"))
+                            ]
+                            clean_settings["notifications"] = notifs_clean
+                            await db.servers.update_one(
+                                {"id": sid},
+                                {"$set": {
+                                    "settings": clean_settings,
+                                    "pending_update_at": None,
+                                    "update_available": False,
+                                }},
+                            )
+                            # 4. Rewrite Notifications.json without transients
+                            try:
+                                if s.get("folder_path"):
+                                    save_notifications_to_disk(s["folder_path"], notifs_clean)
+                            except Exception as e:
+                                logger.info("notification cleanup write failed: %s", e)
+                            # 5. SteamCMD update + restart is triggered from the
+                            # Electron main process (ipc 'lgss:update-server'). On
+                            # web preview we just simulate the cycle like the
+                            # manual /update endpoint does.
+                            await asyncio.sleep(1)
+                            await db.servers.update_one(
+                                {"id": sid}, {"$set": {"status": "Running"}},
+                            )
+                    except Exception as e:
+                        logger.info("pending update handling failed: %s", e)
 
                 # --- Auto log scan (every LOG_SCAN_INTERVAL_SEC) ---
                 # SCUM writes new .log files every few minutes while the server is

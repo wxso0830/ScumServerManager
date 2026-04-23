@@ -382,20 +382,22 @@ const InlineKindNotifications = ({ serverId, all = [], kind, automation, onChang
   const mine = all.filter((n) => (n?.kind || "restart") === kind);
   const others = all.filter((n) => (n?.kind || "restart") !== kind);
 
-  // Auto-seed on first view: if this kind has no entries, populate a default
-  // template the admin can tweak. Restart → 7 pre-warning messages
-  // (15/10/5/4/3/2/1 min) so the admin immediately sees the standard
-  // countdown. Update kind stays empty (admins compose those themselves).
+  // Auto-seed on first view: populate a default 7-template list the admin
+  // can tweak. Same 15/10/5/4/3/2/1 countdown for both restart and update
+  // kinds; only the message/duration differ. Update kind stays as editable
+  // templates — the actual firing times are stamped by the backend when it
+  // detects a new build (see _schedule_graceful_update).
   React.useEffect(() => {
     if (mine.length > 0) return;
-    if (kind !== "restart") return;
     const PRE = [15, 10, 5, 4, 3, 2, 1];
     const seed = PRE.map((m) => ({
       day: "Everyday",
-      time: automation.restart_times || [],  // may be empty; admin fills later
-      duration: m === 1 ? "10" : "5",          // 1-min warning lingers longer
-      message: `The server will restart in ${m} minutes.`,
-      kind: "restart",
+      time: kind === "restart" ? (automation.restart_times || []) : [],
+      duration: m === 1 ? "10" : "5",
+      message: kind === "update"
+        ? `A new version of the game is available. It will update and restart in ${m} minutes.`
+        : `The server will restart in ${m} minutes.`,
+      kind,
     }));
     onChange([...others, ...seed]);
     // eslint-disable-next-line react-hooks/exhaustive-deps

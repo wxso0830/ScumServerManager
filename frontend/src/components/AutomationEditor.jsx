@@ -383,12 +383,16 @@ const InlineKindNotifications = ({ serverId, all = [], kind, automation, onChang
   const others = all.filter((n) => (n?.kind || "restart") !== kind);
 
   // Auto-seed on first view: populate a default 7-template list the admin
-  // can tweak. Same 15/10/5/4/3/2/1 countdown for both restart and update
-  // kinds; only the message/duration differ. Update kind stays as editable
-  // templates — the actual firing times are stamped by the backend when it
-  // detects a new build (see _schedule_graceful_update).
+  // can tweak. We treat the kind as "fresh" if fewer than 3 entries exist
+  // AND none of them carry our expected per-minute message — this recovers
+  // from stale/partial test data left by earlier manager versions.
   React.useEffect(() => {
-    if (mine.length > 0) return;
+    const looksSeeded = mine.some((n) =>
+      /restart in \d+ minute/i.test(n.message || "") ||
+      /update and restart in \d+ minute/i.test(n.message || "")
+    );
+    if (looksSeeded) return;        // already seeded or admin wrote custom ones
+    if (mine.length >= 3) return;   // admin appears to have real content
     const PRE = [15, 10, 5, 4, 3, 2, 1];
     const seed = PRE.map((m) => ({
       day: "Everyday",
@@ -399,7 +403,7 @@ const InlineKindNotifications = ({ serverId, all = [], kind, automation, onChang
         : `The server will restart in ${m} minutes.`,
       kind,
     }));
-    onChange([...others, ...seed]);
+    onChange([...others, ...mine, ...seed]);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 

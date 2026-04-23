@@ -219,6 +219,21 @@ function waitForBackend(timeoutMs = 120000) {
   const deadline = Date.now() + timeoutMs;
   return new Promise((resolve, reject) => {
     const tick = () => {
+      // If the backend process has already died, no point waiting: read the
+      // last lines of backend.err.log and surface them in the error dialog
+      // so the admin knows exactly WHY (missing module, bind error, etc.).
+      if (backendExitInfo) {
+        const errLog = path.join(logDir(), 'backend.err.log');
+        let tail = '';
+        try {
+          const buf = fs.readFileSync(errLog, 'utf8');
+          tail = buf.split(/\r?\n/).filter(Boolean).slice(-15).join('\n');
+        } catch {}
+        return reject(new Error(
+          `Backend erken kapandı (exit code=${backendExitInfo.code}).\n\n` +
+          `Son hata satırları:\n${tail || '(log boş)'}\n\nTam log: ${errLog}`
+        ));
+      }
       const req = http.get(`${BACKEND_URL}/api/`, (res) => {
         res.resume();
         if (res.statusCode && res.statusCode < 500) return resolve(true);
@@ -228,15 +243,22 @@ function waitForBackend(timeoutMs = 120000) {
       req.setTimeout(1500, () => { req.destroy(); retry(); });
     };
     const retry = () => {
-      if (Date.now() > deadline) return reject(new Error(`Backend hazır olmadı (${Math.round(timeoutMs/1000)}s timeout)`));
+      if (Date.now() > deadline) return reject(new Error(
+        `Backend hazır olmadı (${Math.round(timeoutMs/1000)}s timeout).\n\n` +
+        `Log klasörü: ${logDir()}`
+      ));
       setTimeout(tick, 700);
     };
     tick();
   });
 }
 
+let backendExitInfo = null;  // { code, sig } if backend dies early
+
+
 function spawnBackend() {
   if (backendProcess) return;
+  backendExitInfo = null;
   const { cmd, args, cwd } = getBackendCommand();
   if (!fs.existsSync(cwd)) throw new Error(`Backend klasörü bulunamadı: ${cwd}`);
 
@@ -263,6 +285,7 @@ function spawnBackend() {
 
   backendProcess.on('exit', (code, sig) => {
     console.log(`[backend] exited code=${code} sig=${sig}`);
+    backendExitInfo = { code, sig };   // poll-able flag used by waitForBackend
     backendProcess = null;
   });
   backendProcess.on('error', (e) => console.error('[backend] error:', e.message));
@@ -406,10 +429,18 @@ app.whenReady().then(async () => {
     updateSplash('Arayuz yukleniyor...');
   } catch (err) {
     closeSplash();
-    dialog.showErrorBox(
-      'Baslatma hatasi',
-      `${err.message}\n\nLog klasoru: ${logDir()}`
-    );
+    const { response } = await dialog.showMessageBox({
+      type: 'error',
+      title: 'Baslatma hatasi',
+      message: 'LGSS Manager baslatilamadi',
+      detail: `${err.message}\n\nLog klasoru: ${logDir()}`,
+      buttons: ['Tamam', 'Log Klasorunu Ac'],
+      defaultId: 0,
+      cancelId: 0,
+    });
+    if (response === 1) {
+      shell.openPath(logDir());
+    }
     shutdownChildren();
     app.exit(1);
     return;

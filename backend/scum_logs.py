@@ -259,19 +259,21 @@ _TRADE_MODERN_RX = re.compile(
 
 # "[Trade] Before ... player NAME(SID) had C cash, B account balance and G gold and trader had F funds."
 # "[Trade] After ...  player NAME(SID) has  C cash, B account balance and G gold and trader has  F funds."
+# SCUM 1.2+ sometimes says "bank account balance" after a purchase instead of
+# "account balance" — both spellings match here.
 # Emits a `balance_snapshot` event so the UI can show live cash/bank/gold
 # without querying SCUM.db.
 _TRADE_BALANCE_RX = re.compile(
     r"\[Trade\]\s+(?P<phase>Before|After)\b.*?"
     r"player\s+(?P<name>[^(]+)\((?P<sid>\d{17})\)\s+"
     r"(?:had|has)\s+(?P<cash>-?\d+)\s+cash\s*,\s*"
-    r"(?P<bal>-?\d+)\s+account\s+balance\s+and\s+(?P<gold>-?\d+)\s+gold\s+"
+    r"(?P<bal>-?\d+)\s+(?:bank\s+)?account\s+balance\s+and\s+(?P<gold>-?\d+)\s+gold\s+"
     r"and\s+trader\s+(?:had|has)\s+(?P<funds>-?\d+)\s+funds",
     flags=re.IGNORECASE,
 )
 
-# "[Bank] NAME(ID:SID)(Account Number:N) purchased Gold card (free renewal: no), new account balance is X credits, at X=... Y=... Z=..."
-# "[Bank] NAME(ID:SID)(Account Number:N) deposited N money, new account balance is X credits..."
+# "[Bank] NAME(ID:SID)(Account Number:N) purchased Gold card ..., new account balance is X credits, at X=..."
+# "[Bank] NAME(ID:SID)(Account Number:N) deposited/withdrew N ... new account balance is X credits ..."
 _BANK_RX = re.compile(
     r"\[Bank\]\s+(?P<name>[^(]+)\(ID:(?P<sid>\d{17})\)"
     r"(?:\(Account\s+Number:(?P<acct>\d+)\))?\s+"
@@ -280,10 +282,61 @@ _BANK_RX = re.compile(
     flags=re.IGNORECASE,
 )
 
+# "[Bank] NAME(ID:SID)(Account Number:N) deposited 293(287 was added) to Account Number: 719606009702(WXSO)(76561199169074640) at X=..."
+# This variant has NO "new account balance" suffix — SCUM only writes the delta.
+# We still emit a `bank` event so admins see every deposit/withdrawal.
+_BANK_DEPOSIT_RX = re.compile(
+    r"\[Bank\]\s+(?P<name>[^(]+)\(ID:(?P<sid>\d{17})\)"
+    r"(?:\(Account\s+Number:(?P<acct>\d+)\))?\s+"
+    r"(?P<action>deposited|withdrew|withdrawn)\s+"
+    r"(?P<gross>\d+)"
+    r"(?:\((?P<net>\d+)\s+was\s+(?:added|removed|deducted)\))?"
+    r"(?:\s+to\s+Account\s+Number:\s*(?P<target_acct>\d+))?",
+    flags=re.IGNORECASE,
+)
+
+# "[Currency Conversion] NAME(ID:SID)(Account Number:N) purchased 1 gold for 1000 credits (new account balance is 1 gold/7978 credits) at X=..."
+# "[Currency Conversion] NAME(ID:SID)(Account Number:N) sold 1 gold for 1000 credits (new account balance is 0 gold/8978 credits) at X=..."
+# Emits both a `currency_conversion` event AND a `balance_snapshot` so the
+# aggregator picks up the new gold + credits balance even when no trade
+# happens afterwards.
+_CURRENCY_CONV_RX = re.compile(
+    r"\[Currency\s+Conversion\]\s+(?P<name>[^(]+)\(ID:(?P<sid>\d{17})\)"
+    r"(?:\(Account\s+Number:(?P<acct>\d+)\))?\s+"
+    r"(?P<action>purchased|sold|exchanged)\s+"
+    r"(?P<g_qty>\d+)\s+gold\s+(?:for|to)\s+(?P<c_qty>\d+)\s+credits\s*"
+    r"\(new\s+account\s+balance\s+is\s+(?P<new_gold>-?\d+)\s+gold\s*/\s*(?P<new_cred>-?\d+)\s+credits\)",
+    flags=re.IGNORECASE,
+)
+
 
 def parse_economy_line(ts_iso: str, body: str) -> Optional[Dict[str, Any]]:
+    # --- [Currency Conversion] lines (gold <-> credits) ---
+    if body.startswith("[Currency Conversion]"):
+        cm = _CURRENCY_CONV_RX.search(body)
+        if cm:
+            return {
+                "type": "currency_conversion",
+                "ts": ts_iso,
+                "action": cm.group("action").lower(),
+                "gold_qty": int(cm.group("g_qty")),
+                "credit_qty": int(cm.group("c_qty")),
+                "gold": int(cm.group("new_gold")),            # NEW gold balance
+                "account_balance": int(cm.group("new_cred")),  # NEW credits balance
+                "account_number": cm.group("acct"),
+                "player_name": cm.group("name").strip(),
+                "steam_id": cm.group("sid"),
+                # Aggregator reads balance_snapshot to determine live wallet;
+                # duplicate the new totals under that type so the snapshot
+                # pipeline picks this up too.
+                "is_balance_update": True,
+                "raw": body,
+            }
+        return None
+
     # --- [Bank] lines (Gold card purchase, deposit, withdrawal, etc.) ---
     if body.startswith("[Bank]"):
+        # 1) Variant with "new account balance is X credits"
         bm = _BANK_RX.search(body)
         if bm:
             return {
@@ -295,6 +348,25 @@ def parse_economy_line(ts_iso: str, body: str) -> Optional[Dict[str, Any]]:
                 "account_number": bm.group("acct"),
                 "player_name": bm.group("name").strip(),
                 "steam_id": bm.group("sid"),
+                "raw": body,
+            }
+        # 2) Deposit/withdraw WITHOUT a new-balance trailer — SCUM only writes
+        #    the delta. We still record the event but account_balance stays None.
+        dm = _BANK_DEPOSIT_RX.search(body)
+        if dm:
+            gross = int(dm.group("gross"))
+            net = int(dm.group("net")) if dm.group("net") else gross
+            return {
+                "type": "bank",
+                "ts": ts_iso,
+                "action": dm.group("action").lower(),
+                "gross_amount": gross,
+                "net_amount": net,  # what actually landed in the account after bank fee
+                "fee": gross - net,
+                "account_number": dm.group("acct"),
+                "target_account_number": dm.group("target_acct"),
+                "player_name": dm.group("name").strip(),
+                "steam_id": dm.group("sid"),
                 "raw": body,
             }
         # Unknown [Bank] format — fall through to generic so the raw text is kept.

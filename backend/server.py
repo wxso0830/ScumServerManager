@@ -1492,21 +1492,48 @@ async def list_players(server_id: str, online: Optional[bool] = None, search: Op
         except Exception as e:
             logger.info("list_players: SCUM.db read failed (non-fatal): %s", e)
 
-    # Latest balance snapshot per player from economy log. Emitted by
-    # parse_economy_line for every "[Trade] After" line — gives us live
-    # cash / account_balance / gold even when SCUM.db columns are absent.
-    balance_pipe = [
-        {"$match": {"server_id": server_id, "type": "balance_snapshot", "steam_id": {"$nin": [None, ""]}}},
+    # Latest wallet state per player. Every economy source that knows a fresh
+    # balance contributes here:
+    #   - `balance_snapshot` (from [Trade] Before/After) — has cash + bank + gold
+    #   - `currency_conversion` (from [Currency Conversion]) — has bank + gold
+    #   - `bank` events with account_balance (from [Bank] purchases) — bank only
+    # Picking the LAST non-null value for each field per player gives us the
+    # most up-to-date wallet even when the player just converted gold or
+    # bought a Gold card without following it up with a trade.
+    wallet_pipe = [
+        {"$match": {
+            "server_id": server_id,
+            "steam_id": {"$nin": [None, ""]},
+            "type": {"$in": ["balance_snapshot", "currency_conversion", "bank"]},
+        }},
         {"$sort": {"ts": 1}},
         {"$group": {
             "_id": "$steam_id",
-            "cash": {"$last": "$cash"},
-            "account_balance": {"$last": "$account_balance"},
-            "gold": {"$last": "$gold"},
-            "balance_ts": {"$last": "$ts"},
+            # `$last` with a conditional $ifNull: keep old value when this row
+            # doesn't know the field. We can't do $last-non-null directly in
+            # MongoDB <5 so we use $mergeObjects via $accumulator alternative:
+            # simpler — just take $last of each field and fall back in Python.
+            "cash_docs":    {"$push": {"ts": "$ts", "v": "$cash"}},
+            "bank_docs":    {"$push": {"ts": "$ts", "v": "$account_balance"}},
+            "gold_docs":    {"$push": {"ts": "$ts", "v": "$gold"}},
+            "last_ts":      {"$last": "$ts"},
         }},
     ]
-    balance_map = {r["_id"]: r for r in await db.server_events.aggregate(balance_pipe).to_list(5000)}
+    raw_wallets = await db.server_events.aggregate(wallet_pipe).to_list(5000)
+    balance_map: Dict[str, Dict[str, Any]] = {}
+    for r in raw_wallets:
+        def _last_nonnull(docs: List[Dict[str, Any]]) -> Optional[int]:
+            for d in reversed(docs):
+                v = d.get("v")
+                if v is not None:
+                    return v
+            return None
+        balance_map[r["_id"]] = {
+            "cash": _last_nonnull(r.get("cash_docs") or []),
+            "account_balance": _last_nonnull(r.get("bank_docs") or []),
+            "gold": _last_nonnull(r.get("gold_docs") or []),
+            "balance_ts": r.get("last_ts"),
+        }
 
     players: List[Dict[str, Any]] = []
     for r in rows:

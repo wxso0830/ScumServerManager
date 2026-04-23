@@ -621,8 +621,6 @@ def _fmt_restart_message(minutes_left: int) -> str:
     the Notifications editor to fit their community's language."""
     if minutes_left == 1:
         return "Server will automatically restart in 1 minute. (Release the keyboard)"
-    if minutes_left == 0:
-        return "SEE YOU IN 1 MINUTE"
     return f"Server will automatically restart in {minutes_left} minutes."
 
 
@@ -636,7 +634,6 @@ def _minus_minutes(hhmm: str, m: int) -> str:
 def _generate_notifications_from_schedule(automation: Dict[str, Any]) -> List[Dict[str, Any]]:
     times: List[str] = [t for t in (automation.get("restart_times") or []) if t]
     pre: List[int] = sorted(set([int(x) for x in (automation.get("pre_warning_minutes") or [])]), reverse=True)
-    final_dur = int(automation.get("final_message_duration") or 10)
     if not times:
         return []
     out: List[Dict[str, Any]] = []
@@ -648,14 +645,6 @@ def _generate_notifications_from_schedule(automation: Dict[str, Any]) -> List[Di
             "duration": "15",
             "message": _fmt_restart_message(m),
         })
-    # Final "see you" message at the exact restart time
-    final_times = sorted(set(times))
-    out.append({
-        "day": "Everyday",
-        "time": final_times,
-        "duration": str(final_dur),
-        "message": _fmt_restart_message(0),
-    })
     return out
 
 

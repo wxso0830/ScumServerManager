@@ -6,6 +6,7 @@ import {
 import { useTheme } from "../providers/ThemeProvider";
 import { useI18n } from "../providers/I18nProvider";
 import { endpoints } from "../lib/api";
+import { ConfirmModal } from "./ConfirmModal";
 
 const themeLabels = {
   blacksite: "theme_blacksite",
@@ -40,6 +41,10 @@ export const TopBar = ({
   const { lang, setLang, t } = useI18n();
   const [themeOpen, setThemeOpen] = useState(false);
   const [langOpen, setLangOpen] = useState(false);
+  // Reset is a 2-step destructive action: first show the "what will happen"
+  // warning, then a final "are you sure" with a 3s countdown-style gate so
+  // users can't double-click through both.
+  const [resetStep, setResetStep] = useState(0);          // 0=closed, 1=first, 2=final
 
   const running = servers.filter((s) => s.status === "Running").length;
   const total = servers.length;
@@ -169,14 +174,44 @@ export const TopBar = ({
 
           <button
             className="icon-btn"
-            title="Reset Setup"
-            onClick={async () => { await endpoints.resetSetup(); onResetSetup?.(); }}
+            title={t("reset_setup_btn_title")}
+            onClick={() => setResetStep(1)}
             data-testid="reset-setup-btn"
           >
             <RotateCcw size={16} />
           </button>
         </div>
       </div>
+
+      {/* 2-step confirmation for the destructive Reset Setup action */}
+      <ConfirmModal
+        open={resetStep === 1}
+        title={t("reset_setup_title")}
+        body={t("reset_setup_body_1")}
+        confirmLabel={t("reset_setup_continue")}
+        cancelLabel={t("cancel") || "İptal"}
+        onConfirm={() => setResetStep(2)}
+        onCancel={() => setResetStep(0)}
+        destructive={true}
+        testId="reset-setup-confirm-1"
+      />
+      <ConfirmModal
+        open={resetStep === 2}
+        title={t("reset_setup_final_title")}
+        body={t("reset_setup_body_2")}
+        confirmLabel={t("reset_setup_confirm_final")}
+        cancelLabel={t("cancel") || "İptal"}
+        onConfirm={async () => {
+          setResetStep(0);
+          try {
+            await endpoints.resetSetup();
+            onResetSetup?.();
+          } catch {}
+        }}
+        onCancel={() => setResetStep(0)}
+        destructive={true}
+        testId="reset-setup-confirm-2"
+      />
 
       {/* ======= STATUS RIBBON (tactical HUD) ======= */}
       <div className="h-9 bg-bg border-b border-brand flex items-center px-5 gap-6 font-mono text-[11px] text-dim" data-testid="status-ribbon">

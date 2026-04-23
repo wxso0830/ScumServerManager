@@ -202,17 +202,6 @@ export const AutomationEditor = ({ server, onChange }) => {
               />
             </div>
           </div>
-
-          <label className="flex items-center gap-2 cursor-pointer select-none" data-testid="bilingual-toggle">
-            <input
-              type="checkbox"
-              checked={draft.bilingual}
-              onChange={(e) => setField("bilingual", e.target.checked)}
-              className="w-4 h-4 accent-[var(--accent)]"
-            />
-            <span className="text-sm text-brand">{t("bilingual_messages")}</span>
-            <span className="text-xs text-dim">· {t("bilingual_hint")}</span>
-          </label>
         </div>
       </div>
 

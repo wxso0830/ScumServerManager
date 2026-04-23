@@ -35,7 +35,6 @@ export const AutomationEditor = ({ server, onChange }) => {
     final_message_duration: automation.final_message_duration ?? 10,
     auto_update_enabled: !!automation.auto_update_enabled,
     update_check_interval_min: automation.update_check_interval_min ?? 360,
-    bilingual: automation.bilingual ?? true,
   });
   const [preRaw, setPreRaw] = useState(draft.pre_warning_minutes.join(", "));
   const [busy, setBusy] = useState(false);

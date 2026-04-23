@@ -106,7 +106,6 @@ class ServerProfile(BaseModel):
         "final_message_duration": 10,
         "auto_update_enabled": False,
         "update_check_interval_min": 360,  # 6 hours default per user preference
-        "bilingual": True,  # write TR+EN like the user's own template
         "backup_enabled": True,               # periodic SaveFiles snapshots
         "backup_interval_min": 120,           # every 2h by default
         "backup_keep_count": 30,              # prune to newest N auto-backups
@@ -120,7 +119,6 @@ class AutomationUpdate(BaseModel):
     final_message_duration: Optional[int] = None
     auto_update_enabled: Optional[bool] = None
     update_check_interval_min: Optional[int] = None
-    bilingual: Optional[bool] = None
     backup_enabled: Optional[bool] = None
     backup_interval_min: Optional[int] = None
     backup_keep_count: Optional[int] = None
@@ -618,20 +616,14 @@ async def server_metrics(server_id: str):
 
 
 # ---------- AUTOMATION (auto-restart + auto-update) ----------
-def _fmt_restart_message(minutes_left: int, bilingual: bool) -> str:
-    """Build a bilingual TR+EN restart warning matching the user's template."""
+def _fmt_restart_message(minutes_left: int) -> str:
+    """Default English restart warning. Users are expected to edit these in
+    the Notifications editor to fit their community's language."""
     if minutes_left == 1:
-        tr = "1 dakika sonra otomatik olarak yeniden başlatılacaktır. (Klavyeyi bırakın)"
-        en = "It will automatically restart after 1 minutes. (Release the keyboard)"
-    elif minutes_left == 0:
-        tr = "1 DAKİKA SONRA GÖRÜŞÜRÜZ"
-        en = "SEE YOU IN 1 MINUTE"
-    else:
-        tr = f"Otomatik yeniden başlatmaya {minutes_left} dakika kaldı."
-        en = f"{minutes_left} minutes remaining until automatic restart."
-    if bilingual:
-        return f"{tr}   /   {en}"
-    return tr
+        return "Server will automatically restart in 1 minute. (Release the keyboard)"
+    if minutes_left == 0:
+        return "SEE YOU IN 1 MINUTE"
+    return f"Server will automatically restart in {minutes_left} minutes."
 
 
 def _minus_minutes(hhmm: str, m: int) -> str:
@@ -645,7 +637,6 @@ def _generate_notifications_from_schedule(automation: Dict[str, Any]) -> List[Di
     times: List[str] = [t for t in (automation.get("restart_times") or []) if t]
     pre: List[int] = sorted(set([int(x) for x in (automation.get("pre_warning_minutes") or [])]), reverse=True)
     final_dur = int(automation.get("final_message_duration") or 10)
-    bilingual = bool(automation.get("bilingual", True))
     if not times:
         return []
     out: List[Dict[str, Any]] = []
@@ -655,7 +646,7 @@ def _generate_notifications_from_schedule(automation: Dict[str, Any]) -> List[Di
             "day": "Everyday",
             "time": stamps,
             "duration": "15",
-            "message": _fmt_restart_message(m, bilingual),
+            "message": _fmt_restart_message(m),
         })
     # Final "see you" message at the exact restart time
     final_times = sorted(set(times))
@@ -663,7 +654,7 @@ def _generate_notifications_from_schedule(automation: Dict[str, Any]) -> List[Di
         "day": "Everyday",
         "time": final_times,
         "duration": str(final_dur),
-        "message": _fmt_restart_message(0, bilingual),
+        "message": _fmt_restart_message(0),
     })
     return out
 
@@ -712,7 +703,6 @@ async def server_post_install(server_id: str):
             "restart_times": ["06:00", "18:00"],
             "pre_warning_minutes": [15, 10, 5, 4, 3, 2, 1],
             "final_message_duration": 10,
-            "bilingual": True,
         })
         await db.servers.update_one({"id": server_id}, {"$set": {"settings": settings}})
         doc["settings"] = settings
@@ -2139,8 +2129,6 @@ async def get_settings_schema():
                            "scum.SquadMemberCountAtIntLevel5", "scum.SquadMemberCountLimitForPunishment",
                            "scum.RTSquadProbationDuration", "scum.SquadMoneyPenaltyPerPrevSquadMember",
                            "scum.SquadFamePointsPenaltyPerPrevSquadMember", "scum.EnableSquadMemberNameWidget"]},
-            {"key": "advanced_notifications", "labelKey": "cat_advanced_notifications", "icon": "Bell", "section": "advanced",
-             "renderer": "notifications", "sourceKey": "notifications", "exportKey": "notifications"},
             {"key": "advanced_input", "labelKey": "cat_advanced_input", "icon": "Keyboard", "section": "advanced",
              "renderer": "input", "exportKey": "input"},
             {"key": "advanced_custom_ini", "labelKey": "cat_advanced_custom_ini", "icon": "FileCode", "section": "advanced",
@@ -2149,6 +2137,11 @@ async def get_settings_schema():
             # ------ AUTOMATION ------
             {"key": "automation_main", "labelKey": "cat_automation_main", "icon": "Clock", "section": "automation",
              "renderer": "automation"},
+            # Notifications moved from Advanced → Automation (sits right under
+            # the auto-restart schedule). Admins edit messages freely (default
+            # seed is English; users translate to their own language).
+            {"key": "automation_notifications", "labelKey": "cat_automation_notifications", "icon": "Bell", "section": "automation",
+             "renderer": "notifications", "sourceKey": "notifications", "exportKey": "notifications"},
 
             # ------ DISCORD (webhooks + bot) ------
             {"key": "discord_webhooks", "labelKey": "cat_discord_webhooks", "icon": "Webhook", "section": "discord",

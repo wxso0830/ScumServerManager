@@ -60,7 +60,16 @@ export const ManagerUpdateModal = ({ open, onClose }) => {
   const startDownload = async () => {
     setState("downloading"); setProgress(0);
     const r = await window.lgss.downloadUpdate();
-    if (!r?.ok) { setState("error"); setError(r?.error || "download failed"); }
+    if (!r?.ok) {
+      if (r?.quiet) {
+        // Release asset was withdrawn between check and download — treat as uptodate.
+        setState("uptodate");
+        setError(null);
+      } else {
+        setState("error");
+        setError(r?.error || "download failed");
+      }
+    }
   };
 
   const installNow = async () => {

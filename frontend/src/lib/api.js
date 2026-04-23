@@ -62,6 +62,8 @@ export const endpoints = {
   getDiscordBot: () => api.get("/discord/bot").then(r => r.data),
   updateDiscordBot: (payload) => api.put("/discord/bot", payload).then(r => r.data),
   getDiscordBotStatus: () => api.get("/discord/bot/status").then(r => r.data),
+  // System
+  getPublicIp: () => api.get("/system/public-ip").then(r => r.data),
   downloadBackupUrl: (id, bid) => `${API}/servers/${id}/backups/${bid}/download`,
   importLog: (id, file) => {
     const fd = new FormData();

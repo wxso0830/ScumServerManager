@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from "react";
 import {
   Play, Square, Download, RefreshCw, RotateCw, ChevronsUp, Settings, Trash2, Users, Cpu, Activity,
-  Server as ServerIcon, HardDrive, Clock, Network,
+  Server as ServerIcon, HardDrive, Clock, Network, Copy, Link2, Check,
 } from "lucide-react";
+import { toast } from "sonner";
 import { useI18n } from "../providers/I18nProvider";
 import { endpoints } from "../lib/api";
 
@@ -178,6 +179,9 @@ export const ServerCard = ({ server, onOpen, onStart, onStop, onUpdate, onInstal
           <span className="text-brand">{queryPort}</span>
           <span className="text-muted ml-auto text-[10px]">Ayarlar → Temel</span>
         </div>
+
+        {/* Connect info — SCUM's in-game "Direct Connect" uses gamePort+2 */}
+        <ConnectInfo gamePort={gamePort} testId={server.folder_name} />
       </div>
 
       {/* Actions */}
@@ -284,3 +288,62 @@ const MetricTile = ({ icon: Icon, label, value, small, testId }) => (
     </div>
   </div>
 );
+
+/**
+ * ConnectInfo — shows the IP:Port string players paste into SCUM's "Direct
+ * Connect" box. SCUM's UDP convention: the reachable connect port is the
+ * configured game_port + 2 (e.g. game_port 7777 → connect via 7779). Public
+ * IP is fetched lazily from the backend (which queries ipify, cached 5min).
+ */
+const ConnectInfo = ({ gamePort, testId }) => {
+  const { t, lang } = useI18n();
+  const [ip, setIp] = useState(null);
+  const [copied, setCopied] = useState(false);
+  const connectPort = (parseInt(gamePort, 10) || 7777) + 2;
+
+  useEffect(() => {
+    let alive = true;
+    endpoints.getPublicIp()
+      .then((r) => { if (alive) setIp(r?.ip || null); })
+      .catch(() => { if (alive) setIp(null); });
+    return () => { alive = false; };
+  }, []);
+
+  const addr = ip ? `${ip}:${connectPort}` : (lang === "tr" ? "IP bulunamadı" : "IP unavailable");
+
+  const copy = async (e) => {
+    e.stopPropagation();
+    if (!ip) return;
+    try {
+      await navigator.clipboard.writeText(addr);
+      setCopied(true);
+      toast.success(lang === "tr" ? "Bağlantı adresi kopyalandı" : "Connect address copied");
+      setTimeout(() => setCopied(false), 1600);
+    } catch {
+      toast.error(lang === "tr" ? "Panoya yazılamadı" : "Clipboard write failed");
+    }
+  };
+
+  return (
+    <button
+      type="button"
+      onClick={copy}
+      disabled={!ip}
+      className="w-full flex items-center gap-2 px-2 py-1.5 border border-dashed border-brand hover:border-accent-brand hover:bg-bg-deep transition-colors font-mono text-[11px] text-left group disabled:opacity-60 disabled:cursor-not-allowed"
+      data-testid={`card-connect-info-${testId}`}
+      title={lang === "tr" ? "Oyun içi 'Direct Connect' için" : "For in-game Direct Connect"}
+    >
+      <Link2 size={11} className="text-accent-brand shrink-0" />
+      <span className="text-muted uppercase text-[9px] tracking-widest">
+        {lang === "tr" ? "BAĞLAN" : "CONNECT"}
+      </span>
+      <span className="text-brand truncate flex-1">{addr}</span>
+      {ip && (
+        copied
+          ? <Check size={12} className="text-[var(--success)] shrink-0" />
+          : <Copy size={12} className="text-muted group-hover:text-accent-brand shrink-0" />
+      )}
+    </button>
+  );
+};
+

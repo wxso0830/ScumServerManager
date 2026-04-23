@@ -92,8 +92,8 @@ class ServerProfile(BaseModel):
     installed: bool = False
     steam_app_id: str = "3792580"
     public_ip: Optional[str] = None
-    game_port: int = 7779
-    query_port: int = 7780
+    game_port: int = 7777
+    query_port: int = 7778
     max_players: int = 64
     installed_build_id: Optional[str] = None
     update_available: bool = False
@@ -164,9 +164,43 @@ async def root():
     return {"service": "LGSS SCUM Server Manager", "version": "1.0.0"}
 
 
+_PUBLIC_IP_CACHE = {"ts": 0, "ip": None}
+
+
+@api_router.get("/system/public-ip")
+async def get_public_ip():
+    """Return the host's public IPv4. Cached 5 minutes so we don't hammer
+    ipify. Players use this IP (plus the server's connect-port, which is
+    game_port + 2 per SCUM's UDP convention) to join from the in-game
+    server list or the 'Direct Connect' box."""
+    import httpx
+    import time
+    now = time.time()
+    if _PUBLIC_IP_CACHE["ip"] and now - _PUBLIC_IP_CACHE["ts"] < 300:
+        return {"ip": _PUBLIC_IP_CACHE["ip"], "cached": True}
+    ip = None
+    # Try a couple of free services; first one wins.
+    endpoints_to_try = ("https://api.ipify.org", "https://ifconfig.me/ip")
+    for url in endpoints_to_try:
+        try:
+            async with httpx.AsyncClient(timeout=4.0, follow_redirects=True) as c:
+                r = await c.get(url)
+                candidate = r.text.strip()
+                # Basic IPv4 sanity check
+                parts = candidate.split(".")
+                if len(parts) == 4 and all(p.isdigit() and 0 <= int(p) <= 255 for p in parts):
+                    ip = candidate
+                    break
+        except Exception:
+            continue
+    if ip:
+        _PUBLIC_IP_CACHE["ts"] = now
+        _PUBLIC_IP_CACHE["ip"] = ip
+    return {"ip": ip, "cached": False}
+
+
 @api_router.get("/system/admin-check")
 async def admin_check():
-    """Check if process has admin/root privileges. In web preview this is informational."""
     is_admin = False
     try:
         if platform.system() == "Windows":
@@ -434,8 +468,8 @@ async def start_server(server_id: str):
 
     # Real process spawn (Windows only). If not installed or exe missing, fail cleanly.
     try:
-        port = int(doc.get("game_port") or 7779)
-        query_port = int(doc.get("query_port") or 7780)
+        port = int(doc.get("game_port") or 7777)
+        query_port = int(doc.get("query_port") or 7778)
         # scum.MaxPlayers lives in ServerSettings.ini -> srv_general category
         settings = (doc.get("settings") or {}).get("srv_general") or {}
         max_players = int(settings.get("scum.MaxPlayers") or doc.get("max_players") or 64)
@@ -1181,7 +1215,7 @@ async def _refresh_discord_state_cache():
     servers_out: List[Dict[str, Any]] = []
     now_ts = datetime.now(timezone.utc).timestamp()
     async for s in db.servers.find({}, {"_id": 0}):
-        query_port = int(s.get("query_port") or 7780)
+        query_port = int(s.get("query_port") or 7778)
         max_p = int((s.get("settings") or {}).get("srv_general", {}).get("scum.MaxPlayers")
                     or s.get("max_players") or 64)
         metrics = scum_proc.get_metrics(s["id"], s.get("folder_path"))
@@ -1683,8 +1717,8 @@ async def first_boot_server(server_id: str, timeout_sec: int = 120):
         raise HTTPException(status_code=400, detail="Server not installed yet")
 
     folder = doc["folder_path"]
-    port = int(doc.get("game_port") or 7779)
-    query_port = int(doc.get("query_port") or 7780)
+    port = int(doc.get("game_port") or 7777)
+    query_port = int(doc.get("query_port") or 7778)
     max_players = int(doc.get("max_players") or 64)
 
     # Actually boot SCUMServer.exe so it produces its config files.

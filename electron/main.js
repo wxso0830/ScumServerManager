@@ -565,8 +565,9 @@ function setupAutoUpdaterEvents() {
   u.on('error', (err) => {
     const msg = String(err?.message || err);
     // Swallow the noise auto-updater produces when a release isn't published
-    // yet (latest.yml 404, offline, etc.). Real errors still bubble up.
-    if (/latest\.yml|404|HTTP response not OK|ENOTFOUND|ECONNREFUSED|net::/i.test(msg)) return;
+    // yet, or has been deleted / withdrawn from GitHub. Real errors still
+    // bubble up.
+    if (/latest\.yml|latest\.yaml|status 404|\s404\s|HTTP response not OK|ENOTFOUND|ECONNREFUSED|net::|Cannot parse releases feed|Unable to find latest version|releases\/latest|Cannot download|HttpError.*404|HttpError.*406/i.test(msg)) return;
     if (mainWindow && !mainWindow.isDestroyed()) {
       mainWindow.webContents.send('lgss:update-event', { type: 'error', message: msg });
     }
@@ -593,14 +594,14 @@ ipcMain.handle('lgss:check-for-updates', async () => {
     // These are not real errors the user needs to see — just tell the UI
     // there's no update available right now.
     const msg = String(e?.message || e);
-    const silent = /latest\.yml|404|HTTP response not OK|ENOTFOUND|getaddrinfo|ECONNREFUSED|ECONNRESET|net::/i.test(msg);
+    const silent = /latest\.yml|latest\.yaml|status 404|\s404\s|HTTP response not OK|ENOTFOUND|getaddrinfo|ECONNREFUSED|ECONNRESET|net::|Cannot parse releases feed|Unable to find latest version|releases\/latest|Cannot download|HttpError.*404|HttpError.*406/i.test(msg);
     if (silent) {
       return {
         ok: true,
         currentVersion: app.getVersion(),
         latestVersion: app.getVersion(),
         updateAvailable: false,
-        quiet: true, // hint for UI: pretend we're up-to-date
+        quiet: true,
       };
     }
     return { ok: false, error: msg, currentVersion: app.getVersion() };
@@ -639,7 +640,15 @@ ipcMain.handle('lgss:download-update', async () => {
   const u = getAutoUpdater();
   if (!u) return { ok: false, error: 'electron-updater not installed' };
   try { await u.downloadUpdate(); return { ok: true }; }
-  catch (e) { return { ok: false, error: e.message }; }
+  catch (e) {
+    // Same quiet handling as the check: if the asset is gone (release
+    // withdrawn) just pretend there's nothing to update.
+    const msg = String(e?.message || e);
+    if (/status 404|\s404\s|Cannot download|Unable to find|HTTP response not OK|ENOTFOUND|ECONNREFUSED|net::/i.test(msg)) {
+      return { ok: false, quiet: true, error: 'No release available' };
+    }
+    return { ok: false, error: msg };
+  }
 });
 
 ipcMain.handle('lgss:install-update', async () => {

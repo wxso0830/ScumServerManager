@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import {
   Users, Search, RefreshCw, UserCircle2, Shield, Clock, Swords, Coins, Trophy,
-  Flag, Car, X, Info, Activity,
+  Flag, Car, X, Info, Activity, Wallet, Gem, Timer,
 } from "lucide-react";
 import { useI18n } from "../providers/I18nProvider";
 import { endpoints } from "../lib/api";
@@ -10,8 +10,49 @@ const fmtFull = (iso) => {
   if (!iso) return "—";
   try {
     const d = new Date(iso);
-    return d.toLocaleString([], { year: "numeric", month: "short", day: "2-digit", hour: "2-digit", minute: "2-digit" });
+    // DD.MM.YYYY HH:MM  (admin-requested numeric format)
+    const dd = String(d.getDate()).padStart(2, "0");
+    const mm = String(d.getMonth() + 1).padStart(2, "0");
+    const yy = d.getFullYear();
+    const hh = String(d.getHours()).padStart(2, "0");
+    const mi = String(d.getMinutes()).padStart(2, "0");
+    return `${dd}.${mm}.${yy} ${hh}:${mi}`;
   } catch { return iso; }
+};
+
+// DD.MM.YYYY HH:MM — same format used by the recent events list
+const fmtShort = (iso) => {
+  if (!iso) return "—";
+  try {
+    const d = new Date(iso);
+    const dd = String(d.getDate()).padStart(2, "0");
+    const mm = String(d.getMonth() + 1).padStart(2, "0");
+    const hh = String(d.getHours()).padStart(2, "0");
+    const mi = String(d.getMinutes()).padStart(2, "0");
+    return `${dd}.${mm} ${hh}:${mi}`;
+  } catch { return iso; }
+};
+
+// Seconds -> "Nd Xh Ym" compact
+const fmtDuration = (secs) => {
+  if (secs == null || secs <= 0) return "—";
+  const s = Math.floor(secs);
+  const d = Math.floor(s / 86400);
+  const h = Math.floor((s % 86400) / 3600);
+  const m = Math.floor((s % 3600) / 60);
+  const parts = [];
+  if (d) parts.push(`${d}g`);
+  if (h) parts.push(`${h}s`);
+  if (!d) parts.push(`${m}d`);
+  return parts.join(" ") || `${m}d`;
+};
+
+// K/D ratio: unlimited deaths -> "inf", 0 deaths -> kills count
+const fmtKdRatio = (kills, deaths) => {
+  const k = Number(kills) || 0;
+  const d = Number(deaths) || 0;
+  if (d === 0) return k > 0 ? "∞" : "0.00";
+  return (k / d).toFixed(2);
 };
 
 const relative = (iso) => {
@@ -318,9 +359,22 @@ const PlayerDetailModal = ({ detail, allPlayers = [], onClose, t }) => {
         <div className="px-5 py-4 grid grid-cols-2 md:grid-cols-4 gap-3">
           <DetailStat icon={Clock} label={t("col_first_seen")} value={fmtFull(p.first_seen)} />
           <DetailStat icon={Clock} label={t("col_last_seen")} value={fmtFull(p.last_seen)} color="var(--accent)" />
+          <DetailStat icon={Timer} label={t("col_playtime")} value={fmtDuration(p.play_time_seconds)} color="var(--accent)" />
           <DetailStat icon={Activity} label={t("col_events")} value={p.total_events} />
-          <DetailStat icon={Swords} label={t("col_kills")} value={`${p.kills} / ${p.deaths}`} color={p.kills > p.deaths ? "var(--success)" : "var(--text)"} />
+          <DetailStat
+            icon={Swords}
+            label={t("col_kills")}
+            value={
+              <span>
+                {p.kills} / {p.deaths}
+                <span className="ml-2 text-[11px] text-dim">({fmtKdRatio(p.kills, p.deaths)})</span>
+              </span>
+            }
+            color={p.kills > p.deaths ? "var(--success)" : "var(--text)"}
+          />
           <DetailStat icon={Trophy} label={t("col_fame")} value={p.fame != null ? Number(p.fame).toLocaleString(undefined, { maximumFractionDigits: 1 }) : "—"} color="var(--warning)" />
+          <DetailStat icon={Wallet} label={t("col_money")} value={p.money != null ? Number(p.money).toLocaleString() : "—"} color="var(--warning)" />
+          <DetailStat icon={Gem} label={t("col_gold")} value={p.gold != null ? Number(p.gold).toLocaleString() : "—"} color="var(--accent)" />
           <DetailStat icon={Coins} label={t("col_trade")} value={p.trade_amount ? p.trade_amount.toLocaleString() : "0"} color="var(--warning)" />
           <DetailStat icon={Flag} label={t("col_flags")} value={p.flag_count ?? "—"} />
           <DetailStat icon={Car} label={t("col_vehicles_self")} value={p.vehicle_count ?? "—"} />
@@ -396,7 +450,7 @@ const PlayerDetailModal = ({ detail, allPlayers = [], onClose, t }) => {
           ) : recent.map((ev) => (
             <div key={ev.id} className="border-b border-brand py-2 flex items-start gap-3 font-mono text-xs">
               <span className="text-muted text-[10px] tracking-widest pt-0.5 w-32 shrink-0">
-                {new Date(ev.ts).toLocaleString([], { month: "short", day: "2-digit", hour: "2-digit", minute: "2-digit" })}
+                {fmtShort(ev.ts)}
               </span>
               <span className="text-accent-brand w-16 shrink-0 uppercase">{ev.type}</span>
               <span className="text-brand flex-1">

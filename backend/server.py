@@ -1533,6 +1533,10 @@ async def list_players(server_id: str, online: Optional[bool] = None, search: Op
             "squad_vehicle_count": db_row.get("squad_vehicle_count"),
             "squad_name": db_row.get("squad_name"),
             "squad_id": db_row.get("squad_id"),
+            # Wallet + playtime — from SCUM.db (nullable: column may not exist on this patch)
+            "money": db_row.get("money"),
+            "gold": db_row.get("gold"),
+            "play_time_seconds": db_row.get("play_time_seconds"),
         }
         players.append(player)
 
@@ -1564,6 +1568,38 @@ async def get_player_detail(server_id: str, steam_id: str, limit: int = 50):
     player = next((p for p in agg["players"] if p["steam_id"] == steam_id), None)
     if not player:
         raise HTTPException(status_code=404, detail="Player not found in event history")
+
+    # Fallback: if SCUM.db didn't expose play_time_seconds, compute total time
+    # by pairing login events (connect -> disconnect). This is approximate —
+    # if the server crashed before writing the disconnect line we'd miss that
+    # session, but it's close enough for an admin overview.
+    if player.get("play_time_seconds") in (None, 0):
+        login_events = await db.server_events.find(
+            {"server_id": server_id, "type": "login", "steam_id": steam_id},
+            {"_id": 0, "ts": 1, "action": 1},
+        ).sort("ts", 1).to_list(10000)
+        total_secs = 0
+        open_ts: Optional[datetime] = None
+        for ev in login_events:
+            action = (ev.get("action") or "").lower()
+            try:
+                ts = datetime.fromisoformat(ev["ts"]) if ev.get("ts") else None
+            except Exception:
+                ts = None
+            if not ts:
+                continue
+            if action in ("logged_in", "connected") and open_ts is None:
+                open_ts = ts
+            elif action in ("logged_out", "disconnected") and open_ts is not None:
+                total_secs += max(0, int((ts - open_ts).total_seconds()))
+                open_ts = None
+        # If the player is still online, count the still-open session up to now
+        if open_ts is not None and player.get("is_online"):
+            total_secs += max(0, int((datetime.now(timezone.utc) - open_ts).total_seconds()))
+        if total_secs > 0:
+            player["play_time_seconds"] = total_secs
+            player["play_time_source"] = "logs"
+
     recent = await db.server_events.find(
         {"server_id": server_id, "$or": [{"steam_id": steam_id}, {"killer_steam_id": steam_id}, {"victim_steam_id": steam_id}]},
         {"_id": 0},

@@ -98,6 +98,35 @@ _SQUAD_QUERIES = [
        JOIN user_profile up ON up.id = sm.user_profile_id""",
 ]
 
+# --- Player wallet (bank cash + gold) -------------------------------------
+# SCUM admin commands "set cash <n>" and "set gold <n>" write to user_profile.
+# Column names have rotated across patches: try the common variants in order.
+# First query whose first column actually exists wins.
+_MONEY_QUERIES = [
+    "SELECT user_id AS sid, account_balance AS amt FROM user_profile",
+    "SELECT user_id AS sid, bank_account_balance AS amt FROM user_profile",
+    "SELECT user_id AS sid, money AS amt FROM user_profile",
+    "SELECT user_id AS sid, cash AS amt FROM user_profile",
+    "SELECT user_id AS sid, currency AS amt FROM user_profile",
+]
+
+_GOLD_QUERIES = [
+    "SELECT user_id AS sid, gold_balance AS amt FROM user_profile",
+    "SELECT user_id AS sid, account_gold AS amt FROM user_profile",
+    "SELECT user_id AS sid, gold AS amt FROM user_profile",
+    "SELECT user_id AS sid, premium_currency AS amt FROM user_profile",
+]
+
+# --- Total play time -------------------------------------------------------
+# SCUM tracks session time on the user_profile row. Column name varies.
+_PLAYTIME_QUERIES = [
+    "SELECT user_id AS sid, time_played AS secs FROM user_profile",
+    "SELECT user_id AS sid, play_time AS secs FROM user_profile",
+    "SELECT user_id AS sid, total_play_time AS secs FROM user_profile",
+    "SELECT user_id AS sid, playtime_seconds AS secs FROM user_profile",
+    "SELECT user_id AS sid, total_play_time_seconds AS secs FROM user_profile",
+]
+
 _VEHICLE_ENTITY_SNAPSHOT_QUERIES = [
     # Full vehicle roster with per-row owner steam id — used by the "claim"
     # detector to diff between polls and synthesize `vehicle_claim` events.
@@ -161,6 +190,7 @@ def read_player_stats(folder_path: str) -> Dict[str, Dict[str, Any]]:
                 "fame": 0.0, "vehicle_count": 0, "squad_vehicle_count": 0,
                 "flag_count": 0, "squad_name": None, "squad_id": None,
                 "db_name": None,
+                "money": None, "gold": None, "play_time_seconds": None,
             })
             stats[sid]["fame"] = float(row[2] or 0)
             stats[sid]["db_name"] = row["name"]
@@ -206,6 +236,39 @@ def read_player_stats(folder_path: str) -> Dict[str, Dict[str, Any]]:
             stats[sid]["squad_name"] = row["squad_name"]
             stats[sid]["squad_id"] = row["squad_id"]
 
+        # Bank cash / money — tolerant to SCUM patch column renames
+        for row in _try_queries(conn, _MONEY_QUERIES):
+            sid = str(row["sid"]) if row["sid"] is not None else None
+            if not sid:
+                continue
+            stats.setdefault(sid, _empty_stat())
+            try:
+                stats[sid]["money"] = int(row["amt"] or 0)
+            except (ValueError, TypeError):
+                stats[sid]["money"] = 0
+
+        # Gold — tolerant to SCUM patch column renames
+        for row in _try_queries(conn, _GOLD_QUERIES):
+            sid = str(row["sid"]) if row["sid"] is not None else None
+            if not sid:
+                continue
+            stats.setdefault(sid, _empty_stat())
+            try:
+                stats[sid]["gold"] = int(row["amt"] or 0)
+            except (ValueError, TypeError):
+                stats[sid]["gold"] = 0
+
+        # Total play time (in seconds) — optional, may be missing
+        for row in _try_queries(conn, _PLAYTIME_QUERIES):
+            sid = str(row["sid"]) if row["sid"] is not None else None
+            if not sid:
+                continue
+            stats.setdefault(sid, _empty_stat())
+            try:
+                stats[sid]["play_time_seconds"] = int(row["secs"] or 0)
+            except (ValueError, TypeError):
+                stats[sid]["play_time_seconds"] = 0
+
     finally:
         conn.close()
 
@@ -217,6 +280,7 @@ def _empty_stat() -> Dict[str, Any]:
         "fame": 0.0, "vehicle_count": 0, "squad_vehicle_count": 0,
         "locked_vehicle_count": 0,
         "flag_count": 0, "squad_name": None, "squad_id": None, "db_name": None,
+        "money": None, "gold": None, "play_time_seconds": None,
     }
 
 

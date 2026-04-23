@@ -429,18 +429,15 @@ app.whenReady().then(async () => {
     updateSplash('Arayuz yukleniyor...');
   } catch (err) {
     closeSplash();
-    const { response } = await dialog.showMessageBox({
-      type: 'error',
-      title: 'Baslatma hatasi',
-      message: 'LGSS Manager baslatilamadi',
-      detail: `${err.message}\n\nLog klasoru: ${logDir()}`,
-      buttons: ['Tamam', 'Log Klasorunu Ac'],
-      defaultId: 0,
-      cancelId: 0,
-    });
-    if (response === 1) {
-      shell.openPath(logDir());
-    }
+    // Use showErrorBox (synchronous, no parent required) — showMessageBox
+    // without a parent window silently no-ops on some Windows Server 2019
+    // hosts, which caused the app to exit without the user ever seeing a
+    // message. showErrorBox always renders, even before BrowserWindows exist.
+    dialog.showErrorBox(
+      'Baslatma hatasi',
+      `${err.message}\n\nLog klasoru: ${logDir()}\n\n` +
+      `(Bu klasoru Windows Explorer adres cubuguna yapistirin.)`
+    );
     shutdownChildren();
     app.exit(1);
     return;

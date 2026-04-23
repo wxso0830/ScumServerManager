@@ -1,11 +1,12 @@
 import React, { useEffect, useState } from "react";
 import {
   Play, Square, Download, RefreshCw, RotateCw, ChevronsUp, Settings, Trash2, Users, Cpu, Activity,
-  Server as ServerIcon, HardDrive, Clock, Network, Copy, Link2, Check,
+  Server as ServerIcon, HardDrive, Clock, Network, Copy, Link2, Check, ChevronDown, ChevronUp,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useI18n } from "../providers/I18nProvider";
 import { endpoints } from "../lib/api";
+import { ActivityChart } from "./ActivityChart";
 
 const STATUS_META = {
   Running:   { cls: "running",    label: "server_status_running",    color: "var(--success)" },
@@ -49,6 +50,7 @@ export const ServerCard = ({ server, onOpen, onStart, onStop, onUpdate, onInstal
   const queryPort = server.query_port ?? 7780;
 
   const [metrics, setMetrics] = useState(null);
+  const [showChart, setShowChart] = useState(false);
   // Read max_players from the saved INI values (scum.MaxPlayers). Falls back
   // to the legacy `max_players` field or 64 if neither exists.
   const maxPlayers = Number(
@@ -183,6 +185,24 @@ export const ServerCard = ({ server, onOpen, onStart, onStop, onUpdate, onInstal
         {/* Connect info — SCUM's in-game "Direct Connect" uses gamePort+2 */}
         <ConnectInfo gamePort={gamePort} testId={server.folder_name} />
       </div>
+
+      {/* Activity chart toggle — collapsible to keep the card compact */}
+      {server.installed && (
+        <div className="mb-3">
+          <button
+            type="button"
+            onClick={(e) => { e.stopPropagation(); setShowChart((v) => !v); }}
+            className="w-full flex items-center justify-center gap-2 py-1.5 border border-brand text-[10px] font-mono uppercase tracking-widest text-dim hover:text-accent-brand hover:border-accent-brand transition-colors"
+            data-testid={`card-toggle-activity-${server.folder_name}`}
+          >
+            {showChart ? <ChevronUp size={11} /> : <ChevronDown size={11} />}
+            {t("activity_chart") || "AKTİVİTE GRAFİĞİ"}
+          </button>
+          {showChart && (
+            <ActivityChart serverId={server.id} maxPlayers={maxPlayers} />
+          )}
+        </div>
+      )}
 
       {/* Actions */}
       <div className="flex gap-2">

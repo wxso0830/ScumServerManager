@@ -649,6 +649,28 @@ async def server_metrics(server_id: str):
     return m
 
 
+@api_router.get("/servers/{server_id}/activity")
+async def server_activity(server_id: str, hours: int = 24):
+    """Time-series of player count + CPU + memory for the last N hours.
+
+    Samples are captured every 5 minutes by the scheduler. Admin UI renders
+    this as a line chart so spikes + peak hours are visible at a glance.
+    TTL-indexed to 7 days; older data is auto-pruned by Mongo.
+    """
+    hours = max(1, min(int(hours or 24), 24 * 7))
+    cutoff = datetime.now(timezone.utc) - timedelta(hours=hours)
+    rows = await db.server_activity.find(
+        {"server_id": server_id, "ts": {"$gte": cutoff}},
+        {"_id": 0, "server_id": 0},
+    ).sort("ts", 1).to_list(5000)
+    # Convert ts to ISO string for predictable JSON output
+    for r in rows:
+        ts = r.get("ts")
+        if isinstance(ts, datetime):
+            r["ts"] = ts.isoformat()
+    return {"server_id": server_id, "hours": hours, "count": len(rows), "samples": rows}
+
+
 # ---------- AUTOMATION (auto-restart + auto-update) ----------
 def _fmt_update_message(minutes_left: int) -> str:
     """Default English update warning. Editable in the Update Notifications UI."""
@@ -2417,6 +2439,8 @@ def mark_expected_stop(server_id: str) -> None:
 _vehicle_ownership_snapshot: Dict[str, Dict[int, Dict[str, Any]]] = {}   # server_id -> {vid: {owner_sid, ...}}
 LOG_SCAN_INTERVAL_SEC = 20   # how often the scheduler re-parses log files
 CONFIG_REIMPORT_INTERVAL_SEC = 60  # how often we re-read on-disk configs into DB
+ACTIVITY_SAMPLE_INTERVAL_SEC = 300  # 5-min granularity for the activity chart
+_last_activity_sample_at: Dict[str, float] = {}
 
 
 async def _auto_scan_logs(server_id: str, folder_path: str, limit: int = 20) -> Dict[str, int]:
@@ -2584,6 +2608,28 @@ async def _tick_scheduler():
                                 )
                         except Exception as e:
                             logger.info("Auto-scan failed for %s: %s", s.get("name"), e)
+
+                # --- Activity time-series sample (every ACTIVITY_SAMPLE_INTERVAL_SEC) ---
+                # Record one data point per server every 5 minutes while the
+                # process is alive. Powers the 24h activity chart on the UI.
+                # Storage is cheap: ~288 rows per server per day, ~2KB.
+                last_sample = _last_activity_sample_at.get(sid, 0)
+                if (now.timestamp() - last_sample) >= ACTIVITY_SAMPLE_INTERVAL_SEC:
+                    _last_activity_sample_at[sid] = now.timestamp()
+                    try:
+                        m = scum_proc.get_metrics(sid, s.get("folder_path"))
+                        if m.get("running"):
+                            await db.server_activity.insert_one({
+                                "server_id": sid,
+                                "ts": now,
+                                "players": m.get("players"),
+                                "max_players": m.get("max_players_live"),
+                                "cpu_percent": m.get("cpu_percent"),
+                                "memory_mb": m.get("memory_mb"),
+                                "ready": bool(m.get("ready")),
+                            })
+                    except Exception as e:
+                        logger.info("activity sample failed for %s: %s", s.get("name"), e)
 
                 # --- Config file re-import (every CONFIG_REIMPORT_INTERVAL_SEC) ---
                 # When an admin edits settings from inside the game (via #commands
@@ -2767,6 +2813,15 @@ async def _start_scheduler():
     if _scheduler_task is None:
         _scheduler_task = asyncio.create_task(_tick_scheduler())
         logger.info("LGSS automation scheduler started (tick=10s)")
+    # TTL index on activity samples — auto-delete rows older than 7 days.
+    # Cheap to re-declare on every startup; Mongo silently no-ops if present.
+    try:
+        await db.server_activity.create_index(
+            "ts", expireAfterSeconds=7 * 24 * 3600, name="activity_ttl",
+        )
+        await db.server_activity.create_index([("server_id", 1), ("ts", -1)])
+    except Exception as e:
+        logger.info("activity index setup skipped: %s", e)
     # Auto-start Discord bot if the user has saved a token in a previous session.
     try:
         setup = await db.setup.find_one({"_id": SETUP_DOC_ID}, {"_id": 0}) or {}

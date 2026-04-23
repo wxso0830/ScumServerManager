@@ -77,5 +77,6 @@ export const endpoints = {
   listPlayers: (id, params = {}) => api.get(`/servers/${id}/players`, { params }).then(r => r.data),
   getPlayer: (id, steam_id, limit = 50) => api.get(`/servers/${id}/players/${steam_id}`, { params: { limit } }).then(r => r.data),
   serverMetrics: (id) => api.get(`/servers/${id}/metrics`).then(r => r.data),
+  serverActivity: (id, hours = 24) => api.get(`/servers/${id}/activity`, { params: { hours } }).then(r => r.data),
   installProgress: (id) => api.get(`/servers/${id}/install/progress`).then(r => r.data),
 };

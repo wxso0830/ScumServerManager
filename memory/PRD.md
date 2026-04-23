@@ -46,11 +46,11 @@ Electron-based desktop server manager for SCUM game. On first launch: ask user t
 - Schema cleanup: removed `client` section + client_mouse/video/graphics/sound; moved `client_game` under `gameplay`
 
 ## Recent Changes
-- **2026-02 (Server state self-heal)**: Fixed "STARTING stuck forever" bug — when backend restarted (or `_watch_ready_signals` thread died silently) while the SCUM process kept running, the in-memory `ready` flag never flipped → UI showed STARTING + players 0/64 even with an active server. `get_metrics` now probes A2S_INFO every 5s when running-but-not-ready and self-heals the ready flag on first response. Costs 1 UDP round-trip on loopback per server per 5s max.
-- **2026-02 (Fame multi-line parser + Admin teleport events + Economy parser v2)**: real SCUM 1.2+ log formats fully supported. 19/19 economy events, fame breakdowns, admin teleport/map-click events all parse correctly. See file history for details.
-- **2026-02 (Player Detail UX)**: 3 wallet cards (Nakit/Banka/Altın, negative=red), DD.MM.YYYY HH:MM, K/D ratio, total playtime.
-- **2026-02 (build.ps1 + requirements.txt)**: auto-install deps, ASCII-only, removed `emergentintegrations`.
-- **2026-02 (Electron error surface)**: `showErrorBox` restored for visible init failures.
+- **2026-02 (24h Activity Chart)**: New `server_activity` time-series collection (TTL 7 days). Scheduler records `{players, max_players, cpu, memory}` every 5 min per running server. New endpoint `GET /api/servers/{id}/activity?hours=6|12|24|72`. Frontend: collapsible `ActivityChart.jsx` component on each `ServerCard` with Recharts area chart + peak/avg stats + range switcher. Auto-refreshes every minute. **Auto-restart scheduler untouched** — admin still wants scheduled restarts for SCUM's 4h stutter even on dedicated hardware.
+- **2026-02 (Server state self-heal)**: Fixed "STARTING stuck forever" — `get_metrics` now self-probes A2S_INFO every 5s when running-but-not-ready.
+- **2026-02 (Fame+Admin+Economy parser v2)**: Multi-line fame blocks, map-click teleport, TeleportTo target, all trade/bank/currency conversion flows covered. 19/19 real events parsed E2E.
+- **2026-02 (Player Detail UX)**: 3 wallet cards, DD.MM.YYYY HH:MM, K/D ratio, total playtime.
+- **2026-02 (build.ps1 + requirements.txt)**: auto-install, ASCII-only, removed pod-only packages.
 - **2026-02 (Backup)**: Expected-stop tracking via `mark_expected_stop()` in stop/restart/update/bulk/scheduled endpoints. Real crash sets `crash_recovery_pending` + captures crash ZIP. `start_server` auto-restores latest crash/auto/manual backup if flag set.
 - **2026-02 (Iteration 11)**: Discord Bot integration (discord.py 2.x, scum_discord.py). New endpoints GET/PUT `/api/discord/bot` + `/api/discord/bot/status`. DiscordBotSettings.jsx component. Auto-backup UI moved from AutomationEditor → BackupsView (AutoSavePanel). Schema: `discord` section + `discord_webhooks` + `discord_bot` categories; `client` section removed; `gameplay_client_game` under `gameplay`. `get_metrics` now returns `players` + `max_players_live` from A2S_INFO. `a2s_player_query` added for Discord `/online` command.
 

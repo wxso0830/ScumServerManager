@@ -46,11 +46,16 @@ if ($LASTEXITCODE -ne 0) {
 # but the user's .venv is stale, PyInstaller silently produces an exe
 # that is missing that module and crashes at runtime with
 # "ModuleNotFoundError: No module named 'discord'".
+#
+# NOTE: we do NOT abort the build on pip errors here. requirements.txt
+# may contain pod-only packages that are not on public PyPI (shipped by
+# the dev environment only). The critical-module sanity check below is
+# the source of truth for whether the build can proceed.
 Write-Host "Syncing runtime dependencies from requirements.txt..." -ForegroundColor Yellow
 python -m pip install --disable-pip-version-check -r requirements.txt
 if ($LASTEXITCODE -ne 0) {
-    Write-Host "FAIL: pip install -r requirements.txt failed" -ForegroundColor Red
-    exit 1
+    Write-Host "WARN: 'pip install -r requirements.txt' reported errors (likely pod-only packages)." -ForegroundColor Yellow
+    Write-Host "      Continuing — the sanity check below will fail loudly if a module the exe needs is missing." -ForegroundColor Yellow
 }
 
 # 2c. Sanity-check: every module the spec marks as a hidden import

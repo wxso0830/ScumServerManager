@@ -552,6 +552,30 @@ body::before {
 }
 .pulse-ring { animation: pulse-ring 1.8s ease-in-out infinite; }
 
+/* Manager Update button — when a new release is available the whole button
+   glows rhythmically so the admin can't miss it. Uses a 2s ease so it's
+   noticeable but not distracting. */
+@keyframes update-btn-pulse {
+  0%, 100% {
+    box-shadow: 0 0 0 0 var(--accent-soft), 0 0 8px 0 var(--accent-soft);
+    background-color: transparent;
+  }
+  50% {
+    box-shadow: 0 0 0 4px transparent, 0 0 20px 2px var(--accent-soft);
+    background-color: color-mix(in srgb, var(--accent) 8%, transparent);
+  }
+}
+.update-btn-pulse {
+  animation: update-btn-pulse 2s ease-in-out infinite;
+}
+@keyframes update-dot-pulse {
+  0%, 100% { transform: scale(1);   opacity: 1; }
+  50%      { transform: scale(1.6); opacity: 0.55; }
+}
+.update-dot-pulse { animation: update-dot-pulse 1.2s ease-in-out infinite; }
+@keyframes spin-slow { to { transform: rotate(360deg); } }
+.animate-spin-slow { animation: spin-slow 4s linear infinite; }
+
 @keyframes boot-scan {
   from { transform: translateY(-100%); }
   to   { transform: translateY(100vh); }

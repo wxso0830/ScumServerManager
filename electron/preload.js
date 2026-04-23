@@ -21,6 +21,14 @@ contextBridge.exposeInMainWorld('lgss', {
     ipcRenderer.on(channel, handler);
     return () => ipcRenderer.removeListener(channel, handler);
   },
+  // Silent background poll result. Emitted every ~5 min; no prompt,
+  // just lets the UI flip the "update available" indicator.
+  onUpdatePoll: (cb) => {
+    const channel = 'lgss:update-poll';
+    const handler = (_evt, payload) => cb(payload);
+    ipcRenderer.on(channel, handler);
+    return () => ipcRenderer.removeListener(channel, handler);
+  },
 
   isElectron: true,
 });

@@ -563,8 +563,12 @@ function setupAutoUpdaterEvents() {
     }
   });
   u.on('error', (err) => {
+    const msg = String(err?.message || err);
+    // Swallow the noise auto-updater produces when a release isn't published
+    // yet (latest.yml 404, offline, etc.). Real errors still bubble up.
+    if (/latest\.yml|404|HTTP response not OK|ENOTFOUND|ECONNREFUSED|net::/i.test(msg)) return;
     if (mainWindow && !mainWindow.isDestroyed()) {
-      mainWindow.webContents.send('lgss:update-event', { type: 'error', message: err.message });
+      mainWindow.webContents.send('lgss:update-event', { type: 'error', message: msg });
     }
   });
 }
@@ -582,9 +586,54 @@ ipcMain.handle('lgss:check-for-updates', async () => {
       updateAvailable: !!result?.updateInfo && result.updateInfo.version !== app.getVersion(),
     };
   } catch (e) {
-    return { ok: false, error: e.message, currentVersion: app.getVersion() };
+    // Common "noisy" failure modes we suppress and treat as "no update yet":
+    //   - latest.yml 404 (new release draft not yet published)
+    //   - ENOTFOUND / offline
+    //   - HTTP response not OK
+    // These are not real errors the user needs to see — just tell the UI
+    // there's no update available right now.
+    const msg = String(e?.message || e);
+    const silent = /latest\.yml|404|HTTP response not OK|ENOTFOUND|getaddrinfo|ECONNREFUSED|ECONNRESET|net::/i.test(msg);
+    if (silent) {
+      return {
+        ok: true,
+        currentVersion: app.getVersion(),
+        latestVersion: app.getVersion(),
+        updateAvailable: false,
+        quiet: true, // hint for UI: pretend we're up-to-date
+      };
+    }
+    return { ok: false, error: msg, currentVersion: app.getVersion() };
   }
 });
+
+// Silent background polling — every 5 minutes the main process quietly asks
+// the updater. If a newer version is detected we push a one-shot event so
+// the top-bar button can flash. No modal, no toast: just the indicator.
+let updatePollTimer = null;
+function startUpdatePolling() {
+  if (updatePollTimer) return;
+  const doCheck = async () => {
+    const u = getAutoUpdater();
+    if (!u) return;
+    try {
+      const r = await u.checkForUpdates();
+      const latest = r?.updateInfo?.version;
+      const available = !!latest && latest !== app.getVersion();
+      if (mainWindow && !mainWindow.isDestroyed()) {
+        mainWindow.webContents.send('lgss:update-poll', {
+          currentVersion: app.getVersion(),
+          latestVersion: latest || app.getVersion(),
+          updateAvailable: available,
+        });
+      }
+    } catch { /* silent by design */ }
+  };
+  updatePollTimer = setInterval(doCheck, 5 * 60 * 1000);
+  // First check after 30s (give backend time to settle).
+  setTimeout(doCheck, 30 * 1000);
+}
+startUpdatePolling();
 
 ipcMain.handle('lgss:download-update', async () => {
   const u = getAutoUpdater();

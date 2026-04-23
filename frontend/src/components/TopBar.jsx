@@ -107,14 +107,19 @@ export const TopBar = ({
         {/* Right Actions */}
         <div className="flex items-center gap-2">
           <button
-            className={`btn-ghost flex items-center gap-2 relative ${managerUpdateAvailable ? "text-accent-brand" : ""}`}
+            className={`relative flex items-center gap-2 px-3 py-2 border font-mono text-[11px] uppercase tracking-widest transition-all ${
+              managerUpdateAvailable
+                ? "border-accent-brand text-accent-brand update-btn-pulse"
+                : "border-brand text-dim hover:text-brand hover:border-accent-brand/60"
+            }`}
             onClick={onManagerUpdate}
             data-testid="manager-update-btn"
             title={managerUpdateAvailable ? t("manager_update_available") : t("manager_check_update")}
           >
-            <Wrench size={13} /> {t("manager_update")}
+            <Wrench size={13} className={managerUpdateAvailable ? "animate-spin-slow" : ""} />
+            {managerUpdateAvailable ? t("manager_update_available_short") : t("manager_update")}
             {managerUpdateAvailable && (
-              <span className="absolute -top-0.5 -right-0.5 h-2 w-2 bg-accent-brand pulse-ring" />
+              <span className="absolute -top-1 -right-1 h-2.5 w-2.5 rounded-full bg-accent-brand update-dot-pulse" />
             )}
           </button>
 

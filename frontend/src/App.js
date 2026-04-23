@@ -51,6 +51,22 @@ const Shell = () => {
 
   useEffect(() => { load(); }, [load]);
 
+  // Silent background auto-updater polling (Electron only). Flips the top-bar
+  // "Manager Update" button into its flashing state when GitHub has a new
+  // release. No modal/toast — user decides when to click.
+  useEffect(() => {
+    if (!window?.lgss?.onUpdatePoll) return undefined;
+    const off = window.lgss.onUpdatePoll((payload) => {
+      setAppVersion((v) => ({
+        ...v,
+        current: payload.currentVersion || v.current,
+        latest: payload.latestVersion || v.latest,
+        update_available: !!payload.updateAvailable,
+      }));
+    });
+    return off;
+  }, []);
+
   const handleAdminAccept = async () => {
     const s = await endpoints.updateSetup({ is_admin_confirmed: true });
     setSetup(s);

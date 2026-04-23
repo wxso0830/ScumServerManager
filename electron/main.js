@@ -211,7 +211,11 @@ function getBackendCommand() {
   };
 }
 
-function waitForBackend(timeoutMs = 60000) {
+function waitForBackend(timeoutMs = 120000) {
+  // 120s is a generous window. First cold-start on Windows can take 40-90s
+  // because PyInstaller unpacks the frozen bundle into a temp dir and
+  // antivirus often scans every file on the way. A shorter timeout trips
+  // false positives right after an update.
   const deadline = Date.now() + timeoutMs;
   return new Promise((resolve, reject) => {
     const tick = () => {
@@ -224,7 +228,7 @@ function waitForBackend(timeoutMs = 60000) {
       req.setTimeout(1500, () => { req.destroy(); retry(); });
     };
     const retry = () => {
-      if (Date.now() > deadline) return reject(new Error('Backend hazır olmadı (60s timeout)'));
+      if (Date.now() > deadline) return reject(new Error(`Backend hazır olmadı (${Math.round(timeoutMs/1000)}s timeout)`));
       setTimeout(tick, 700);
     };
     tick();

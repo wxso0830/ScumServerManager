@@ -18,6 +18,10 @@ hidden_imports += collect_submodules('starlette')
 hidden_imports += collect_submodules('pydantic')
 hidden_imports += collect_submodules('email_validator')
 hidden_imports += collect_submodules('dns')
+# discord.py loads command cogs / extensions dynamically, so PyInstaller
+# won't pick up every submodule via static analysis. Pull them all in.
+hidden_imports += collect_submodules('discord')
+hidden_imports += collect_submodules('aiohttp')
 hidden_imports += [
     'uvicorn.logging',
     'uvicorn.loops',
@@ -31,6 +35,14 @@ hidden_imports += [
     'uvicorn.lifespan.on',
     'scum_parser',
     'scum_logs',
+    'scum_db',
+    'scum_backup',
+    'scum_process',
+    'scum_discord',
+    'discord',
+    'discord.ext.commands',
+    'discord.app_commands',
+    'sqlite3',
 ]
 
 # Bundle scum_defaults folder (ini/json templates) with the exe

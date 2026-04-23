@@ -77,24 +77,80 @@ def parse_admin_line(ts_iso: str, body: str) -> Optional[Dict[str, Any]]:
     m = re.match(r"'(?P<who>[^']+)'\s+'#(?P<cmd>[^']*)'", body)
     if not m:
         m = re.match(r"'(?P<who>[^']+)'\s+Command:\s+'(?P<cmd>[^']+)'", body)
-    if not m:
-        return None
-    who = m.group("who")
-    cmd_full = m.group("cmd").strip()
-    parts = cmd_full.split(None, 1)
-    verb = parts[0].lower() if parts else ""
-    args = parts[1] if len(parts) > 1 else ""
-    w = _WHO_RX.search(who)
-    return {
-        "type": "admin",
-        "ts": ts_iso,
-        "steam_id": w.group(1) if w else None,
-        "player_name": w.group(2) if w else None,
-        "entity_id": int(w.group(3)) if w else None,
-        "command": verb or "?",
-        "args": args,
-        "raw": body,
-    }
+    if m:
+        who = m.group("who")
+        cmd_full = m.group("cmd").strip()
+        parts = cmd_full.split(None, 1)
+        verb = parts[0].lower() if parts else ""
+        args = parts[1] if len(parts) > 1 else ""
+        w = _WHO_RX.search(who)
+        return {
+            "type": "admin",
+            "ts": ts_iso,
+            "steam_id": w.group(1) if w else None,
+            "player_name": w.group(2) if w else None,
+            "entity_id": int(w.group(3)) if w else None,
+            "command": verb or "?",
+            "args": args,
+            "raw": body,
+        }
+
+    # SCUM 1.2+ map-click teleport event:
+    #   'SID:NAME(N)' Used map click teleport to player: 'SID2:NAME2(N2)' Location: X=... Y=... Z=...
+    mc = re.match(
+        r"'(?P<who>[^']+)'\s+Used\s+map\s+click\s+teleport\s+to\s+player:\s+'(?P<target>[^']+)'"
+        r"(?:\s+Location:\s*X=(?P<x>-?[\d.]+)\s+Y=(?P<y>-?[\d.]+)\s+Z=(?P<z>-?[\d.]+))?",
+        body, flags=re.IGNORECASE,
+    )
+    if mc:
+        w = _WHO_RX.search(mc.group("who"))
+        tw = _WHO_RX.search(mc.group("target"))
+        loc = None
+        if mc.group("x") is not None:
+            loc = {"x": float(mc.group("x")), "y": float(mc.group("y")), "z": float(mc.group("z"))}
+        return {
+            "type": "admin",
+            "ts": ts_iso,
+            "steam_id": w.group(1) if w else None,
+            "player_name": w.group(2) if w else None,
+            "entity_id": int(w.group(3)) if w else None,
+            "command": "map_click_teleport",
+            "action": "teleport_to_player",
+            "target_steam_id": tw.group(1) if tw else None,
+            "target_name": tw.group(2) if tw else None,
+            "location": loc,
+            "raw": body,
+        }
+
+    # SCUM 1.2+ TeleportTo target event (the admin who RAN TeleportTo logs via
+    # the Command branch above; this line logs the PLAYER who was teleported):
+    #   'SID:NAME(N)' Target of TeleportTo: 'SID2:NAME2(N2)' Location: X=... Y=... Z=...
+    tt = re.match(
+        r"'(?P<who>[^']+)'\s+Target\s+of\s+TeleportTo:\s+'(?P<by>[^']+)'"
+        r"(?:\s+Location:\s*X=(?P<x>-?[\d.]+)\s+Y=(?P<y>-?[\d.]+)\s+Z=(?P<z>-?[\d.]+))?",
+        body, flags=re.IGNORECASE,
+    )
+    if tt:
+        w = _WHO_RX.search(tt.group("who"))
+        bw = _WHO_RX.search(tt.group("by"))
+        loc = None
+        if tt.group("x") is not None:
+            loc = {"x": float(tt.group("x")), "y": float(tt.group("y")), "z": float(tt.group("z"))}
+        return {
+            "type": "admin",
+            "ts": ts_iso,
+            "steam_id": w.group(1) if w else None,
+            "player_name": w.group(2) if w else None,
+            "entity_id": int(w.group(3)) if w else None,
+            "command": "teleport_target",
+            "action": "teleported_by_admin",
+            "admin_steam_id": bw.group(1) if bw else None,
+            "admin_name": bw.group(2) if bw else None,
+            "location": loc,
+            "raw": body,
+        }
+
+    return None
 
 
 def parse_chat_line(ts_iso: str, body: str) -> Optional[Dict[str, Any]]:
@@ -678,8 +734,118 @@ def _parser_for(log_type: str):
     }.get(log_type)
 
 
+# Pattern that recognizes the multi-line periodic fame award emitted by
+# SCUM 1.x on an interval (default ~10 min). Real format:
+#   2026.04.23-12.14.13: ---------------------------------
+#   Player WXSO(76561199169074640) was awarded 97.861374 fame points in 10 minutes for a total of 100.040031
+#   DistanceTraveledOnFoot: 0.000547
+#   BaseFameInflux: 0.690184
+#   ...
+#   ---------------------------------
+# The first (and only) timestamped line is the dash separator; the actual
+# content follows on untimestamped lines. `parse_log_text` normally drops
+# untimestamped lines entirely, so we preprocess the whole text for fame
+# logs before the regular line loop runs.
+_FAME_AWARD_BLOCK_RX = re.compile(
+    r"Player\s+(?P<name>[^(]+)\((?P<sid>\d{17})\)\s+was\s+awarded\s+"
+    r"(?P<amt>-?\d+(?:\.\d+)?)\s+fame\s+points\s+"
+    r"(?:in\s+(?P<window>[^\s]+)\s+minutes?\s+)?"
+    r"for\s+a\s+total\s+of\s+(?P<total>-?\d+(?:\.\d+)?)",
+    flags=re.IGNORECASE,
+)
+
+
+def _extract_fame_awards(text: str) -> List[Dict[str, Any]]:
+    """Walk the fame log as blocks and pull every 'was awarded N fame points' event.
+    Timestamps come from the enclosing separator line; breakdown lines are
+    attached verbatim as a `breakdown` dict."""
+    lines = text.splitlines()
+    events: List[Dict[str, Any]] = []
+    current_ts: Optional[str] = None
+    block: List[str] = []
+
+    def flush():
+        nonlocal block
+        if not block:
+            return
+        blob = "\n".join(block)
+        m = _FAME_AWARD_BLOCK_RX.search(blob)
+        block = []
+        if not m or not current_ts:
+            return
+        amt = float(m.group("amt"))
+        # Extract per-reason contributions (Reason: value per line)
+        breakdown: Dict[str, float] = {}
+        for ln in blob.splitlines():
+            bm = re.match(r"\s*([A-Za-z][A-Za-z0-9_]*)\s*:\s*(-?\d+(?:\.\d+)?)\s*$", ln)
+            if bm and bm.group(1).lower() not in ("game", "player", "time"):
+                try:
+                    breakdown[bm.group(1)] = float(bm.group(2))
+                except ValueError:
+                    pass
+        events.append({
+            "type": "fame", "ts": current_ts,
+            "player_name": m.group("name").strip(),
+            "steam_id": m.group("sid"),
+            "delta": amt,
+            "total": float(m.group("total")),
+            "window_minutes": m.group("window"),
+            "reason": "periodic_award",
+            "breakdown": breakdown or None,
+            "raw": blob,
+        })
+
+    for raw in lines:
+        line = raw.strip().lstrip("\ufeff")
+        if not line:
+            continue
+        tm = _LINE_RX.match(line)
+        if tm:
+            # New timestamped line -> flush any accumulated block
+            flush()
+            body = tm.group(2)
+            if body.startswith("Game version"):
+                current_ts = None
+                continue
+            current_ts = _parse_ts(tm.group(1)) or datetime.now(timezone.utc).isoformat()
+            # If the timestamped line itself contains the award line, treat it
+            # as a 1-line block; else start a new block with it.
+            if "was awarded" in body and "fame" in body:
+                block = [body]
+                flush()
+            elif body.startswith("---"):
+                # separator — block boundary only
+                block = []
+            else:
+                block = [body]
+        else:
+            # Untimestamped continuation — only meaningful if we've seen a timestamp
+            if current_ts:
+                if line.startswith("---"):
+                    flush()
+                else:
+                    block.append(line)
+    flush()
+    return events
+
+
 def parse_log_text(text: str, log_type: str, *, filename: str = "", server_id: str = "") -> List[Dict[str, Any]]:
     """Parse a full log file's text content. Skips the 'Game version' header and blank lines."""
+    # Fame log uses multi-line blocks separated by dashes — handle it with a
+    # dedicated text-level walker. Single-line legacy fame lines (other SCUM
+    # patches) still work because `parse_fame_line` is applied to any line
+    # that doesn't fit the new block format below.
+    if log_type == "fame":
+        events = _extract_fame_awards(text)
+        if events:
+            for ev in events:
+                ev["server_id"] = server_id
+                ev["source_file"] = Path(filename).name if filename else ""
+                ev["id"] = _event_id(server_id, ev["ts"], ev["raw"][:200])
+            return events
+        # Fall through to line-by-line parsing below — handles legacy fame
+        # log formats (single-line "gained X fame").
+
     parser = _parser_for(log_type)
     events: List[Dict[str, Any]] = []
     for raw_line in text.splitlines():

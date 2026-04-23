@@ -657,12 +657,12 @@ async def server_activity(server_id: str, hours: int = 24):
     this as a line chart so spikes + peak hours are visible at a glance.
     TTL-indexed to 7 days; older data is auto-pruned by Mongo.
     """
-    hours = max(1, min(int(hours or 24), 24 * 7))
+    hours = max(1, min(int(hours or 24), 24 * 30))
     cutoff = datetime.now(timezone.utc) - timedelta(hours=hours)
     rows = await db.server_activity.find(
         {"server_id": server_id, "ts": {"$gte": cutoff}},
         {"_id": 0, "server_id": 0},
-    ).sort("ts", 1).to_list(5000)
+    ).sort("ts", 1).to_list(20000)
     # Convert ts to ISO string for predictable JSON output
     for r in rows:
         ts = r.get("ts")
@@ -2813,11 +2813,16 @@ async def _start_scheduler():
     if _scheduler_task is None:
         _scheduler_task = asyncio.create_task(_tick_scheduler())
         logger.info("LGSS automation scheduler started (tick=10s)")
-    # TTL index on activity samples — auto-delete rows older than 7 days.
-    # Cheap to re-declare on every startup; Mongo silently no-ops if present.
+    # TTL index on activity samples — auto-delete rows older than 30 days.
+    # If an older version created the index with a different TTL, drop and
+    # recreate so the new retention takes effect.
     try:
+        existing = await db.server_activity.index_information()
+        current_ttl = existing.get("activity_ttl", {}).get("expireAfterSeconds")
+        if current_ttl is not None and current_ttl != 30 * 24 * 3600:
+            await db.server_activity.drop_index("activity_ttl")
         await db.server_activity.create_index(
-            "ts", expireAfterSeconds=7 * 24 * 3600, name="activity_ttl",
+            "ts", expireAfterSeconds=30 * 24 * 3600, name="activity_ttl",
         )
         await db.server_activity.create_index([("server_id", 1), ("ts", -1)])
     except Exception as e:

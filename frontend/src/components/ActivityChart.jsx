@@ -78,18 +78,22 @@ export const ActivityChart = ({ serverId, maxPlayers = 64 }) => {
         <TrendingUp size={13} className="text-accent-brand" />
         <span className="label-accent">{t("activity_chart") || "AKTİVİTE GRAFİĞİ"}</span>
         <div className="ml-auto flex gap-1">
-          {[6, 12, 24, 72].map((h) => (
+          {[
+            { label: "24H", h: 24 },
+            { label: "7G",  h: 24 * 7 },
+            { label: "30G", h: 24 * 30 },
+          ].map((opt) => (
             <button
-              key={h}
-              onClick={() => setHours(h)}
+              key={opt.h}
+              onClick={() => setHours(opt.h)}
               className={`px-2 py-0.5 text-[10px] border font-mono tracking-widest transition-colors ${
-                hours === h
+                hours === opt.h
                   ? "border-accent-brand text-accent-brand bg-accent-soft"
                   : "border-brand text-dim hover:text-brand"
               }`}
-              data-testid={`activity-range-${h}h`}
+              data-testid={`activity-range-${opt.h}h`}
             >
-              {h}H
+              {opt.label}
             </button>
           ))}
         </div>

@@ -2661,6 +2661,20 @@ async def _tick_scheduler():
 @app.on_event("startup")
 async def _start_scheduler():
     global _scheduler_task
+    # One-time migration: earlier versions defaulted to game=7779 / query=7780.
+    # For any server that has NEVER been installed (admin hasn't configured it
+    # on disk yet), silently shift those defaults to the new values (7777/7778)
+    # so the UI reflects what brand-new servers will get. Installed servers
+    # keep whatever the admin chose.
+    try:
+        r = await db.servers.update_many(
+            {"installed": False, "game_port": 7779, "query_port": 7780},
+            {"$set": {"game_port": 7777, "query_port": 7778}},
+        )
+        if r.modified_count:
+            logger.info("Port default migration: shifted %d server(s) 7779/7780 → 7777/7778", r.modified_count)
+    except Exception as e:
+        logger.info("port migration skipped: %s", e)
     if _scheduler_task is None:
         _scheduler_task = asyncio.create_task(_tick_scheduler())
         logger.info("LGSS automation scheduler started (tick=10s)")

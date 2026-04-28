@@ -74,6 +74,7 @@ export const endpoints = {
   setDiscord: (id, payload) => api.put(`/servers/${id}/discord`, payload).then(r => r.data),
   testDiscord: (id, event_type, webhook_url) => api.post(`/servers/${id}/discord/test`, { event_type, webhook_url }).then(r => r.data),
   updateServerPorts: (id, data) => api.put(`/servers/${id}/ports`, data).then(r => r.data),
+  updateServerLaunchArgs: (id, launch_args) => api.put(`/servers/${id}/launch-args`, { launch_args }).then(r => r.data),
   listPlayers: (id, params = {}) => api.get(`/servers/${id}/players`, { params }).then(r => r.data),
   getPlayer: (id, steam_id, limit = 50) => api.get(`/servers/${id}/players/${steam_id}`, { params: { limit } }).then(r => r.data),
   serverMetrics: (id) => api.get(`/servers/${id}/metrics`).then(r => r.data),

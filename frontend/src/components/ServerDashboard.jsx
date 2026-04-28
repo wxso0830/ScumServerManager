@@ -14,6 +14,7 @@ import { DiscordBotSettings } from "./DiscordBotSettings";
 import { ConfirmModal } from "./ConfirmModal";
 import { ImportExportModal } from "./ImportExportModal";
 import { NetworkPortsPanel } from "./NetworkPortsPanel";
+import { LaunchArgsPanel } from "./LaunchArgsPanel";
 import { useI18n } from "../providers/I18nProvider";
 import { endpoints, api } from "../lib/api";
 
@@ -522,7 +523,12 @@ export const ServerDashboard = ({
               {/* Injected: show SCUM CLI network port editor at the bottom of
                   the Performance category (section=essentials). */}
               {cat.key === "essentials_performance" && (
-                <NetworkPortsPanel server={server} onSaved={(updated) => onChange(updated)} />
+                <>
+                  <NetworkPortsPanel server={server} onSaved={(updated) => onChange(updated)} />
+                  <div className="mt-6">
+                    <LaunchArgsPanel server={server} onSaved={(updated) => onChange(updated)} />
+                  </div>
+                </>
               )}
             </Collapsible>
           );

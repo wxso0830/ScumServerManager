@@ -339,7 +339,7 @@ function showSplash(status = 'Arka plan servisleri baslatiliyor...') {
     @keyframes slide{0%{margin-left:-40%}100%{margin-left:100%}}
   </style></head><body>
     <div class="logo">LGSS MANAGER</div>
-    <div class="tag">SCUM SERVER MANAGER v1.0.0</div>
+    <div class="tag">SCUM SERVER MANAGER v1.0.3</div>
     <div id="status">${status}</div>
     <div id="hint"></div>
     <div class="bar"><span></span></div>

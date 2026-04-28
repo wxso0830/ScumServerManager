@@ -22,7 +22,7 @@ const Shell = () => {
   const [servers, setServers] = useState([]);
   const [activeId, setActiveId] = useState(null);
   const [schema, setSchema] = useState(null);
-  const [appVersion, setAppVersion] = useState({ current: "1.0.0", latest: "1.0.0", update_available: false });
+  const [appVersion, setAppVersion] = useState({ current: "1.0.3", latest: "1.0.3", update_available: false });
   const [view, setView] = useState("dashboard"); // dashboard | configs | logs
   const [updateModalOpen, setUpdateModalOpen] = useState(false);
 
@@ -32,7 +32,7 @@ const Shell = () => {
       endpoints.getSetup(),
       endpoints.listServers(),
       endpoints.getSchema().catch(() => null),
-      endpoints.getAppVersion().catch(() => ({ current: "1.0.0", latest: "1.0.0", update_available: false })),
+      endpoints.getAppVersion().catch(() => ({ current: "1.0.3", latest: "1.0.3", update_available: false })),
     ]);
     setIsAdmin(adminRes.is_admin);
     setSetup(setupRes);

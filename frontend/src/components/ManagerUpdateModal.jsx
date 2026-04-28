@@ -36,7 +36,7 @@ export const ManagerUpdateModal = ({ open, onClose }) => {
       setError(null); setProgress(0); setState("checking");
       if (!window?.lgss?.checkForUpdates) {
         // Browser / dev fallback
-        const v = window?.lgss?.getVersion ? await window.lgss.getVersion() : "1.0.0";
+        const v = window?.lgss?.getVersion ? await window.lgss.getVersion() : "1.0.3";
         setInfo({ currentVersion: v, latestVersion: v });
         setState("uptodate");
         return;

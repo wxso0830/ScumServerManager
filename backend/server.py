@@ -95,6 +95,7 @@ class ServerProfile(BaseModel):
     game_port: int = 7777
     query_port: int = 7778
     max_players: int = 64
+    launch_args: str = ""  # admin-supplied SCUMServer.exe extra command-line args
     installed_build_id: Optional[str] = None
     update_available: bool = False
     created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
@@ -161,7 +162,7 @@ def default_scum_settings() -> Dict[str, Any]:
 # ---------- ENDPOINTS ----------
 @api_router.get("/")
 async def root():
-    return {"service": "LGSS SCUM Server Manager", "version": "1.0.0"}
+    return {"service": "LGSS SCUM Server Manager", "version": "1.0.3"}
 
 
 _PUBLIC_IP_CACHE = {"ts": 0, "ip": None}
@@ -381,6 +382,29 @@ async def update_server_ports(server_id: str, payload: ServerPortsUpdate):
     return ServerProfile(**res)
 
 
+class ServerLaunchArgsUpdate(BaseModel):
+    launch_args: str = ""
+
+
+@api_router.put("/servers/{server_id}/launch-args", response_model=ServerProfile)
+async def update_server_launch_args(server_id: str, payload: ServerLaunchArgsUpdate):
+    """Set the admin's custom SCUMServer.exe arguments (mod ids, custom flags).
+    Stored verbatim and shlex-split at start time; takes effect on next START."""
+    # Soft sanity cap so a runaway paste doesn't end up on the command line.
+    val = (payload.launch_args or "").strip()
+    if len(val) > 2000:
+        raise HTTPException(status_code=400, detail="launch_args too long (max 2000 chars)")
+    res = await db.servers.find_one_and_update(
+        {"id": server_id},
+        {"$set": {"launch_args": val}},
+        projection={"_id": 0},
+        return_document=True,
+    )
+    if not res:
+        raise HTTPException(status_code=404, detail="Server not found")
+    return ServerProfile(**res)
+
+
 @api_router.put("/servers/{server_id}/settings", response_model=ServerProfile)
 async def update_server_settings(server_id: str, payload: ServerSettingsUpdate):
     doc = await db.servers.find_one({"id": server_id}, {"_id": 0})
@@ -479,6 +503,7 @@ async def start_server(server_id: str):
             port=port,
             query_port=query_port,
             max_players=max_players,
+            extra_args=doc.get("launch_args") or "",
         )
         # Set status to Starting; /metrics + scheduler promote to Running when
         # Steam A2S_INFO acks the query port (true online moment).
@@ -1899,7 +1924,7 @@ async def first_boot_result(server_id: str):
 
 
 # ---------- MANAGER VERSION / SELF-UPDATE ----------
-CURRENT_MANAGER_VERSION = "1.0.0"
+CURRENT_MANAGER_VERSION = "1.0.3"
 LATEST_MANAGER_VERSION_KEY = "manager-latest-version"
 
 

@@ -351,9 +351,15 @@ def a2s_player_query(host: str, port: int, timeout: float = 1.2) -> list:
 
 
 def start_server(server_id: str, folder_path: str, port: int = 7779,
-                 query_port: int = 7780, max_players: int = 64) -> int:
+                 query_port: int = 7780, max_players: int = 64,
+                 extra_args: Optional[str] = None) -> int:
     """Spawn SCUMServer.exe with -log (opens its own console window showing
     live server log). Returns PID. Raises if already running or exe missing.
+
+    `extra_args` is an arbitrary command-line string the admin types in the
+    "Başlatma Seçenekleri" panel (mod ids, custom flags, ini overrides, etc).
+    It's split with shlex and appended AFTER the default SCUM flags so admin
+    overrides win when SCUM resolves duplicates.
 
     The process is spawned with HIGH priority and Unreal fast-path flags so
     the ~2-3 minute SCUM boot is trimmed where possible without losing the
@@ -389,6 +395,20 @@ def start_server(server_id: str, folder_path: str, port: int = 7779,
         f"-QueryPort={query_port}",
         f"-MaxPlayers={max_players}",
     ]
+    # Append admin-supplied custom flags last so they take precedence when
+    # SCUM/Unreal resolves duplicates (later -port=... wins, etc).
+    if extra_args:
+        try:
+            import shlex
+            # POSIX mode here is correct on Windows too: shlex strips quotes,
+            # giving us proper tokens (e.g. -ServerName="My Cool Server"
+            # becomes a single argv slot `-ServerName=My Cool Server`).
+            # subprocess.Popen on Windows then re-quotes via list2cmdline so
+            # SCUMServer.exe sees the original argument intact.
+            tokens = shlex.split(extra_args)
+            args.extend(t for t in tokens if t)
+        except Exception as e:
+            log.warning("Could not parse extra_args %r (skipping): %s", extra_args, e)
     log.info("Starting SCUM: %s", " ".join(args))
 
     # CREATE_NEW_CONSOLE       = 0x00000010  — own visible console window

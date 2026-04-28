@@ -539,15 +539,64 @@ async def stop_server(server_id: str):
 
 @api_router.post("/servers/{server_id}/update", response_model=ServerProfile)
 async def update_server(server_id: str):
-    """Updates SCUM server binaries via SteamCMD without touching settings.
-    In web preview this is simulated — status toggles through Updating → Stopped.
-    Real SteamCMD call is in Electron main process (ipc 'lgss:update-server')."""
+    """Update SCUM server binaries via SteamCMD.
+
+    Real SteamCMD `+app_update <id> validate` is idempotent — only changed
+    bytes are downloaded, so we reuse `scum_proc.install_server` with
+    `run_first_boot=False` (don't regenerate configs, don't touch settings).
+    Linux preview keeps the old fast simulation so the UI flow can be tested.
+    """
     doc = await db.servers.find_one({"id": server_id}, {"_id": 0})
     if not doc:
         raise HTTPException(status_code=404, detail="Server not found")
-    # SteamCMD update requires stopping the EXE. Mark as admin-driven stop.
+    # SteamCMD update requires a fully stopped EXE — refuse if process is alive.
+    try:
+        live_metrics = scum_proc.get_metrics(server_id, doc.get("folder_path"))
+        if live_metrics.get("running"):
+            raise HTTPException(status_code=409, detail="Stop the server before updating")
+    except HTTPException:
+        raise
+    except Exception:
+        # If metrics probe fails for any reason, fall through — install_server
+        # itself will raise if a process is genuinely alive.
+        pass
+
+    setup = await db.setup.find_one({"_id": SETUP_DOC_ID}, {"_id": 0}) or {}
+    manager_path = setup.get("manager_path") or ""
+
+    # Linux preview / no manager path → keep simulated cycle so UI can be exercised.
+    if platform.system() != "Windows" or not manager_path:
+        mark_expected_stop(server_id)
+        await db.servers.update_one({"id": server_id}, {"$set": {"status": "Updating"}})
+        doc["status"] = "Updating"
+        return ServerProfile(**doc)
+
+    # Real Windows update via SteamCMD in a background thread.
+    def _on_complete(ok: bool, build_id: Optional[str], _log_tail: str):
+        import asyncio as _asyncio
+        async def _update():
+            if ok:
+                await db.servers.update_one({"id": server_id}, {"$set": {
+                    "status": "Stopped",
+                    "installed_build_id": build_id or doc.get("installed_build_id"),
+                    "update_available": False,
+                }})
+            else:
+                await db.servers.update_one({"id": server_id}, {"$set": {"status": "Stopped"}})
+        try:
+            _asyncio.run(_update())
+        except Exception:
+            logger.exception("update on_complete db update failed")
+
+    scum_proc.install_server(
+        server_id=server_id,
+        folder_path=doc["folder_path"],
+        manager_path=manager_path,
+        app_id=doc.get("steam_app_id") or "3792580",
+        on_complete=_on_complete,
+        run_first_boot=False,  # don't regenerate ini files on update
+    )
     mark_expected_stop(server_id)
-    # Preserve settings; just toggle status to simulate update cycle
     await db.servers.update_one({"id": server_id}, {"$set": {"status": "Updating"}})
     doc["status"] = "Updating"
     return ServerProfile(**doc)

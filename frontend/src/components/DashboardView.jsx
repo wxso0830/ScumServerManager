@@ -13,6 +13,8 @@ export const DashboardView = ({ servers, managerPath, onAdd, onOpen, onChange, o
   const [checking, setChecking] = useState(false);
   const [busy, setBusy] = useState(false);
   const [installTarget, setInstallTarget] = useState(null);
+  // Same modal is reused for "Update" — we just label the title differently.
+  const [updateTarget, setUpdateTarget] = useState(null);
 
   const running = useMemo(() => servers.filter((s) => s.status === "Running").length, [servers]);
   const stopped = useMemo(() => servers.filter((s) => s.status !== "Running").length, [servers]);
@@ -60,16 +62,24 @@ export const DashboardView = ({ servers, managerPath, onAdd, onOpen, onChange, o
 
   const handleUpdate = async (server) => {
     try {
+      // Backend kicks off SteamCMD update in a background thread (Windows)
+      // or simulates it (Linux preview). Either way, polling /install/progress
+      // gives us live %.
       const updated = await endpoints.updateServer(server.id);
       onChange(updated);
-      toast.success(t("update_server"));
-      setTimeout(async () => {
-        try {
-          const done = await api.post(`/servers/${server.id}/update/complete`);
-          onChange(done.data);
-        } catch (_) {}
-      }, 1500);
-    } catch (e) { toast.error(String(e.message || e)); }
+      setUpdateTarget(updated);  // open progress modal
+    } catch (e) { toast.error(String(e.response?.data?.detail || e.message || e)); }
+  };
+
+  const handleUpdateDone = async (success) => {
+    try {
+      if (updateTarget) {
+        const fresh = await endpoints.getServer(updateTarget.id);
+        onChange(fresh);
+        if (success) toast.success(t("toast_update_done") || "Update complete");
+        else toast.error(t("toast_update_failed") || "Update failed");
+      }
+    } catch {}
   };
 
   const requestDelete = (id) => {

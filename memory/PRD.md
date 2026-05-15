@@ -46,6 +46,14 @@ Electron-based desktop server manager for SCUM game. On first launch: ask user t
 - Schema cleanup: removed `client` section + client_mouse/video/graphics/sound; moved `client_game` under `gameplay`
 
 ## Recent Changes
+- **2026-02 (v1.0.10 — real restart + pre-stop backup)**:
+  1. **Auto-restart / Restart / Stop now actually controls the process**: Previously these endpoints only mutated the DB `status` field — the SCUMServer.exe was never killed/respawned. Refactored into three shared helpers in `server.py`:
+     - `_do_pre_stop_backup(server_id, doc, backup_type)` — best-effort SaveFiles snapshot via `scum_backup.create_backup`. Never raises.
+     - `_do_stop_internal(server_id, take_backup=True)` — takes backup → marks expected stop → calls `scum_proc.stop_server` in a thread → sets status=Stopped.
+     - `_do_start_internal(server_id, doc)` — runs crash-recovery restore if flagged, then `scum_proc.start_server`. Falls back to simulated status on non-Windows preview.
+  2. **Endpoints now using the helpers**: `POST /servers/{id}/start`, `POST /servers/{id}/stop`, `POST /servers/{id}/restart`, `POST /servers/{id}/update`, `POST /servers/bulk/stop-all`, `POST /servers/bulk/restart-all`. Every one of them takes a pre-stop backup before terminating the EXE.
+  3. **Scheduler also fixed**: `_tick_scheduler` scheduled-restart block now calls `_do_stop_internal` + `_do_start_internal` (was just flipping status). Pending graceful-update block calls `_do_pre_stop_backup` + `_do_stop_internal` + SteamCMD `install_server(run_first_boot=False)` + `_do_start_internal`. Real Windows behavior: backup → kill EXE → SteamCMD delta update → respawn.
+  4. **Tested**: 13/13 backend regression tests passed (iteration_13.json).
 - **2026-02 (v1.0.9 — user-requested cleanup)**:
   1. **Discord Bot feature removed**: The bot (token input, slash commands, presence updates) was hidden from the UI. Only the **webhook** integration remains. `discord_bot` category removed from `/api/settings/schema`; `DiscordBotSettings` import & render case removed from `ServerDashboard.jsx`; auto-start on backend boot disabled. `scum_discord.py` + bot endpoints remain in code (used by tests) but are not surfaced anywhere.
   2. **Auto-restart / auto-update default messages removed**: The manager no longer auto-generates or auto-seeds default English warning messages ("The server will restart in N minutes" / "A new version of the game is available…"). Both `_generate_notifications_from_schedule()` (backend) and the `InlineKindNotifications` first-view auto-seed (frontend) now produce empty lists. Restart/Update SCHEDULING still fires at the configured times — admins who want pre-warning chat broadcasts add them manually via the Notifications editor. Also removed the now-useless "Generate Notifications" button.

@@ -5,6 +5,7 @@ from motor.motor_asyncio import AsyncIOMotorClient
 import os
 import logging
 import platform
+import subprocess
 import psutil
 from pathlib import Path
 from pydantic import BaseModel, Field, ConfigDict
@@ -162,7 +163,7 @@ def default_scum_settings() -> Dict[str, Any]:
 # ---------- ENDPOINTS ----------
 @api_router.get("/")
 async def root():
-    return {"service": "LGSS SCUM Server Manager", "version": "1.0.6"}
+    return {"service": "LGSS SCUM Server Manager", "version": "1.0.7"}
 
 
 _PUBLIC_IP_CACHE = {"ts": 0, "ip": None}
@@ -380,6 +381,37 @@ async def update_server_ports(server_id: str, payload: ServerPortsUpdate):
     if not res:
         raise HTTPException(status_code=404, detail="Server not found")
     return ServerProfile(**res)
+
+
+@api_router.post("/servers/{server_id}/open-folder")
+async def open_server_folder(server_id: str):
+    """Open the server's installation folder in the OS file explorer.
+
+    On Windows this is `explorer.exe "<folder_path>"` — that's what admins
+    actually want when troubleshooting (browse Saved\Logs, edit ini, etc).
+    No-op on Linux preview since the manager UI is server-side only.
+    """
+    doc = await db.servers.find_one({"id": server_id}, {"_id": 0, "folder_path": 1})
+    if not doc:
+        raise HTTPException(status_code=404, detail="Server not found")
+    folder = doc.get("folder_path")
+    if not folder:
+        raise HTTPException(status_code=400, detail="Server has no installation folder yet")
+    p = Path(folder)
+    if not p.exists():
+        raise HTTPException(status_code=404, detail=f"Folder does not exist: {folder}")
+    try:
+        if platform.system() == "Windows":
+            # Use the absolute path to avoid `explorer.exe \tmp\...` quirks.
+            subprocess.Popen(["explorer.exe", str(p.resolve())], shell=False)
+        elif platform.system() == "Darwin":
+            subprocess.Popen(["open", str(p.resolve())])
+        else:
+            # Linux pod / preview — most managers won't be opening folders here.
+            subprocess.Popen(["xdg-open", str(p.resolve())])
+        return {"opened": True, "path": str(p.resolve())}
+    except FileNotFoundError as e:
+        raise HTTPException(status_code=500, detail=f"OS file manager not available: {e}")
 
 
 class ServerLaunchArgsUpdate(BaseModel):
@@ -1973,7 +2005,7 @@ async def first_boot_result(server_id: str):
 
 
 # ---------- MANAGER VERSION / SELF-UPDATE ----------
-CURRENT_MANAGER_VERSION = "1.0.6"
+CURRENT_MANAGER_VERSION = "1.0.7"
 LATEST_MANAGER_VERSION_KEY = "manager-latest-version"
 
 

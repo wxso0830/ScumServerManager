@@ -12,13 +12,19 @@ export const Collapsible = ({ title, icon, open, onToggle, children, testId, bad
         <div className="flex items-center gap-3">
           {icon}
           <span className="heading-stencil text-sm">{title}</span>
-          {badge && <span className="label-accent">{badge}</span>}
         </div>
-        <ChevronDown
-          size={16}
-          className="transition-transform duration-200 text-dim"
-          style={{ transform: open ? "rotate(180deg)" : "rotate(0)" }}
-        />
+        <div className="flex items-center gap-3">
+          {badge && (
+            <span className="label-accent opacity-50 hidden md:inline" title="Source file">
+              {badge}
+            </span>
+          )}
+          <ChevronDown
+            size={16}
+            className="transition-transform duration-200 text-dim"
+            style={{ transform: open ? "rotate(180deg)" : "rotate(0)" }}
+          />
+        </div>
       </button>
       {open && (
         <div className="px-4 py-5 border-t border-brand bg-bg-deep">

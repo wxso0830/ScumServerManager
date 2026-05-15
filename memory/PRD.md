@@ -46,11 +46,13 @@ Electron-based desktop server manager for SCUM game. On first launch: ask user t
 - Schema cleanup: removed `client` section + client_mouse/video/graphics/sound; moved `client_game` under `gameplay`
 
 ## Recent Changes
-- **2026-02 (v1.0.6 — import bug fix + i18n popover + 7 critical fields translated)**:
-  1. **Import bug (CRITICAL)**: User reported `[Errno 2] No such file or directory: '\tmp\_ss.ini'` when uploading their real `ServerSettings.ini`. Root cause: `Path("/tmp/_ss.ini")` resolves to `\tmp\_ss.ini` on Windows (drive root, not `%TEMP%`). Replaced all 3 hardcoded `/tmp/...` paths in `import_setting_file` (`server_settings`, `gameusersettings`, `input`) with cross-platform `tempfile.NamedTemporaryFile`. Verified end-to-end with user's real `.ini` (ServerName "RU GlobalScum PVE x3...") — parsed successfully on Linux pod and would now work on Windows.
-  2. **Language picker visibility**: Popover z-index bumped 50 → 60 and width 60 → 64 so the 8-language menu (flag + native name) renders cleanly on top of other UI.
-  3. **Partial settings localization**: Translated 9 most-visible Server Identity & Capacity fields (`scum.ServerName`, `ServerDescription`, `ServerBannerUrl`, `ServerPlaystyle`, `ServerPassword`, `MaxPlayers`, `WelcomeMessage`, `MessageOfTheDay`, `MessageOfTheDayCooldown`) to all 8 languages. Remaining ~130 SCUM technical settings auto-fall-back to English via `meta[lang] || meta.en` (no raw keys shown).
-- **Version 1.0.5 → 1.0.6.**
+- **2026-02 (v1.0.7 — admin UX polish)**:
+  1. **Open Server Folder button**: New `FolderOpen` icon next to the server switcher in `ServerDashboard.jsx`. Calls new `POST /api/servers/{id}/open-folder` which spawns `explorer.exe "<path>"` (Windows), `open` (macOS), or `xdg-open` (Linux). Disabled when server has no `folder_path` yet.
+  2. **Section header source-file badge moved**: `Collapsible.jsx` now renders the `server_settings` / `gameusersettings` source-file label on the **right side**, dimmed (opacity-50), hidden on mobile. Cleaner heading hierarchy — title left, optional metadata right.
+  3. **Section title localization**: 9 main section titles (`sec_essentials`, `sec_gameplay`, etc.) + 4 key `cat_essentials_*` titles translated to all 6 new languages (RU/DE/FR/IT/AR/AZ).
+  4. **Language picker scroll fix**: Popover wrapped with sticky header + `max-h-[420px] overflow-y-auto`, `min-w-[230px]` so all 8 languages always fit and scroll when overflowing.
+  5. **Discord + Feedback TopBar buttons**: Two new icon buttons next to the reset-setup button. Discord opens `https://discord.gg/ZBzTRNbTy3`, Feedback opens `https://legendaryhub.vip/` in the default browser via `window.open`.
+- **Version 1.0.6 → 1.0.7.**
 - **2026-02 (v1.0.4 — multi-fix release)**:
   - Update notification spam (CRITICAL): defensive scheduler-tick cleanup of stale `_transient_update` rows; OFFSETS [15,10,5,4,3,2,1] → **[15,10,5]**.
   - Update button: real SteamCMD via `install_server(run_first_boot=False)`, `InstallProgressModal mode="update"`, 409 if running.

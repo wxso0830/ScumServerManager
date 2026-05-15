@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import {
   Palette, Languages, Check, Wrench, ShieldCheck, ShieldAlert,
   RotateCcw, Activity, Server, HardDrive, Terminal, LayoutDashboard, SlidersHorizontal, ScrollText, Users, Archive,
+  MessageCircle, MessageSquare,
 } from "lucide-react";
 import { useTheme } from "../providers/ThemeProvider";
 import { useI18n, LANG_META } from "../providers/I18nProvider";
@@ -83,7 +84,7 @@ export const TopBar = ({
               SCUM SERVER MANAGER
             </div>
             <div className="font-mono text-[9px] tracking-[0.22em] text-accent-brand mt-1">
-              v1.0.6
+              v1.0.7
             </div>
           </div>
         </div>
@@ -165,25 +166,47 @@ export const TopBar = ({
               <Languages size={17} />
             </button>
             <Popover open={langOpen} onClose={() => setLangOpen(false)}>
-              <div className="p-1 max-h-[360px] overflow-y-auto scrollbar-thin">
-                <div className="label-accent px-3 py-2">{t("language")}</div>
+              <div className="p-1 max-h-[420px] overflow-y-auto scrollbar-thin" style={{ minWidth: "230px" }}>
+                <div className="label-accent px-3 py-2 sticky top-0 bg-surface z-10 border-b border-brand">
+                  {t("language")}
+                </div>
                 {Object.entries(LANG_META).map(([code, meta]) => (
                   <button
                     key={code}
                     onClick={() => { setLang(code); setLangOpen(false); }}
                     data-testid={`lang-option-${code}`}
-                    className="w-full flex items-center justify-between px-3 py-2 text-sm hover:bg-surface-2 transition-colors font-display uppercase tracking-wider text-xs"
+                    className="w-full flex items-center justify-between px-3 py-2.5 text-sm hover:bg-surface-2 transition-colors font-display uppercase tracking-wider text-xs"
                   >
                     <span className="flex items-center gap-2.5">
                       <span className="text-base leading-none">{meta.flag}</span>
                       <span className="text-brand normal-case">{meta.label}</span>
                     </span>
-                    {lang === code && <Check size={14} className="text-accent-brand" />}
+                    {lang === code && <Check size={14} className="text-accent-brand flex-shrink-0" />}
                   </button>
                 ))}
               </div>
             </Popover>
           </div>
+
+          {/* Discord invite — opens our community server in the default browser */}
+          <button
+            className="icon-btn"
+            title={t("open_discord")}
+            onClick={() => window.open("https://discord.gg/ZBzTRNbTy3", "_blank", "noopener,noreferrer")}
+            data-testid="topbar-discord-btn"
+          >
+            <MessageCircle size={16} />
+          </button>
+
+          {/* Feedback link — Legendary Hub portal */}
+          <button
+            className="icon-btn"
+            title={t("feedback")}
+            onClick={() => window.open("https://legendaryhub.vip/", "_blank", "noopener,noreferrer")}
+            data-testid="topbar-feedback-btn"
+          >
+            <MessageSquare size={16} />
+          </button>
 
           <button
             className="icon-btn"

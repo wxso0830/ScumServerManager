@@ -358,6 +358,26 @@ export const ServerDashboard = ({
             </select>
             <Icons.ChevronDown size={12} className="absolute right-2 top-1/2 -translate-y-1/2 text-dim pointer-events-none" />
           </div>
+
+          {/* Open the selected server's folder in OS file explorer.
+              Useful when admins need to grab the .ini, browse Saved\Logs, etc. */}
+          <button
+            type="button"
+            onClick={async () => {
+              try {
+                await endpoints.openServerFolder(server.id);
+              } catch (e) {
+                const msg = e?.response?.data?.detail || e?.message || "Folder open failed";
+                toast.error(String(msg));
+              }
+            }}
+            className="icon-btn"
+            data-testid="open-server-folder-btn"
+            title={t("open_server_folder")}
+            disabled={!server.installed}
+          >
+            <Icons.FolderOpen size={14} />
+          </button>
         </div>
 
         <div className="flex items-center justify-between gap-4">

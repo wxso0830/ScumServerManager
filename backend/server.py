@@ -475,7 +475,59 @@ async def start_server(server_id: str):
     doc = await db.servers.find_one({"id": server_id}, {"_id": 0})
     if not doc:
         raise HTTPException(status_code=404, detail="Server not found")
+    await _do_start_internal(server_id, doc)
+    fresh = await db.servers.find_one({"id": server_id}, {"_id": 0})
+    return ServerProfile(**fresh)
 
+
+async def _do_pre_stop_backup(server_id: str, doc: Dict[str, Any], backup_type: str = "auto") -> None:
+    """Best-effort pre-stop SaveFiles snapshot.
+
+    Called before any planned stop/restart/update so the next start can fall
+    back to the most recent state if the shutdown corrupts a save. Never
+    raises — backup failures must not block the actual stop/restart.
+    """
+    try:
+        setup = await db.setup.find_one({"_id": SETUP_DOC_ID}, {"_id": 0}) or {}
+        manager_path = setup.get("manager_path")
+        folder_path = doc.get("folder_path")
+        if not (manager_path and folder_path):
+            return
+        server_folder = doc.get("folder_name") or f"Server{doc.get('index', 1)}"
+        res = await asyncio.to_thread(
+            scum_backup.create_backup,
+            server_id=server_id,
+            folder_path=folder_path,
+            manager_path=manager_path,
+            server_folder=server_folder,
+            backup_type=backup_type,
+        )
+        if res.get("ok"):
+            logger.info("Pre-stop backup created for %s", doc.get("name"))
+        else:
+            logger.info("Pre-stop backup skipped: %s", res.get("error"))
+    except Exception as e:
+        logger.info("Pre-stop backup failed (non-fatal): %s", e)
+
+
+async def _do_stop_internal(server_id: str, take_backup: bool = True) -> None:
+    """Stop the SCUM process for one server. Best-effort backup, mark expected
+    stop (so crash detector ignores), kill the EXE, set status=Stopped."""
+    doc = await db.servers.find_one({"id": server_id}, {"_id": 0})
+    if not doc:
+        return
+    if take_backup and doc.get("status") == "Running":
+        await _do_pre_stop_backup(server_id, doc, backup_type="auto")
+    mark_expected_stop(server_id)
+    try:
+        await asyncio.to_thread(scum_proc.stop_server, server_id)
+    except Exception:
+        logger.exception("stop failed for %s", server_id)
+    await db.servers.update_one({"id": server_id}, {"$set": {"status": "Stopped"}})
+
+
+async def _do_start_internal(server_id: str, doc: Dict[str, Any]) -> None:
+    """Start the SCUM process for one server (with crash-recovery restore)."""
     # --- Crash auto-recovery ---------------------------------------------
     # If the server was flagged for recovery on its previous shutdown (i.e.
     # scheduler detected an unexpected Running→Stopped transition), restore
@@ -549,7 +601,6 @@ async def start_server(server_id: str):
         logger.warning("start_server: %s - using simulated status", e)
         await db.servers.update_one({"id": server_id}, {"$set": {"status": "Running"}})
         doc["status"] = "Running"
-    return ServerProfile(**doc)
 
 
 @api_router.post("/servers/{server_id}/stop", response_model=ServerProfile)
@@ -557,16 +608,12 @@ async def stop_server(server_id: str):
     doc = await db.servers.find_one({"id": server_id}, {"_id": 0})
     if not doc:
         raise HTTPException(status_code=404, detail="Server not found")
-    # Flag this upcoming Running→Stopped transition as admin-driven so the
-    # scheduler's crash detector skips the emergency backup.
-    mark_expected_stop(server_id)
-    try:
-        scum_proc.stop_server(server_id)
-    except Exception:
-        logger.exception("stop_server failed")
-    await db.servers.update_one({"id": server_id}, {"$set": {"status": "Stopped"}})
-    doc["status"] = "Stopped"
-    return ServerProfile(**doc)
+    await _do_stop_internal(server_id, take_backup=True)
+    fresh = await db.servers.find_one({"id": server_id}, {"_id": 0}) or doc
+    return ServerProfile(**fresh)
+
+
+# ---------- legacy stop body removed (now in _do_stop_internal) ----------
 
 
 @api_router.post("/servers/{server_id}/update", response_model=ServerProfile)
@@ -595,6 +642,10 @@ async def update_server(server_id: str):
 
     setup = await db.setup.find_one({"_id": SETUP_DOC_ID}, {"_id": 0}) or {}
     manager_path = setup.get("manager_path") or ""
+
+    # Best-effort pre-update backup of SaveFiles (safe even when stopped —
+    # captures the last known-good state in case SteamCMD corrupts something).
+    await _do_pre_stop_backup(server_id, doc, backup_type="auto")
 
     # Linux preview / no manager path → keep simulated cycle so UI can be exercised.
     if platform.system() != "Windows" or not manager_path:
@@ -2218,28 +2269,34 @@ async def import_server_files_bulk(
 # ---------- RESTART / BULK POWER ACTIONS ----------
 @api_router.post("/servers/{server_id}/restart", response_model=ServerProfile)
 async def restart_server(server_id: str):
-    """Stop -> Start cycle. In Electron this sequences SCUMServer.exe."""
+    """Real Stop → Backup → Start cycle for SCUMServer.exe.
+
+    1. Take a pre-stop backup of SaveFiles (best-effort, non-blocking on failure).
+    2. Mark expected stop so crash detector skips.
+    3. Kill the real EXE via scum_proc.stop_server.
+    4. Brief settle.
+    5. Re-spawn via _do_start_internal (handles crash-recovery restore too).
+    """
     doc = await db.servers.find_one({"id": server_id}, {"_id": 0})
     if not doc:
         raise HTTPException(status_code=404, detail="Server not found")
     if not doc.get("installed"):
         raise HTTPException(status_code=400, detail="Server not installed")
-    mark_expected_stop(server_id)
+
     await db.servers.update_one({"id": server_id}, {"$set": {"status": "Updating"}})
-    await asyncio.sleep(0.4)
-    await db.servers.update_one({"id": server_id}, {"$set": {"status": "Stopped"}})
-    await asyncio.sleep(0.3)
-    await db.servers.update_one({"id": server_id}, {"$set": {"status": "Running"}})
-    doc["status"] = "Running"
-    return ServerProfile(**doc)
+    await _do_stop_internal(server_id, take_backup=True)
+    await asyncio.sleep(1.5)  # let ports & file locks release
+    fresh = await db.servers.find_one({"id": server_id}, {"_id": 0}) or doc
+    await _do_start_internal(server_id, fresh)
+    fresh = await db.servers.find_one({"id": server_id}, {"_id": 0}) or doc
+    return ServerProfile(**fresh)
 
 
 @api_router.post("/servers/bulk/stop-all")
 async def stop_all_servers():
     servers = await db.servers.find({"installed": True, "status": "Running"}, {"_id": 0}).to_list(500)
     for s in servers:
-        mark_expected_stop(s["id"])
-        await db.servers.update_one({"id": s["id"]}, {"$set": {"status": "Stopped"}})
+        await _do_stop_internal(s["id"], take_backup=True)
     return {"stopped": len(servers)}
 
 
@@ -2249,14 +2306,22 @@ async def restart_all_servers():
     affected = 0
     for s in servers:
         if s.get("status") == "Running":
-            mark_expected_stop(s["id"])
-            await db.servers.update_one({"id": s["id"]}, {"$set": {"status": "Stopped"}})
-            await asyncio.sleep(0.2)
-            await db.servers.update_one({"id": s["id"]}, {"$set": {"status": "Running"}})
+            await db.servers.update_one({"id": s["id"]}, {"$set": {"status": "Updating"}})
+            await _do_stop_internal(s["id"], take_backup=True)
+            await asyncio.sleep(1.5)
+            fresh = await db.servers.find_one({"id": s["id"]}, {"_id": 0}) or s
+            try:
+                await _do_start_internal(s["id"], fresh)
+            except HTTPException as e:
+                logger.warning("restart-all start failed for %s: %s", s.get("name"), e.detail)
             affected += 1
         elif s.get("status") == "Stopped":
-            await db.servers.update_one({"id": s["id"]}, {"$set": {"status": "Running"}})
-            affected += 1
+            fresh = await db.servers.find_one({"id": s["id"]}, {"_id": 0}) or s
+            try:
+                await _do_start_internal(s["id"], fresh)
+                affected += 1
+            except HTTPException as e:
+                logger.warning("restart-all start failed for %s: %s", s.get("name"), e.detail)
     return {"restarted": affected}
 
 
@@ -2599,13 +2664,16 @@ async def _tick_scheduler():
                     restart_times = auto.get("restart_times") or []
                     if hhmm in restart_times and _last_restart_tick.get(sid) != day_tag:
                         _last_restart_tick[sid] = day_tag
-                        logger.info("Scheduler: restart trigger for %s at %s", s.get("name"), hhmm)
-                        mark_expected_stop(sid)
-                        await db.servers.update_one({"id": sid}, {"$set": {"status": "Updating"}})
-                        await asyncio.sleep(2)
-                        await db.servers.update_one({"id": sid}, {"$set": {"status": "Stopped"}})
-                        await asyncio.sleep(1)
-                        await db.servers.update_one({"id": sid}, {"$set": {"status": "Running"}})
+                        logger.warning("Scheduler: scheduled restart firing for %s at %s", s.get("name"), hhmm)
+                        try:
+                            await db.servers.update_one({"id": sid}, {"$set": {"status": "Updating"}})
+                            await _do_stop_internal(sid, take_backup=True)
+                            await asyncio.sleep(2.0)
+                            fresh = await db.servers.find_one({"id": sid}, {"_id": 0}) or s
+                            await _do_start_internal(sid, fresh)
+                            logger.info("Scheduler: scheduled restart complete for %s", s.get("name"))
+                        except Exception as e:
+                            logger.exception("Scheduler: scheduled restart failed for %s: %s", s.get("name"), e)
                 # --- Auto update ---
                 if auto.get("auto_update_enabled") and s.get("installed"):
                     interval = int(auto.get("update_check_interval_min") or 360)
@@ -2674,16 +2742,14 @@ async def _tick_scheduler():
                             target = target.replace(tzinfo=timezone.utc)
                         if now >= target:
                             logger.warning("Graceful update firing for %s", s.get("name"))
-                            # 1. Mark admin-stop so crash detector doesn't fire
-                            mark_expected_stop(sid)
-                            # 2. Stop the running EXE
-                            try:
-                                scum_proc.stop_server(sid)
-                            except Exception:
-                                pass
+                            # 1. Pre-update backup (so an interrupted SteamCMD pass
+                            #    can be reverted).
+                            await _do_pre_stop_backup(sid, s, backup_type="auto")
+                            # 2. Stop the running EXE via the shared helper
                             await db.servers.update_one(
                                 {"id": sid}, {"$set": {"status": "Updating"}},
                             )
+                            await _do_stop_internal(sid, take_backup=False)
                             # 3. Clear transient update notifications from settings
                             clean_settings = {**(s.get("settings") or {})}
                             notifs_clean = [
@@ -2705,14 +2771,27 @@ async def _tick_scheduler():
                                     save_notifications_to_disk(s["folder_path"], notifs_clean)
                             except Exception as e:
                                 logger.info("notification cleanup write failed: %s", e)
-                            # 5. SteamCMD update + restart is triggered from the
-                            # Electron main process (ipc 'lgss:update-server'). On
-                            # web preview we just simulate the cycle like the
-                            # manual /update endpoint does.
-                            await asyncio.sleep(1)
-                            await db.servers.update_one(
-                                {"id": sid}, {"$set": {"status": "Running"}},
-                            )
+                            # 5. SteamCMD update + restart. On Windows we run
+                            # install_server(run_first_boot=False) (idempotent
+                            # delta update) then re-spawn via _do_start_internal.
+                            # On the preview/dev environment scum_proc raises
+                            # RuntimeError; we fall through and just restart.
+                            await asyncio.sleep(1.0)
+                            try:
+                                await asyncio.to_thread(
+                                    scum_proc.install_server,
+                                    server_id=sid,
+                                    folder_path=s.get("folder_path"),
+                                    app_id=s.get("steam_app_id") or "3792580",
+                                    run_first_boot=False,
+                                )
+                            except Exception as e:
+                                logger.info("SteamCMD update skipped (%s) — restarting anyway", e)
+                            fresh = await db.servers.find_one({"id": sid}, {"_id": 0}) or s
+                            try:
+                                await _do_start_internal(sid, fresh)
+                            except Exception as e:
+                                logger.exception("post-update start failed for %s: %s", s.get("name"), e)
                     except Exception as e:
                         logger.info("pending update handling failed: %s", e)
 

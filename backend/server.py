@@ -791,13 +791,15 @@ def _update_duration_for(minutes_left: int) -> str:
 async def _schedule_graceful_update(server_id: str, server_doc: Dict[str, Any], lead_minutes: int = 15) -> None:
     """Plan a non-abrupt auto-update.
 
+    User request (2026-02): default countdown chat broadcasts are no longer
+    auto-stamped. The update still happens at target time, but no
+    "A new version is available in N minutes" messages are written. If admins
+    want pre-update warnings they add them manually in the Notifications UI.
+
     1. Compute target time = now + lead_minutes.
-    2. Take the admin's UPDATE-kind notification templates (kind='update').
-       For each of the standard offsets [15,10,5,4,3,2,1] we stamp a time
-       row at (target - offset) so SCUM broadcasts a countdown in-game.
-    3. Persist to Notifications.json via the settings doc — SCUM picks it up.
-    4. Set pending_update_at so the scheduler tick triggers the actual stop →
+    2. Set pending_update_at so the scheduler tick triggers the actual stop →
        SteamCMD update → restart exactly at target time.
+    3. Strip any stale transient update notifications from a previous run.
 
     Safe to call multiple times; no-op if an update is already pending.
     """
@@ -807,30 +809,8 @@ async def _schedule_graceful_update(server_id: str, server_doc: Dict[str, Any], 
     target = now + timedelta(minutes=lead_minutes)
     settings = {**(server_doc.get("settings") or {})}
     notifs = [dict(n) for n in (settings.get("notifications") or [])]
-    # Keep restart and non-transient update templates; drop any stale transient
-    # update notifications from a previous cycle.
+    # Drop any stale transient update notifications from a previous cycle.
     notifs = [n for n in notifs if not n.get("_transient_update")]
-    # Pick template messages from any existing update-kind entries, else use defaults.
-    user_templates = {
-        # Match the default offsets when possible. Custom update messages the
-        # admin wrote stay usable because we re-stamp only transient copies.
-    }
-    OFFSETS = [15, 10, 5]  # 15/10/5 min countdown — was [15,10,5,4,3,2,1] which spammed chat
-    for m in OFFSETS:
-        fire_at = target - timedelta(minutes=m)
-        # Only include offsets that are in the future
-        if fire_at < now:
-            continue
-        hhmm = f"{fire_at.hour:02d}:{fire_at.minute:02d}"
-        msg = user_templates.get(m) or _fmt_update_message(m)
-        notifs.append({
-            "day": "Everyday",
-            "time": [hhmm],
-            "duration": _update_duration_for(m),
-            "message": msg,
-            "kind": "update",
-            "_transient_update": True,  # manager-side flag — stripped on export
-        })
     settings["notifications"] = notifs
     await db.servers.update_one(
         {"id": server_id},
@@ -839,15 +819,15 @@ async def _schedule_graceful_update(server_id: str, server_doc: Dict[str, Any], 
             "pending_update_at": target.isoformat(),
         }},
     )
-    # Write to disk so SCUM can pick them up
+    # Write to disk so SCUM picks up the cleaned notifications list
     try:
         if server_doc.get("folder_path"):
             save_notifications_to_disk(server_doc["folder_path"], notifs)
     except Exception as e:
         logger.info("graceful-update notification write failed: %s", e)
     logger.info(
-        "Graceful update scheduled for %s at %s (%d notifications)",
-        server_doc.get("name"), target.isoformat(), len(OFFSETS),
+        "Graceful update scheduled for %s at %s (no chat warnings)",
+        server_doc.get("name"), target.isoformat(),
     )
 
 
@@ -886,24 +866,15 @@ def _minus_minutes(hhmm: str, m: int) -> str:
 
 
 def _generate_notifications_from_schedule(automation: Dict[str, Any]) -> List[Dict[str, Any]]:
-    """Generate RESTART notifications from the schedule. Each entry is tagged
-    kind='restart' so the UI can filter restart vs update notifications. The
-    tag is stripped before the file is written to disk."""
-    times: List[str] = [t for t in (automation.get("restart_times") or []) if t]
-    pre: List[int] = sorted(set([int(x) for x in (automation.get("pre_warning_minutes") or [])]), reverse=True)
-    if not times:
-        return []
-    out: List[Dict[str, Any]] = []
-    for m in pre:
-        stamps = sorted({_minus_minutes(t, m) for t in times})
-        out.append({
-            "day": "Everyday",
-            "time": stamps,
-            "duration": _restart_duration_for(m),
-            "message": _fmt_restart_message(m),
-            "kind": "restart",
-        })
-    return out
+    """Generate RESTART notifications from the schedule.
+
+    User request (2026-02): the manager no longer auto-stamps default warning
+    messages for auto-restart. Admins who want pre-restart chat warnings add
+    them manually via the Notifications editor. We return an empty list so the
+    restart schedule still fires at the configured times but no default chat
+    spam is written to Notifications.json.
+    """
+    return []
 
 
 @api_router.put("/servers/{server_id}/automation", response_model=ServerProfile)
@@ -2512,11 +2483,9 @@ async def get_settings_schema():
             {"key": "automation_update", "labelKey": "cat_automation_update", "icon": "Download", "section": "automation",
              "renderer": "automation_update"},
 
-            # ------ DISCORD (webhooks + bot) ------
+            # ------ DISCORD (webhooks only) ------
             {"key": "discord_webhooks", "labelKey": "cat_discord_webhooks", "icon": "Webhook", "section": "discord",
              "renderer": "discord"},
-            {"key": "discord_bot", "labelKey": "cat_discord_bot", "icon": "Bot", "section": "discord",
-             "renderer": "discord_bot"},
 
             # ------ CLIENT GAME (moved under Gameplay) ------
             {"key": "gameplay_client_game", "labelKey": "cat_client_game", "icon": "Gamepad2", "section": "gameplay",
@@ -2983,21 +2952,9 @@ async def _start_scheduler():
         await db.server_activity.create_index([("server_id", 1), ("ts", -1)])
     except Exception as e:
         logger.info("activity index setup skipped: %s", e)
-    # Auto-start Discord bot if the user has saved a token in a previous session.
-    try:
-        setup = await db.setup.find_one({"_id": SETUP_DOC_ID}, {"_id": 0}) or {}
-        bot_cfg = setup.get("discord_bot") or {}
-        if bot_cfg.get("enabled") and bot_cfg.get("token"):
-            await scum_discord.start_bot(
-                bot_cfg["token"],
-                _discord_state_collector,
-                status_channel_id=bot_cfg.get("status_channel_id") or None,
-                message_id_store=_discord_message_id_store,
-                initial_message_ids=bot_cfg.get("status_message_ids") or {},
-            )
-            logger.info("Discord bot auto-started from saved token")
-    except Exception as e:
-        logger.info("Discord bot auto-start skipped: %s", e)
+    # Discord bot feature was removed by user request (2026-02). The webhook
+    # functionality remains. Bot auto-start is intentionally disabled — even if
+    # an old token is left in the setup doc, we no longer connect.
 
 
 @app.on_event("shutdown")

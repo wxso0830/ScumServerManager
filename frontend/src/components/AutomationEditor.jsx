@@ -298,17 +298,6 @@ export const AutomationEditor = ({ server, onChange, mode = "both" }) => {
 
       {/* ===== Actions ===== */}
       <div className="flex items-center justify-end gap-3">
-        {mode !== "update" && (
-          <button
-            className="btn-secondary flex items-center gap-2"
-            onClick={handleGenerate}
-            disabled={busy || draft.restart_times.length === 0}
-            data-testid="generate-notifications-btn"
-            title={draft.restart_times.length === 0 ? "Add at least one restart time" : ""}
-          >
-            <FileJson size={13} /> {t("generate_notifications")}
-          </button>
-        )}
         <button
           className="btn-primary flex items-center gap-2"
           onClick={handleSave}
@@ -373,39 +362,13 @@ export const AutomationEditor = ({ server, onChange, mode = "both" }) => {
 
 /**
  * InlineKindNotifications — embedded notifications editor filtered by kind.
- * When the admin opens the Restart Schedule category for the FIRST time and
- * no restart-kind notifications exist, we auto-seed from the current restart
- * schedule (15/10/5/4/3/2/1 defaults) so the user sees a ready-to-use list
- * instead of an empty state. They can edit/translate/delete from there.
+ * User request (2026-02): no longer auto-seeds default warning messages.
+ * Admins who want pre-restart / pre-update chat broadcasts add them manually
+ * via the editor below. Empty state = no chat spam, scheduling still works.
  */
 const InlineKindNotifications = ({ serverId, all = [], kind, automation, onChange }) => {
   const mine = all.filter((n) => (n?.kind || "restart") === kind);
   const others = all.filter((n) => (n?.kind || "restart") !== kind);
-
-  // Auto-seed on first view: populate a default 7-template list the admin
-  // can tweak. We treat the kind as "fresh" if fewer than 3 entries exist
-  // AND none of them carry our expected per-minute message — this recovers
-  // from stale/partial test data left by earlier manager versions.
-  React.useEffect(() => {
-    const looksSeeded = mine.some((n) =>
-      /restart in \d+ minute/i.test(n.message || "") ||
-      /update and restart in \d+ minute/i.test(n.message || "")
-    );
-    if (looksSeeded) return;        // already seeded or admin wrote custom ones
-    if (mine.length >= 3) return;   // admin appears to have real content
-    const PRE = [15, 10, 5, 4, 3, 2, 1];
-    const seed = PRE.map((m) => ({
-      day: "Everyday",
-      time: kind === "restart" ? (automation.restart_times || []) : [],
-      duration: m === 1 ? "10" : "5",
-      message: kind === "update"
-        ? `A new version of the game is available. It will update and restart in ${m} minutes.`
-        : `The server will restart in ${m} minutes.`,
-      kind,
-    }));
-    onChange([...others, ...mine, ...seed]);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
 
   return (
     <NotificationsEditor

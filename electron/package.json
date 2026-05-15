@@ -3,7 +3,11 @@
   "version": "1.0.7",
   "description": "LGSS Managers - SCUM Dedicated Server Manager (Electron desktop shell)",
   "main": "main.js",
-  "author": "LGSS",
+  "author": {
+    "name": "Legendary Gaming",
+    "email": "support@legendaryhub.vip",
+    "url": "https://legendaryhub.vip/"
+  },
   "license": "MIT",
   "scripts": {
     "start": "electron .",
@@ -74,6 +78,9 @@
       ],
       "icon": "installer/icon.ico",
       "requestedExecutionLevel": "requireAdministrator",
+      "publisherName": "Legendary Gaming",
+      "legalTrademarks": "Legendary Gaming",
+      "verifyUpdateCodeSignature": false,
       "publish": [
         {
           "provider": "github",

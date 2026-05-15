@@ -51,6 +51,25 @@ const Shell = () => {
 
   useEffect(() => { load(); }, [load]);
 
+  // Periodic server-list refresh so the status badge (Starting → Running,
+  // Stopped → Running, etc.) updates without the admin having to press
+  // F5/CTRL+R. We tighten the poll to 3s when ANY server is in a transient
+  // state (Starting/Updating/Installing), otherwise 10s is plenty.
+  useEffect(() => {
+    if (phase !== "workspace") return undefined;
+    const hasTransient = servers.some((s) =>
+      ["Starting", "Updating", "Installing"].includes(s.status),
+    );
+    const period = hasTransient ? 3000 : 10000;
+    const id = setInterval(async () => {
+      try {
+        const list = await endpoints.listServers();
+        setServers(list);
+      } catch {}
+    }, period);
+    return () => clearInterval(id);
+  }, [phase, servers]);
+
   // Silent background auto-updater polling (Electron only). Flips the top-bar
   // "Manager Update" button into its flashing state when GitHub has a new
   // release. No modal/toast — user decides when to click.

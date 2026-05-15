@@ -469,19 +469,37 @@ def _spawn_ready_watcher(server_id: str, query_port: int) -> None:
         ]
 
         def _log_tick_heartbeat_seen() -> bool:
-            """Return True if we see 3+ 'Global Stats' ticks in the SCUM log —
-            the tick loop only runs after the world is fully loaded."""
+            """Return True if SCUM's log shows clear evidence the world is loaded
+            and the tick loop is running. We accept ANY of these signals
+            (whichever shows up first wins):
+
+              * 1+ 'LogSCUM: Global Stats' line — emitted once the world tick
+                begins (i.e. server can accept players).
+              * 2+ 'LogQuadTree:' lines — spatial index is being populated as
+                actors spawn into the world (the yellow coordinate spam the
+                admin sees right when the server becomes joinable).
+              * 1+ 'LogBattlEye: Server: Initialized' (BattlEye listener up).
+
+            The previous threshold of "3+ Global Stats" was too conservative
+            and caused servers to stay STARTING for ~30s longer than needed —
+            especially when Windows Firewall was blocking the A2S query so
+            this log probe was the only fallback signal.
+            """
             for p in log_candidates:
                 try:
                     if not p.exists():
                         continue
-                    # Tail last 64KB — that's ~1000 recent lines, enough
+                    # Tail last 96KB (~1500 recent lines)
                     with p.open("rb") as f:
                         f.seek(0, 2)
                         size = f.tell()
-                        f.seek(max(0, size - 64 * 1024))
+                        f.seek(max(0, size - 96 * 1024))
                         tail = f.read().decode("utf-8", errors="replace")
-                    if tail.count("LogSCUM: Global Stats") >= 3:
+                    if "LogSCUM: Global Stats" in tail:
+                        return True
+                    if tail.count("LogQuadTree:") >= 2:
+                        return True
+                    if "LogBattlEye: Server: Initialized" in tail:
                         return True
                 except Exception:
                     continue
@@ -515,7 +533,7 @@ def _spawn_ready_watcher(server_id: str, query_port: int) -> None:
             if time.time() > hard_fallback:
                 _mark_ready("timeout_fallback")
                 return
-            time.sleep(3.0)
+            time.sleep(2.0)
 
     th = threading.Thread(target=_watch, name=f"ready-{server_id}", daemon=True)
     th.start()
@@ -816,22 +834,55 @@ def get_metrics(server_id: str, folder_path: Optional[str] = None) -> Dict[str, 
     # If the background watcher thread was lost (backend restart, thread died,
     # etc.) the server process keeps running but `ready` is stuck at False —
     # so the UI strands at "STARTING" forever and player count never updates.
-    # Every metrics call, if we're running-but-not-ready, probe A2S_INFO once
-    # and flip to ready on success. Costs one UDP round-trip on loopback.
+    # Every metrics call, if we're running-but-not-ready, probe TWO signals:
+    #   1. UDP A2S_INFO on loopback (fast, but blocked by Windows Firewall on
+    #      first boot before the user clicks "Allow access").
+    #   2. SCUM log heartbeat (file-based, immune to firewall — flips ready
+    #      the instant we see "Global Stats" / "LogQuadTree" / "BattlEye
+    #      Initialized" in the tail of Saved/Logs/SCUM.log).
+    # Either signal succeeding is enough.
     if running and not ready and query_port:
         probe_cache_key = f"ready_probe_{server_id}"
         last_probe = _METRICS_CACHE.get(probe_cache_key, {}).get("ts", 0)
         if now - last_probe > 5.0:
             _METRICS_CACHE[probe_cache_key] = {"ts": now}
+            heal_reason = None
+            # Try A2S first — cheapest path
             probe_info = _a2s_info_query("127.0.0.1", int(query_port), timeout=1.0)
             if probe_info is not None:
+                heal_reason = "metrics_self_heal_a2s"
+            else:
+                # Fall back to log heartbeat (works even when firewall blocks UDP)
+                fpath = rec.get("folder_path") or folder_path
+                if fpath:
+                    candidates = [
+                        Path(fpath) / "SCUM" / "Saved" / "Logs" / "SCUM.log",
+                        Path(fpath) / "SCUM" / "Saved" / "Logs" / "SCUMServer.log",
+                    ]
+                    for cp in candidates:
+                        try:
+                            if not cp.exists():
+                                continue
+                            with cp.open("rb") as f:
+                                f.seek(0, 2)
+                                sz = f.tell()
+                                f.seek(max(0, sz - 96 * 1024))
+                                tail = f.read().decode("utf-8", errors="replace")
+                            if ("LogSCUM: Global Stats" in tail
+                                or tail.count("LogQuadTree:") >= 2
+                                or "LogBattlEye: Server: Initialized" in tail):
+                                heal_reason = "metrics_self_heal_log"
+                                break
+                        except Exception:
+                            continue
+            if heal_reason:
                 with _LOCK:
                     rec_now = REGISTRY.get(server_id, {}).get("process")
                     if rec_now and not rec_now.get("ready"):
                         rec_now["ready"] = True
                         rec_now["online_at"] = now
-                        rec_now["ready_reason"] = "metrics_self_heal"
-                        log.info("SCUM %s READY via metrics_self_heal (watcher thread was absent)", server_id)
+                        rec_now["ready_reason"] = heal_reason
+                        log.info("SCUM %s READY via %s", server_id, heal_reason)
                 ready = True
                 rec = REGISTRY.get(server_id, {}).get("process") or rec
 

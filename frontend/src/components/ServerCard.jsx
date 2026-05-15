@@ -58,7 +58,10 @@ export const ServerCard = ({ server, onOpen, onStart, onStop, onUpdate, onInstal
     server.max_players ?? 64
   );
 
-  // Poll live metrics every 5s (also immediately on mount / status change)
+  // Poll live metrics. While the server is in transient states (Starting,
+  // Updating, Installing) we tighten the interval to 2s so the card flips
+  // to RUNNING the moment the boot finishes — admins shouldn't have to
+  // refresh the page to see status changes.
   useEffect(() => {
     let alive = true;
     const load = async () => {
@@ -68,9 +71,11 @@ export const ServerCard = ({ server, onOpen, onStart, onStop, onUpdate, onInstal
       } catch {}
     };
     load();
-    const interval = setInterval(load, processAlive ? 5000 : 15000);
+    const transient = ["Starting", "Updating", "Installing"].includes(server.status);
+    const periodMs = transient ? 2000 : (processAlive ? 5000 : 15000);
+    const interval = setInterval(load, periodMs);
     return () => { alive = false; clearInterval(interval); };
-  }, [server.id, processAlive, server.installed]);
+  }, [server.id, processAlive, server.installed, server.status]);
 
   return (
     <div className="server-card group" data-testid={`server-card-${server.folder_name}`}>

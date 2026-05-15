@@ -481,24 +481,10 @@ export const ServerDashboard = ({
               )}
             </button>
 
-            {/* Auto-save dropdown */}
-            <div className="flex items-center gap-1.5 border border-strong px-2 py-1" title={t("autosave")} data-testid="autosave-wrap">
-              <Icons.Clock size={12} className={autosaveSec ? "text-accent-brand" : "text-dim"} />
-              <span className="label-overline">{t("autosave")}</span>
-              <select
-                value={autosaveSec}
-                onChange={(e) => setAutosaveSec(parseInt(e.target.value, 10))}
-                data-testid="autosave-select"
-                className="bg-transparent font-mono text-[11px] uppercase tracking-widest text-brand focus:outline-none"
-                style={{ appearance: "none", paddingRight: "8px" }}
-              >
-                <option value="0">{t("autosave_off")}</option>
-                <option value="5">5s</option>
-                <option value="10">10s</option>
-                <option value="15">15s</option>
-                <option value="30">30s</option>
-              </select>
-            </div>
+            {/* Auto-save dropdown — custom popover (the native <select>
+                renders a tiny white OS-painted menu that breaks the dark
+                theme; this matches our other controls). */}
+            <AutosaveSwitcher value={autosaveSec} onChange={setAutosaveSec} t={t} />
             <button className="icon-btn" onClick={() => setConfirmDelOpen(true)} title={t("delete_server")} data-testid="delete-server-btn">
               <Icons.Trash2 size={15} />
             </button>
@@ -641,3 +627,71 @@ const InstallGate = ({ server, onBack, onInstall, busy, t }) => (
     </div>
   </div>
 );
+
+// Custom auto-save interval picker — replaces the native <select> which
+// renders an OS-default white popup that clashes with the dark theme.
+// Click toggles a tiny menu; selecting an option closes it.
+const AutosaveSwitcher = ({ value, onChange, t }) => {
+  const [open, setOpen] = useState(false);
+  const ref = React.useRef(null);
+  // Click-outside close: register on the document, scoped to this widget's
+  // ref so it never interferes with the rest of the dashboard.
+  useEffect(() => {
+    if (!open) return undefined;
+    const handler = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false); };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [open]);
+
+  const options = [
+    { v: 0,  label: t("autosave_off") },
+    { v: 5,  label: "5s" },
+    { v: 10, label: "10s" },
+    { v: 15, label: "15s" },
+    { v: 30, label: "30s" },
+  ];
+  const current = options.find((o) => o.v === value) || options[0];
+
+  return (
+    <div ref={ref} className="relative" data-testid="autosave-wrap">
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        className={`flex items-center gap-2 border px-3 py-1.5 transition-colors ${
+          value ? "border-accent-brand bg-accent-soft" : "border-strong hover:border-brand"
+        }`}
+        title={t("autosave")}
+        data-testid="autosave-trigger"
+      >
+        <Icons.Clock size={12} className={value ? "text-accent-brand" : "text-dim"} />
+        <span className="label-overline">{t("autosave")}</span>
+        <span className={`font-mono text-[11px] uppercase tracking-widest ml-1 ${value ? "text-accent-brand" : "text-brand"}`}>
+          {current.label}
+        </span>
+        <Icons.ChevronDown
+          size={11}
+          className="text-dim transition-transform"
+          style={{ transform: open ? "rotate(180deg)" : "rotate(0)" }}
+        />
+      </button>
+      {open && (
+        <div className="absolute right-0 top-full mt-1 z-50 min-w-[140px] bg-surface border border-accent-brand shadow-2xl corner-brackets">
+          {options.map((opt) => (
+            <button
+              key={opt.v}
+              type="button"
+              onClick={() => { onChange(opt.v); setOpen(false); }}
+              className={`w-full flex items-center justify-between px-3 py-2 text-left font-mono text-[11px] uppercase tracking-widest transition-colors hover:bg-surface-2 ${
+                opt.v === value ? "text-accent-brand" : "text-brand"
+              }`}
+              data-testid={`autosave-option-${opt.v}`}
+            >
+              <span>{opt.label}</span>
+              {opt.v === value && <Icons.Check size={11} className="text-accent-brand" />}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};

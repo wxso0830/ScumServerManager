@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useEffect, useMemo, useState } from "react";
 
-const THEMES = ["blacksite", "bunker", "ghost", "wastelander"];
+const THEMES = ["blacksite", "bunker", "ghost", "wastelander", "neon-grid", "blood-moon", "arctic", "carbon"];
 const ThemeContext = createContext(null);
 
 export const ThemeProvider = ({ children }) => {

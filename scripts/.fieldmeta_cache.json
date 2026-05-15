@@ -1,0 +1,5358 @@
+{
+  "scum.MinServerTickRate": {
+    "ru": {
+      "label": "Мин. тик-рейт",
+      "desc": "Минимальное количество серверных тиков в секунду (обновлений симуляции)."
+    },
+    "de": {
+      "label": "Min. Tickrate",
+      "desc": "Minimale Server-Ticks pro Sekunde (Simulations-Updates)."
+    },
+    "fr": {
+      "label": "Fréquence min. (ticks)",
+      "desc": "Ticks serveur minimums par seconde (mises à jour de simulation)."
+    },
+    "it": {
+      "label": "Tick Rate Min",
+      "desc": "Tick del server minimi al secondo (aggiornamenti della simulazione)."
+    },
+    "ar": {
+      "label": "معدل التجزئة الأدنى",
+      "desc": "الحد الأدنى لتجزئات الخادم في الثانية (تحديثات المحاكاة)."
+    },
+    "az": {
+      "label": "Min. Tick sürəti",
+      "desc": "Saniyədə minimum server tick-ləri (simulyasiya yeniləmələri)."
+    }
+  },
+  "scum.MaxServerTickRate": {
+    "ru": {
+      "label": "Макс. тик-рейт",
+      "desc": "Максимум обновлений симуляции в секунду. Выше = плавнее, больше CPU."
+    },
+    "de": {
+      "label": "Max. Tickrate",
+      "desc": "Obergrenze für Simulations-Updates pro Sekunde. Höher = flüssiger, mehr CPU."
+    },
+    "fr": {
+      "label": "Fréquence max. (ticks)",
+      "desc": "Plafond pour les mises à jour de simulation par seconde. Plus élevé = plus fluide, plus de CPU."
+    },
+    "it": {
+      "label": "Tick Rate Max",
+      "desc": "Limite massimo per gli aggiornamenti della simulazione al secondo. Più alto = più fluido, più CPU."
+    },
+    "ar": {
+      "label": "معدل التجزئة الأقصى",
+      "desc": "سقف تحديثات المحاكاة في الثانية. أعلى = سلاسة أكبر، استهلاك CPU أعلى."
+    },
+    "az": {
+      "label": "Maks. Tick sürəti",
+      "desc": "Saniyədə simulyasiya yeniləmələri üçün tavan. Yüksək = hamar, daha çox CPU."
+    }
+  },
+  "scum.MaxPingCheckEnabled": {
+    "ru": {
+      "label": "Вкл. кик по пингу",
+      "desc": "Игроки, чей пинг превышает указанный порог, будут отключены."
+    },
+    "de": {
+      "label": "Max. Ping-Kick aktivieren",
+      "desc": "Spieler kicken, deren Ping den Schwellenwert unten überschreitet."
+    },
+    "fr": {
+      "label": "Activer le kick (ping)",
+      "desc": "Expulse les joueurs dont le ping dépasse le seuil ci-dessous."
+    },
+    "it": {
+      "label": "Abilita kick per ping",
+      "desc": "Espelli i giocatori il cui ping supera la soglia indicata."
+    },
+    "ar": {
+      "label": "تمكين طرد البينغ الأقصى",
+      "desc": "طرد اللاعبين الذين يتجاوز البينغ الخاص بهم الحد الأدنى المحدد أدناه."
+    },
+    "az": {
+      "label": "Maks. Ping Atma aktivləşdir",
+      "desc": "Ping-i aşağıdakı həddi aşan oyunçuları at."
+    }
+  },
+  "scum.MaxPing": {
+    "ru": {
+      "label": "Макс. пинг (мс)",
+      "desc": "Игроки, превышающие этот пинг, отключаются, если кик по пингу включен."
+    },
+    "de": {
+      "label": "Max. Ping (ms)",
+      "desc": "Spieler mit höherem Ping werden getrennt, wenn Ping-Kick aktiviert ist."
+    },
+    "fr": {
+      "label": "Ping max (ms)",
+      "desc": "Les joueurs dépassant ce ping sont déconnectés si le kick par ping est activé."
+    },
+    "it": {
+      "label": "Ping Max (ms)",
+      "desc": "I giocatori che superano questo ping vengono disconnessi se il kick per ping è abilitato."
+    },
+    "ar": {
+      "label": "البينغ الأقصى (ms)",
+      "desc": "يتم فصل اللاعبين الذين يتجاوزون هذا البينغ إذا كان الطرد بالبينغ ممكّنًا."
+    },
+    "az": {
+      "label": "Maks. Ping (ms)",
+      "desc": "Bu pingi aşan oyunçular, ping atma aktivdirsə, bağlantısı kəsilir."
+    }
+  },
+  "scum.AllowFirstPerson": {
+    "ru": {
+      "label": "Разрешить от первого лица",
+      "desc": "Разрешить вид камеры от первого лица (FP)."
+    },
+    "de": {
+      "label": "Ego-Perspektive erlauben",
+      "desc": "FP-Kameraansicht zulassen."
+    },
+    "fr": {
+      "label": "Autoriser la 1ère personne",
+      "desc": "Autoriser la vue caméra à la première personne (FP)."
+    },
+    "it": {
+      "label": "Consenti Prima Persona",
+      "desc": "Consenti la visuale in prima persona (FP)."
+    },
+    "ar": {
+      "label": "السماح بمنظور الشخص الأول",
+      "desc": "السماح بعرض كاميرا FP."
+    },
+    "az": {
+      "label": "Birinci şəxsə icazə ver",
+      "desc": "FP kamera görünüşünə icazə ver."
+    }
+  },
+  "scum.AllowThirdPerson": {
+    "ru": {
+      "label": "Разрешить от третьего лица",
+      "desc": "Разрешить вид камеры от третьего лица (TP) (обычно только PVE)."
+    },
+    "de": {
+      "label": "Third-Person erlauben",
+      "desc": "TP-Kameraansicht zulassen (üblicherweise nur PVE)."
+    },
+    "fr": {
+      "label": "Autoriser la 3ème personne",
+      "desc": "Autoriser la vue caméra à la troisième personne (TP) (généralement PVE uniquement)."
+    },
+    "it": {
+      "label": "Consenti Terza Persona",
+      "desc": "Consenti la visuale in terza persona (TP) (solitamente solo PVE)."
+    },
+    "ar": {
+      "label": "السماح بمنظور الشخص الثالث",
+      "desc": "السماح بعرض كاميرا TP (عادةً PVE فقط)."
+    },
+    "az": {
+      "label": "Üçüncü şəxsə icazə ver",
+      "desc": "TP kamera görünüşünə icazə ver (adətən yalnız PVE)."
+    }
+  },
+  "scum.AllowCrosshair": {
+    "ru": {
+      "label": "Разрешить прицел",
+      "desc": "Показывать экранный прицел."
+    },
+    "de": {
+      "label": "Fadenkreuz erlauben",
+      "desc": "Fadenkreuz-Overlay auf dem Bildschirm anzeigen."
+    },
+    "fr": {
+      "label": "Autoriser le réticule",
+      "desc": "Afficher le réticule à l'écran."
+    },
+    "it": {
+      "label": "Consenti Mirino",
+      "desc": "Mostra l'overlay del mirino sullo schermo."
+    },
+    "ar": {
+      "label": "السماح بالتقاطع",
+      "desc": "إظهار تراكب التقاطع على الشاشة."
+    },
+    "az": {
+      "label": "Nişangaha icazə ver",
+      "desc": "Ekranda nişangah örtüyünü göstər."
+    }
+  },
+  "scum.AllowMapScreen": {
+    "ru": {
+      "label": "Разрешить экран карты",
+      "desc": "Разрешить игрокам открывать полный вид карты."
+    },
+    "de": {
+      "label": "Kartenbildschirm erlauben",
+      "desc": "Spielern erlauben, die vollständige Kartenansicht zu öffnen."
+    },
+    "fr": {
+      "label": "Autoriser l'écran carte",
+      "desc": "Permet aux joueurs d'ouvrir la vue complète de la carte."
+    },
+    "it": {
+      "label": "Consenti Schermo Mappa",
+      "desc": "Permetti ai giocatori di aprire la visuale completa della mappa."
+    },
+    "ar": {
+      "label": "السماح بشاشة الخريطة",
+      "desc": "السماح للاعبين بفتح عرض الخريطة الكاملة."
+    },
+    "az": {
+      "label": "Xəritə ekranına icazə ver",
+      "desc": "Oyunçuların tam xəritə görünüşünü açmasına icazə ver."
+    }
+  },
+  "scum.AllowKillClaiming": {
+    "ru": {
+      "label": "Разрешить заявку на убийство",
+      "desc": "Разрешить игрокам заявлять убийства, совершенные ими косвенно."
+    },
+    "de": {
+      "label": "Kill-Beanspruchung erlauben",
+      "desc": "Spielern erlauben, indirekt ausgeführte Kills zu beanspruchen."
+    },
+    "fr": {
+      "label": "Autoriser la revendication (kill)",
+      "desc": "Permet aux joueurs de revendiquer les kills qu'ils ont effectués indirectement."
+    },
+    "it": {
+      "label": "Consenti Riconoscimento Uccisioni",
+      "desc": "Permetti ai giocatori di rivendicare le uccisioni che hanno compiuto indirettamente."
+    },
+    "ar": {
+      "label": "السماح بالمطالبة بالقتل",
+      "desc": "السماح للاعبين بالمطالبة بالقتلات التي قاموا بها بشكل غير مباشر."
+    },
+    "az": {
+      "label": "Öldürmə iddialarına icazə ver",
+      "desc": "Oyunçuların dolayı yolla etdiyi öldürmələri iddia etməsinə icazə ver."
+    }
+  },
+  "scum.AllowComa": {
+    "ru": {
+      "label": "Разрешить состояние комы",
+      "desc": "Персонажи впадают в кому перед смертью, что позволяет их оживить."
+    },
+    "de": {
+      "label": "Koma-Zustand erlauben",
+      "desc": "Charaktere fallen vor dem Sterben ins Koma, was eine Wiederbelebung ermöglicht."
+    },
+    "fr": {
+      "label": "Autoriser l'état de coma",
+      "desc": "Les personnages entrent dans le coma avant de mourir, permettant la réanimation."
+    },
+    "it": {
+      "label": "Consenti Stato di Coma",
+      "desc": "I personaggi entrano in coma prima di morire, permettendo la rianimazione."
+    },
+    "ar": {
+      "label": "السماح بحالة الغيبوبة",
+      "desc": "تدخل الشخصيات في غيبوبة قبل الموت، مما يسمح بالإنعاش."
+    },
+    "az": {
+      "label": "Koma vəziyyətinə icazə ver",
+      "desc": "Personajlar ölməzdən əvvəl komaya düşür, bu da dirilməyə imkan verir."
+    }
+  },
+  "scum.AllowMinesAndTraps": {
+    "ru": {
+      "label": "Разрешить мины и ловушки",
+      "desc": "Включить установку мин и ловушек."
+    },
+    "de": {
+      "label": "Minen & Fallen erlauben",
+      "desc": "Platzierung von Minen und Fallen ermöglichen."
+    },
+    "fr": {
+      "label": "Autoriser mines et pièges",
+      "desc": "Activer le placement des mines et des pièges."
+    },
+    "it": {
+      "label": "Consenti Mine e Trappole",
+      "desc": "Abilita il posizionamento di mine e trappole."
+    },
+    "ar": {
+      "label": "السماح بالألغام والفخاخ",
+      "desc": "تمكين وضع الألغام والفخاخ."
+    },
+    "az": {
+      "label": "Minalara və tələlərə icazə ver",
+      "desc": "Minaların və tələlərin yerləşdirilməsini aktivləşdir."
+    }
+  },
+  "scum.AllowSkillGainInSafeZones": {
+    "ru": {
+      "label": "Навыки в безопасных зонах",
+      "desc": "Разрешить развитие навыков в безопасных зонах."
+    },
+    "de": {
+      "label": "Skill-Gewinn in Safe Zones",
+      "desc": "Skill-Progression innerhalb von Safe Zones erlauben."
+    },
+    "fr": {
+      "label": "Gain de compétence (Safe Zones)",
+      "desc": "Autoriser la progression des compétences dans les zones sûres."
+    },
+    "it": {
+      "label": "Guadagno Abilità (Safe Zones)",
+      "desc": "Consenti la progressione delle abilità all'interno delle zone sicure."
+    },
+    "ar": {
+      "label": "اكتساب المهارات في المناطق الآمنة",
+      "desc": "السماح بتقدم المهارات داخل المناطق الآمنة."
+    },
+    "az": {
+      "label": "Təhlükəsiz zonalarda bacarıq qazanma",
+      "desc": "Təhlükəsiz zonalarda bacarıq irəliləyişinə icazə ver."
+    }
+  },
+  "scum.AllowEvents": {
+    "ru": {
+      "label": "Разрешить события",
+      "desc": "Включить запланированные внутриигровые события."
+    },
+    "de": {
+      "label": "Events erlauben",
+      "desc": "Geplante In-Game-Events aktivieren."
+    },
+    "fr": {
+      "label": "Autoriser les événements",
+      "desc": "Activer les événements programmés en jeu."
+    },
+    "it": {
+      "label": "Consenti Eventi",
+      "desc": "Abilita eventi programmati nel gioco."
+    },
+    "ar": {
+      "label": "السماح بالأحداث",
+      "desc": "تمكين الأحداث المجدولة داخل اللعبة."
+    },
+    "az": {
+      "label": "Tədbirlərə icazə ver",
+      "desc": "Oyundaxili planlaşdırılmış tədbirləri aktivləşdir."
+    }
+  },
+  "scum.LogoutTimer": {
+    "ru": {
+      "label": "Таймер выхода (s)",
+      "desc": "Секунды до полного отключения игрока после выхода."
+    },
+    "de": {
+      "label": "Logout-Timer (s)",
+      "desc": "Sekunden, bis ein Spieler nach dem Logout vollständig getrennt wird."
+    },
+    "fr": {
+      "label": "Minuteur déconnexion (s)",
+      "desc": "Secondes avant déconnexion complète du joueur après clic sur déconnexion."
+    },
+    "it": {
+      "label": "Timer Logout (s)",
+      "desc": "Secondi prima della disconnessione completa del giocatore dopo aver cliccato logout."
+    },
+    "ar": {
+      "label": "مؤقت تسجيل الخروج (s)",
+      "desc": "الثواني قبل قطع اتصال اللاعب بالكامل بعد النقر على تسجيل الخروج."
+    },
+    "az": {
+      "label": "Çıxış Sayğacı (s)",
+      "desc": "Oyunçu çıxışa kliklədikdən sonra tamamilə əlaqəsi kəsilənə qədər saniyələr."
+    }
+  },
+  "scum.LogoutTimerWhileCaptured": {
+    "ru": {
+      "label": "Выход в плену (s)",
+      "desc": "Увеличенный таймер, когда игрок находится в плену."
+    },
+    "de": {
+      "label": "Logout bei Gefangennahme (s)",
+      "desc": "Verlängerter Timer, wenn der Spieler gefangen genommen wird."
+    },
+    "fr": {
+      "label": "Déconnexion en captivité (s)",
+      "desc": "Minuteur prolongé lorsque le joueur est capturé."
+    },
+    "it": {
+      "label": "Logout in Cattura (s)",
+      "desc": "Timer esteso quando il giocatore è catturato."
+    },
+    "ar": {
+      "label": "تسجيل الخروج أثناء الأسر (s)",
+      "desc": "مؤقت ممتد عندما يتم أسر اللاعب."
+    },
+    "az": {
+      "label": "Əsirlikdə çıxış (s)",
+      "desc": "Oyunçu əsir götürüldüyü zaman uzadılmış sayğac."
+    }
+  },
+  "scum.AllowGlobalChat": {
+    "ru": {
+      "label": "Разрешить глобальный чат",
+      "desc": "Включить общесерверный канал чата."
+    },
+    "de": {
+      "label": "Globalen Chat erlauben",
+      "desc": "Serverweiten Chat-Kanal aktivieren."
+    },
+    "fr": {
+      "label": "Autoriser chat global",
+      "desc": "Activer le canal de discussion global du serveur."
+    },
+    "it": {
+      "label": "Consenti Chat Globale",
+      "desc": "Abilita il canale di chat a livello di server."
+    },
+    "ar": {
+      "label": "السماح بالدردشة العامة",
+      "desc": "تمكين قناة الدردشة على مستوى الخادم."
+    },
+    "az": {
+      "label": "Qlobal çata icazə ver",
+      "desc": "Server miqyasında chat kanalını aktivləşdir."
+    }
+  },
+  "scum.AllowLocalChat": {
+    "ru": {
+      "label": "Разрешить локальный чат",
+      "desc": "Включить голосовой/текстовый чат на основе близости."
+    },
+    "de": {
+      "label": "Lokalen Chat erlauben",
+      "desc": "Proximity-basierte Sprach-/Textkommunikation aktivieren."
+    },
+    "fr": {
+      "label": "Autoriser chat local",
+      "desc": "Activer le chat vocal/texte basé sur la proximité."
+    },
+    "it": {
+      "label": "Consenti Chat Locale",
+      "desc": "Abilita chat vocale/testuale basata sulla prossimità."
+    },
+    "ar": {
+      "label": "السماح بالدردشة المحلية",
+      "desc": "تمكين الدردشة الصوتية/النصية القائمة على القرب."
+    },
+    "az": {
+      "label": "Yerli çata icazə ver",
+      "desc": "Yaxınlığa əsaslanan səs/mətn çatını aktivləşdir."
+    }
+  },
+  "scum.AllowSquadChat": {
+    "ru": {
+      "label": "Разрешить чат отряда",
+      "desc": "Включить приватный канал чата отряда."
+    },
+    "de": {
+      "label": "Squad-Chat erlauben",
+      "desc": "Privaten Squad-Kanal aktivieren."
+    },
+    "fr": {
+      "label": "Autoriser chat d'escouade",
+      "desc": "Activer le canal privé d'escouade."
+    },
+    "it": {
+      "label": "Consenti Chat Squadra",
+      "desc": "Abilita il canale privato della squadra."
+    },
+    "ar": {
+      "label": "السماح بدردشة الفرقة",
+      "desc": "تمكين قناة الفرقة الخاصة."
+    },
+    "az": {
+      "label": "Dəstə çata icazə ver",
+      "desc": "Şəxsi dəstə kanalını aktivləşdir."
+    }
+  },
+  "scum.AllowAdminChat": {
+    "ru": {
+      "label": "Разрешить админ-чат",
+      "desc": "Включить канал только для администраторов."
+    },
+    "de": {
+      "label": "Admin-Chat erlauben",
+      "desc": "Nur-Admin-Kanal aktivieren."
+    },
+    "fr": {
+      "label": "Autoriser chat admin",
+      "desc": "Activer le canal réservé aux administrateurs."
+    },
+    "it": {
+      "label": "Consenti Chat Admin",
+      "desc": "Abilita il canale solo per gli amministratori."
+    },
+    "ar": {
+      "label": "السماح بدردشة المشرفين",
+      "desc": "تمكين قناة المشرفين فقط."
+    },
+    "az": {
+      "label": "Admin çata icazə ver",
+      "desc": "Yalnız admin kanalını aktivləşdir."
+    }
+  },
+  "scum.LimitGlobalChat": {
+    "ru": {
+      "label": "Ограничить глоб. чат",
+      "desc": "Применить защиту от спама к глобальному чату."
+    },
+    "de": {
+      "label": "Globalen Chat begrenzen",
+      "desc": "Spamschutz auf den globalen Chat anwenden."
+    },
+    "fr": {
+      "label": "Limiter chat global",
+      "desc": "Appliquer la protection anti-spam au chat global."
+    },
+    "it": {
+      "label": "Limita Chat Globale",
+      "desc": "Applica protezione anti-spam alla chat globale."
+    },
+    "ar": {
+      "label": "تحديد سرعة الدردشة العامة",
+      "desc": "تطبيق حماية ضد الرسائل المزعجة على الدردشة العامة."
+    },
+    "az": {
+      "label": "Qlobal çatı sürət-limitlə",
+      "desc": "Qlobal çata spam qorumasını tətbiq et."
+    }
+  },
+  "scum.AllowVoting": {
+    "ru": {
+      "label": "Разрешить голосование",
+      "desc": "Включить внутриигровую систему голосования за кик/бан."
+    },
+    "de": {
+      "label": "Abstimmung erlauben",
+      "desc": "In-Game Kick-/Ban-Abstimmungssystem aktivieren."
+    },
+    "fr": {
+      "label": "Autoriser le vote",
+      "desc": "Activer le système de vote en jeu pour kick/ban."
+    },
+    "it": {
+      "label": "Consenti Votazioni",
+      "desc": "Abilita il sistema di voto in gioco per kick/ban."
+    },
+    "ar": {
+      "label": "السماح بالتصويت",
+      "desc": "تمكين نظام التصويت داخل اللعبة للطرد/الحظر."
+    },
+    "az": {
+      "label": "Səsverməyə icazə ver",
+      "desc": "Oyundaxili kick/ban səsvermə sistemini aktivləşdir."
+    }
+  },
+  "scum.VotingDuration": {
+    "ru": {
+      "label": "Длительность голосования (s)",
+      "desc": "Как долго голосование остается открытым."
+    },
+    "de": {
+      "label": "Abstimmungsdauer (s)",
+      "desc": "Wie lange eine Abstimmung offen bleibt."
+    },
+    "fr": {
+      "label": "Durée du vote (s)",
+      "desc": "Durée d'ouverture d'un vote."
+    },
+    "it": {
+      "label": "Durata Voto (s)",
+      "desc": "Quanto tempo un voto rimane aperto."
+    },
+    "ar": {
+      "label": "مدة التصويت (s)",
+      "desc": "المدة التي يبقى فيها التصويت مفتوحًا."
+    },
+    "az": {
+      "label": "Səsvermə müddəti (s)",
+      "desc": "Səsvermənin nə qədər müddət açıq qalması."
+    }
+  },
+  "scum.PlayerMinimalVotingInterest": {
+    "ru": {
+      "label": "Мин. участие",
+      "desc": "Доля игроков, необходимая для действительного голосования (0-1)."
+    },
+    "de": {
+      "label": "Min. Beteiligung",
+      "desc": "Anteil der Spieler, der für eine gültige Abstimmung benötigt wird (0-1)."
+    },
+    "fr": {
+      "label": "Participation min.",
+      "desc": "Fraction de joueurs requise pour un vote valide (0-1)."
+    },
+    "it": {
+      "label": "Partecipazione Minima",
+      "desc": "Frazione di giocatori necessaria per un voto valido (0-1)."
+    },
+    "ar": {
+      "label": "الحد الأدنى للمشاركة",
+      "desc": "نسبة اللاعبين المطلوبة لتصويت صالح (0-1)."
+    },
+    "az": {
+      "label": "Min. İştirak",
+      "desc": "Etibarlı səsvermə üçün tələb olunan oyunçuların faizi (0-1)."
+    }
+  },
+  "scum.PlayerPositiveVotePercentage": {
+    "ru": {
+      "label": "Порог прохождения",
+      "desc": "Процент голосов «за», необходимый для принятия (0-1)."
+    },
+    "de": {
+      "label": "Bestätigungsschwelle",
+      "desc": "Ja-Stimmen-Prozentsatz zum Bestehen erforderlich (0-1)."
+    },
+    "fr": {
+      "label": "Seuil de réussite",
+      "desc": "Pourcentage de votes \"oui\" requis pour passer (0-1)."
+    },
+    "it": {
+      "label": "Soglia di Passaggio",
+      "desc": "Percentuale di voti \"sì\" richiesta per passare (0-1)."
+    },
+    "ar": {
+      "label": "عتبة النجاح",
+      "desc": "نسبة الأصوات بنعم المطلوبة للمرور (0-1)."
+    },
+    "az": {
+      "label": "Keçid Həddi",
+      "desc": "Keçmək üçün tələb olunan \"bəli\" səs faizi (0-1)."
+    }
+  },
+  "scum.HumanToHumanDamageMultiplier": {
+    "ru": {
+      "label": "Множитель урона игрокам",
+      "desc": "Множитель для всего урона между игроками."
+    },
+    "de": {
+      "label": "Spieler-Schaden",
+      "desc": "Multiplikator für gesamten Mensch-zu-Mensch-Schaden."
+    },
+    "fr": {
+      "label": "Multiplicateur dégâts joueur",
+      "desc": "Multiplicateur pour tous les dégâts joueur contre joueur."
+    },
+    "it": {
+      "label": "Moltiplicatore Danni Giocatore",
+      "desc": "Moltiplicatore per tutti i danni da umano a umano."
+    },
+    "ar": {
+      "label": "مضاعف ضرر اللاعب",
+      "desc": "مضاعف لجميع الأضرار بين البشر."
+    },
+    "az": {
+      "label": "Oyunçu Zərər Multiplikatoru",
+      "desc": "İnsanlararası bütün zərərlər üçün multiplikator."
+    }
+  },
+  "scum.ZombieDamageMultiplier": {
+    "ru": {
+      "label": "Множитель урона зомби",
+      "desc": "Урон, наносимый марионетками (зомби) игрокам."
+    },
+    "de": {
+      "label": "Zombie-Schaden",
+      "desc": "Schaden, der von Puppen (Zombies) an Spielern verursacht wird."
+    },
+    "fr": {
+      "label": "Multiplicateur dégâts zombie",
+      "desc": "Dégâts infligés par les marionnettes (zombies) aux joueurs."
+    },
+    "it": {
+      "label": "Moltiplicatore Danni Zombie",
+      "desc": "Danni inflitti dalle marionette (zombie) ai giocatori."
+    },
+    "ar": {
+      "label": "مضاعف ضرر الزومبي",
+      "desc": "الضرر الذي تلحقه الدمى (الزومبي) باللاعبين."
+    },
+    "az": {
+      "label": "Zombi Zərər Multiplikatoru",
+      "desc": "Kuklalar (zombilər) tərəfindən oyunçulara vurulan zərər."
+    }
+  },
+  "scum.ItemDecayDamageMultiplier": {
+    "ru": {
+      "label": "Износ предметов",
+      "desc": "Как быстро предметы портятся от использования/времени."
+    },
+    "de": {
+      "label": "Item-Verfall",
+      "desc": "Wie schnell Gegenstände durch Gebrauch/Zeit zerfallen."
+    },
+    "fr": {
+      "label": "Dégradation objets",
+      "desc": "Vitesse de dégradation des objets par utilisation/temps."
+    },
+    "it": {
+      "label": "Decadimento Oggetti",
+      "desc": "Velocità di degrado degli oggetti per uso/tempo."
+    },
+    "ar": {
+      "label": "تلف العناصر",
+      "desc": "مدى سرعة تدهور العناصر بالاستخدام/الوقت."
+    },
+    "az": {
+      "label": "Əşya Çürüməsi",
+      "desc": "Əşyaların istifadə/vaxtdan nə qədər sürətli deqradasiya etməsi."
+    }
+  },
+  "scum.FoodDecayDamageMultiplier": {
+    "ru": {
+      "label": "Порча еды",
+      "desc": "Как быстро портится еда."
+    },
+    "de": {
+      "label": "Nahrungsverfall",
+      "desc": "Wie schnell Nahrung verdirbt."
+    },
+    "fr": {
+      "label": "Dégradation nourriture",
+      "desc": "Vitesse de péremption de la nourriture."
+    },
+    "it": {
+      "label": "Decadimento Cibo",
+      "desc": "Velocità con cui il cibo si rovina."
+    },
+    "ar": {
+      "label": "تلف الطعام",
+      "desc": "مدى سرعة فساد الطعام."
+    },
+    "az": {
+      "label": "Yemək Çürüməsi",
+      "desc": "Yeməyin nə qədər sürətlə xarab olması."
+    }
+  },
+  "scum.FameGainMultiplier": {
+    "ru": {
+      "label": "Множитель получения славы",
+      "desc": "Скорость, с которой игроки зарабатывают очки славы."
+    },
+    "de": {
+      "label": "Ruhmeszuwachs",
+      "desc": "Rate, mit der Spieler Ruhmespunkte verdienen."
+    },
+    "fr": {
+      "label": "Multiplicateur gain de gloire",
+      "desc": "Taux d'obtention des points de gloire par les joueurs."
+    },
+    "it": {
+      "label": "Moltiplicatore Guadagno Fama",
+      "desc": "Velocità con cui i giocatori guadagnano punti fama."
+    },
+    "ar": {
+      "label": "مضاعف كسب الشهرة",
+      "desc": "المعدل الذي يكسب به اللاعبون نقاط الشهرة."
+    },
+    "az": {
+      "label": "Şöhrət Qazanma Multiplikatoru",
+      "desc": "Oyunçuların şöhrət xalları qazanma sürəti."
+    }
+  },
+  "scum.FamePointPenaltyOnDeath": {
+    "ru": {
+      "label": "Потеря славы при смерти",
+      "desc": "Доля славы, теряемая при смерти (0-1)."
+    },
+    "de": {
+      "label": "Ruhmesverlust bei Tod",
+      "desc": "Anteil des Ruhmes, der beim Tod verloren geht (0-1)."
+    },
+    "fr": {
+      "label": "Perte de gloire (mort)",
+      "desc": "Fraction de gloire perdue en mourant (0-1)."
+    },
+    "it": {
+      "label": "Perdita Fama (Morte)",
+      "desc": "Frazione di fama persa morendo (0-1)."
+    },
+    "ar": {
+      "label": "خسارة الشهرة عند الموت",
+      "desc": "جزء الشهرة المفقود عند الموت (0-1)."
+    },
+    "az": {
+      "label": "Ölümdə Şöhrət İtkisi",
+      "desc": "Ölərkən itirilən şöhrət hissəsi (0-1)."
+    }
+  },
+  "scum.FamePointPenaltyOnKilled": {
+    "ru": {
+      "label": "Потеря славы при убийстве",
+      "desc": "Дополнительная потеря при убийстве другим игроком."
+    },
+    "de": {
+      "label": "Ruhmesverlust bei Tötung",
+      "desc": "Zusätzlicher Verlust, wenn von einem anderen Spieler getötet."
+    },
+    "fr": {
+      "label": "Perte de gloire (tué)",
+      "desc": "Perte supplémentaire si tué par un autre joueur."
+    },
+    "it": {
+      "label": "Perdita Fama (Ucciso)",
+      "desc": "Perdita extra quando ucciso da un altro giocatore."
+    },
+    "ar": {
+      "label": "خسارة الشهرة عند القتل",
+      "desc": "خسارة إضافية عند القتل بواسطة لاعب آخر."
+    },
+    "az": {
+      "label": "Öldürüldükdə Şöhrət İtkisi",
+      "desc": "Başqa oyunçu tərəfindən öldürüldükdə əlavə itki."
+    }
+  },
+  "scum.FamePointRewardOnKill": {
+    "ru": {
+      "label": "Слава за убийство",
+      "desc": "Слава, даруемая за убийство другого игрока."
+    },
+    "de": {
+      "label": "Ruhm bei Tötung",
+      "desc": "Ruhm, der für das Töten eines anderen Spielers gewährt wird."
+    },
+    "fr": {
+      "label": "Gloire (tuer)",
+      "desc": "Gloire accordée pour avoir tué un autre joueur."
+    },
+    "it": {
+      "label": "Fama (Uccisione)",
+      "desc": "Fama concessa per l'uccisione di un altro giocatore."
+    },
+    "ar": {
+      "label": "الشهرة عند القتل",
+      "desc": "الشهرة الممنوحة لقتل لاعب آخر."
+    },
+    "az": {
+      "label": "Öldürmədə Şöhrət",
+      "desc": "Başqa oyunçunu öldürmək üçün verilən şöhrət."
+    }
+  },
+  "scum.AllowSectorRespawn": {
+    "ru": {
+      "label": "Разрешить респаун в секторе",
+      "desc": "Игроки могут возродиться в выбранном секторе."
+    },
+    "de": {
+      "label": "Sektor-Respawn erlauben",
+      "desc": "Spieler können in einem gewählten Sektor respawnen."
+    },
+    "fr": {
+      "label": "Autoriser respawn secteur",
+      "desc": "Les joueurs peuvent réapparaître dans un secteur choisi."
+    },
+    "it": {
+      "label": "Consenti Respawn Settore",
+      "desc": "I giocatori possono respawnare in un settore scelto."
+    },
+    "ar": {
+      "label": "السماح بالاستنساخ القطاعي",
+      "desc": "يمكن للاعبين الاستنساخ في قطاع مختار."
+    },
+    "az": {
+      "label": "Sektor Respawn-a icazə ver",
+      "desc": "Oyunçular seçilmiş sektorda respawn edə bilər."
+    }
+  },
+  "scum.AllowShelterRespawn": {
+    "ru": {
+      "label": "Разрешить респаун в убежище",
+      "desc": "Возрождение в заявленном убежище."
+    },
+    "de": {
+      "label": "Unterstand-Respawn erlauben",
+      "desc": "Respawn an einem beanspruchten Unterstandort."
+    },
+    "fr": {
+      "label": "Autoriser respawn abri",
+      "desc": "Réapparaître à un abri revendiqué."
+    },
+    "it": {
+      "label": "Consenti Respawn Rifugio",
+      "desc": "Respawnare in una posizione di rifugio reclamata."
+    },
+    "ar": {
+      "label": "السماح بالاستنساخ في الملجأ",
+      "desc": "الاستنساخ في موقع ملجأ تم المطالبة به."
+    },
+    "az": {
+      "label": "Sığınacaq Respawn-a icazə ver",
+      "desc": "Tələb olunan sığınacaq yerində respawn et."
+    }
+  },
+  "scum.AllowSquadmateRespawn": {
+    "ru": {
+      "label": "Разрешить респаун у отряда",
+      "desc": "Возродиться рядом с товарищем по отряду."
+    },
+    "de": {
+      "label": "Squad-Respawn erlauben",
+      "desc": "Neben einem Squadmitglied spawnen."
+    },
+    "fr": {
+      "label": "Autoriser respawn équipier",
+      "desc": "Réapparaître à côté d'un équipier."
+    },
+    "it": {
+      "label": "Consenti Respawn Compagno",
+      "desc": "Apparire accanto a un compagno di squadra."
+    },
+    "ar": {
+      "label": "السماح بالاستنساخ بجانب الزميل",
+      "desc": "الاستنساخ بجانب زميل في الفرقة."
+    },
+    "az": {
+      "label": "Dəstə üzvü Respawn-a icazə ver",
+      "desc": "Dəstə üzvünün yanında spawn et."
+    }
+  },
+  "scum.RandomRespawnPrice": {
+    "ru": {
+      "label": "Цена случайного респауна",
+      "desc": "Стоимость (кредиты) случайного возрождения."
+    },
+    "de": {
+      "label": "Zufälliger Respawn Preis",
+      "desc": "Kosten (Credits) für zufälligen Respawn."
+    },
+    "fr": {
+      "label": "Prix respawn aléatoire",
+      "desc": "Coût (crédits) pour un respawn aléatoire."
+    },
+    "it": {
+      "label": "Costo Respawn Casuale",
+      "desc": "Costo (crediti) per il respawn casuale."
+    },
+    "ar": {
+      "label": "سعر الاستنساخ العشوائي",
+      "desc": "التكلفة (النقاط) للاستنساخ العشوائي."
+    },
+    "az": {
+      "label": "Təsadüfi Respawn Qiyməti",
+      "desc": "Təsadüfi respawn üçün xərc (kreditlər)."
+    }
+  },
+  "scum.SectorRespawnPrice": {
+    "ru": {
+      "label": "Цена респауна сектора",
+      "desc": "Стоимость возрождения в выбранном секторе."
+    },
+    "de": {
+      "label": "Sektor-Respawn Preis",
+      "desc": "Kosten für den im Sektor gewählten Respawn."
+    },
+    "fr": {
+      "label": "Prix respawn secteur",
+      "desc": "Coût pour le respawn choisi par secteur."
+    },
+    "it": {
+      "label": "Costo Respawn Settore",
+      "desc": "Costo per il respawn scelto nel settore."
+    },
+    "ar": {
+      "label": "سعر استنساخ القطاع",
+      "desc": "تكلفة الاستنساخ المختار في القطاع."
+    },
+    "az": {
+      "label": "Sektor Respawn Qiyməti",
+      "desc": "Sektor üzrə seçilmiş respawn-ın qiyməti."
+    }
+  },
+  "scum.ShelterRespawnPrice": {
+    "ru": {
+      "label": "Цена респауна убежища",
+      "desc": "Цена с использованием суффикса gold, например 1g, или числовая."
+    },
+    "de": {
+      "label": "Unterstand-Respawn Preis",
+      "desc": "Preis mit gold-Suffix wie 1g oder numerisch."
+    },
+    "fr": {
+      "label": "Prix respawn abri",
+      "desc": "Prix utilisant un suffixe gold comme 1g ou numérique."
+    },
+    "it": {
+      "label": "Costo Respawn Rifugio",
+      "desc": "Prezzo con suffisso gold come 1g o numerico."
+    },
+    "ar": {
+      "label": "سعر استنساخ الملجأ",
+      "desc": "السعر باستخدام لاحقة gold مثل 1g أو رقمي."
+    },
+    "az": {
+      "label": "Sığınacaq Respawn Qiyməti",
+      "desc": "1g kimi gold şəkilçili və ya rəqəmsal qiymət."
+    }
+  },
+  "scum.MaxAllowedBirds": {
+    "ru": {
+      "label": "Макс. птиц",
+      "desc": "Общий лимит сущностей птиц."
+    },
+    "de": {
+      "label": "Max. Vögel",
+      "desc": "Gesamtes Limit für Vogel-Entitäten."
+    },
+    "fr": {
+      "label": "Max oiseaux",
+      "desc": "Limite totale d'entités d'oiseaux."
+    },
+    "it": {
+      "label": "Max Uccelli",
+      "desc": "Limite totale di entità uccelli."
+    },
+    "ar": {
+      "label": "الحد الأقصى للطيور",
+      "desc": "الحد الأقصى لإجمالي عدد الطيور."
+    },
+    "az": {
+      "label": "Maks. Quşlar",
+      "desc": "Ümumi quş obyektləri limiti."
+    }
+  },
+  "scum.MaxAllowedCharacters": {
+    "ru": {
+      "label": "Макс. персонажей",
+      "desc": "-1 = безлимитно. Ограничивает общее количество персонажей."
+    },
+    "de": {
+      "label": "Max. Charaktere",
+      "desc": "-1 = unbegrenzt. Begrenzt die Gesamtzahl der Charaktere."
+    },
+    "fr": {
+      "label": "Max caractères",
+      "desc": "-1 = illimité. Limite le nombre total de personnages."
+    },
+    "it": {
+      "label": "Max Personaggi",
+      "desc": "-1 = illimitato. Limita il totale dei personaggi."
+    },
+    "ar": {
+      "label": "الحد الأقصى للشخصيات",
+      "desc": "-1 = غير محدود. يحدد العدد الإجمالي للشخصيات."
+    },
+    "az": {
+      "label": "Maks. Personajlar",
+      "desc": "-1 = limitsiz. Ümumi personaj sayını məhdudlaşdırır."
+    }
+  },
+  "scum.MaxAllowedPuppets": {
+    "ru": {
+      "label": "Макс. марионеток (зомби)",
+      "desc": "-1 = безлимитно."
+    },
+    "de": {
+      "label": "Max. Puppen (Zombies)",
+      "desc": "-1 = unbegrenzt."
+    },
+    "fr": {
+      "label": "Max marionnettes (zombies)",
+      "desc": "-1 = illimité."
+    },
+    "it": {
+      "label": "Max Marionette (zombie)",
+      "desc": "-1 = illimitato."
+    },
+    "ar": {
+      "label": "الحد الأقصى للدمى (الزومبي)",
+      "desc": "-1 = غير محدود."
+    },
+    "az": {
+      "label": "Maks. Kuklalar (zombilər)",
+      "desc": "-1 = limitsiz."
+    }
+  },
+  "scum.MaxAllowedAnimals": {
+    "ru": {
+      "label": "Макс. животных",
+      "desc": "Общий лимит диких животных."
+    },
+    "de": {
+      "label": "Max. Tiere",
+      "desc": "Gesamtes Limit für wilde Tiere."
+    },
+    "fr": {
+      "label": "Max animaux",
+      "desc": "Limite totale d'animaux sauvages."
+    },
+    "it": {
+      "label": "Max Animali",
+      "desc": "Limite totale di animali selvatici."
+    },
+    "ar": {
+      "label": "الحد الأقصى للحيوانات",
+      "desc": "الحد الأقصى لإجمالي عدد الحيوانات البرية."
+    },
+    "az": {
+      "label": "Maks. Heyvanlar",
+      "desc": "Ümumi vəhşi heyvan limiti."
+    }
+  },
+  "scum.MaxAllowedNPCs": {
+    "ru": {
+      "label": "Макс. NPC",
+      "desc": "-1 = безлимитно."
+    },
+    "de": {
+      "label": "Max. NPCs",
+      "desc": "-1 = unbegrenzt."
+    },
+    "fr": {
+      "label": "Max NPC",
+      "desc": "-1 = illimité."
+    },
+    "it": {
+      "label": "Max NPC",
+      "desc": "-1 = illimitato."
+    },
+    "ar": {
+      "label": "الحد الأقصى لـ NPC",
+      "desc": "-1 = غير محدود."
+    },
+    "az": {
+      "label": "Maks. NPC",
+      "desc": "-1 = limitsiz."
+    }
+  },
+  "scum.MaxAllowedDrones": {
+    "ru": {
+      "label": "Макс. дронов",
+      "desc": "Общий лимит появления дронов."
+    },
+    "de": {
+      "label": "Max. Drohnen",
+      "desc": "Gesamte Drohnen-Spawn-Obergrenze."
+    },
+    "fr": {
+      "label": "Max drones",
+      "desc": "Limite totale de drones à apparaître."
+    },
+    "it": {
+      "label": "Max Droni",
+      "desc": "Limite totale di spawn droni."
+    },
+    "ar": {
+      "label": "الحد الأقصى للطائرات بدون طيار",
+      "desc": "الحد الأقصى لإجمالي ظهور الطائرات بدون طيار."
+    },
+    "az": {
+      "label": "Maks. Dronlar",
+      "desc": "Ümumi dron spawn limiti."
+    }
+  },
+  "scum.PuppetsCanOpenDoors": {
+    "ru": {
+      "label": "Марионетки открывают двери",
+      "desc": "Зомби могут открывать незапертые двери."
+    },
+    "de": {
+      "label": "Puppen öffnen Türen",
+      "desc": "Zombies können unverschlossene Türen öffnen."
+    },
+    "fr": {
+      "label": "Marionnettes ouvrent portes",
+      "desc": "Les zombies peuvent ouvrir les portes déverrouillées."
+    },
+    "it": {
+      "label": "Marionette Aprono Porte",
+      "desc": "Gli zombie possono aprire porte sbloccate."
+    },
+    "ar": {
+      "label": "الدمى تفتح الأبواب",
+      "desc": "يمكن للزومبي فتح الأبواب غير المقفلة."
+    },
+    "az": {
+      "label": "Kuklalar Qapıları Açır",
+      "desc": "Zombilər kilidi açılmış qapıları aça bilər."
+    }
+  },
+  "scum.PuppetsCanVaultWindows": {
+    "ru": {
+      "label": "Марионетки преодолевают окна",
+      "desc": "Зомби могут перелезать через окна."
+    },
+    "de": {
+      "label": "Puppen überspringen Fenster",
+      "desc": "Zombies können durch Fenster klettern."
+    },
+    "fr": {
+      "label": "Marionnettes franchissent fenêtres",
+      "desc": "Les zombies peuvent grimper par les fenêtres."
+    },
+    "it": {
+      "label": "Marionette Scavalcano Finestre",
+      "desc": "Gli zombie possono arrampicarsi attraverso le finestre."
+    },
+    "ar": {
+      "label": "الدمى تتخطى النوافذ",
+      "desc": "يمكن للزومبي التسلق عبر النوافذ."
+    },
+    "az": {
+      "label": "Kuklalar Pəncərələrdən Atlaya bilər",
+      "desc": "Zombilər pəncərələrdən dırmaşa bilər."
+    }
+  },
+  "scum.PuppetHealthMultiplier": {
+    "ru": {
+      "label": "Множитель здоровья марионеток",
+      "desc": "Множитель HP зомби."
+    },
+    "de": {
+      "label": "Puppen-HP-Multiplikator",
+      "desc": "HP-Multiplikator für Zombies."
+    },
+    "fr": {
+      "label": "Mult. santé marionnettes",
+      "desc": "Multiplicateur HP des zombies."
+    },
+    "it": {
+      "label": "Moltiplicatore HP Marionette",
+      "desc": "Moltiplicatore HP zombie."
+    },
+    "ar": {
+      "label": "مضاعف صحة الدمى",
+      "desc": "مضاعف HP للزومبي."
+    },
+    "az": {
+      "label": "Kukla Sağlamlığı Multi",
+      "desc": "Zombi HP multiplikatoru."
+    }
+  },
+  "scum.PuppetRunningSpeedMultiplier": {
+    "ru": {
+      "label": "Множитель скорости марионеток",
+      "desc": "Множитель скорости бега зомби."
+    },
+    "de": {
+      "label": "Puppen-Geschw.-Multiplikator",
+      "desc": "Multiplikator für die Laufgeschwindigkeit von Zombies."
+    },
+    "fr": {
+      "label": "Mult. vitesse marionnettes",
+      "desc": "Multiplicateur de vitesse de course des zombies."
+    },
+    "it": {
+      "label": "Moltiplicatore Velocità Marionette",
+      "desc": "Moltiplicatore velocità di corsa zombie."
+    },
+    "ar": {
+      "label": "مضاعف سرعة الدمى",
+      "desc": "مضاعف سرعة ركض الزومبي."
+    },
+    "az": {
+      "label": "Kukla Sürəti Multi",
+      "desc": "Zombi qaçış sürəti multiplikatoru."
+    }
+  },
+  "scum.ArmedNPCDifficultyLevel": {
+    "ru": {
+      "label": "Сложность вооруж. NPC",
+      "desc": "1=легко ... 3=сложно."
+    },
+    "de": {
+      "label": "Bewaffnete NPC Schwierigkeit",
+      "desc": "1=einfach ... 3=schwer."
+    },
+    "fr": {
+      "label": "Difficulté PNJ armés",
+      "desc": "1=facile ... 3=difficile."
+    },
+    "it": {
+      "label": "Difficoltà NPC Armati",
+      "desc": "1=facile ... 3=difficile."
+    },
+    "ar": {
+      "label": "صعوبة الشخصيات المسلحة",
+      "desc": "1=سهل ... 3=صعب."
+    },
+    "az": {
+      "label": "Silahlı NPC Çətinliyi",
+      "desc": "1=asan ... 3=çətin."
+    }
+  },
+  "scum.ArmedNPCHealthMultiplier": {
+    "ru": {
+      "label": "HP вооруж. NPC",
+      "desc": "Множитель HP для вооруженных NPC."
+    },
+    "de": {
+      "label": "Bewaffnete NPC HP",
+      "desc": "HP-Multiplikator für bewaffnete NPCs."
+    },
+    "fr": {
+      "label": "HP PNJ armés",
+      "desc": "Multiplicateur HP pour les PNJ armés."
+    },
+    "it": {
+      "label": "HP NPC Armati",
+      "desc": "Moltiplicatore HP per NPC armati."
+    },
+    "ar": {
+      "label": "نقاط صحة الشخصيات المسلحة",
+      "desc": "مضاعف HP للشخصيات المسلحة."
+    },
+    "az": {
+      "label": "Silahlı NPC HP",
+      "desc": "Silahlı NPC-lər üçün HP multiplikatoru."
+    }
+  },
+  "scum.ArmedNPCDamageMultiplier": {
+    "ru": {
+      "label": "Урон вооруж. NPC",
+      "desc": "Множитель урона."
+    },
+    "de": {
+      "label": "Bewaffnete NPC Schaden",
+      "desc": "Schaden-Multiplikator."
+    },
+    "fr": {
+      "label": "Dégâts PNJ armés",
+      "desc": "Multiplicateur de dégâts."
+    },
+    "it": {
+      "label": "Danni NPC Armati",
+      "desc": "Moltiplicatore di danni."
+    },
+    "ar": {
+      "label": "ضرر الشخصيات المسلحة",
+      "desc": "مضاعف الضرر."
+    },
+    "az": {
+      "label": "Silahlı NPC Zərəri",
+      "desc": "Zərər multiplikatoru."
+    }
+  },
+  "scum.ArmedNPCSpreadMultiplier": {
+    "ru": {
+      "label": "Разброс прицела NPC",
+      "desc": "Выше = менее точен."
+    },
+    "de": {
+      "label": "Bewaffnete NPC Zielstreuung",
+      "desc": "Höher = weniger genau."
+    },
+    "fr": {
+      "label": "Dispersion tir PNJ armés",
+      "desc": "Plus élevé = moins précis."
+    },
+    "it": {
+      "label": "Dispersione Mira NPC Armati",
+      "desc": "Maggiore = meno accurato."
+    },
+    "ar": {
+      "label": "انتشار تصويب الشخصيات المسلحة",
+      "desc": "أعلى = أقل دقة."
+    },
+    "az": {
+      "label": "Silahlı NPC Hədəf Səpələnməsi",
+      "desc": "Yüksək = daha az dəqiq."
+    }
+  },
+  "scum.RaidProtectionType": {
+    "ru": {
+      "label": "Тип защиты от рейдов",
+      "desc": "0=Выкл, 1=Глобальное время, 2=По флагу, 3=Оффлайн."
+    },
+    "de": {
+      "label": "Raid-Schutztyp",
+      "desc": "0=Aus, 1=Globale Zeiten, 2=Flaggen-spezifisch, 3=Offline."
+    },
+    "fr": {
+      "label": "Type protection raid",
+      "desc": "0=Désactivé, 1=Heures globales, 2=Spécifique drapeau, 3=Hors ligne."
+    },
+    "it": {
+      "label": "Tipo Protezione Raid",
+      "desc": "0=Off, 1=Tempi globali, 2=Specifico bandiera, 3=Offline."
+    },
+    "ar": {
+      "label": "نوع حماية الغارات",
+      "desc": "0=إيقاف، 1=أوقات عالمية، 2=خاص بالعلم، 3=غير متصل."
+    },
+    "az": {
+      "label": "Basqın Müdafiə Növü",
+      "desc": "0=Söndürülüb, 1=Qlobal vaxtlar, 2=Bayraq-spesifik, 3=Offline."
+    }
+  },
+  "scum.RaidProtectionEnableLog": {
+    "ru": {
+      "label": "Лог событий рейда",
+      "desc": "Записывать попытки рейда в файл журнала."
+    },
+    "de": {
+      "label": "Raid-Ereignisse protokollieren",
+      "desc": "Raid-Versuche in die Log-Datei schreiben."
+    },
+    "fr": {
+      "label": "Journaliser événements raid",
+      "desc": "Écrire les tentatives de raid dans le fichier journal."
+    },
+    "it": {
+      "label": "Log Eventi Raid",
+      "desc": "Scrivi tentativi di raid nel file di log."
+    },
+    "ar": {
+      "label": "تسجيل أحداث الغارات",
+      "desc": "كتابة محاولات الغارة في ملف السجل."
+    },
+    "az": {
+      "label": "Basqın Hadisələrini Qeyd et",
+      "desc": "Basqın cəhdlərini log faylına yaz."
+    }
+  },
+  "scum.FlagOvertakeDuration": {
+    "ru": {
+      "label": "Длительность захвата флага",
+      "desc": "Время (HH:MM:SS), необходимое для захвата флага."
+    },
+    "de": {
+      "label": "Flaggen-Übernahmedauer",
+      "desc": "Benötigte Zeit (HH:MM:SS), um eine Flagge zu übernehmen."
+    },
+    "fr": {
+      "label": "Durée prise de drapeau",
+      "desc": "Temps (HH:MM:SS) nécessaire pour prendre un drapeau."
+    },
+    "it": {
+      "label": "Durata Conquista Bandiera",
+      "desc": "Tempo (HH:MM:SS) necessario per conquistare una bandiera."
+    },
+    "ar": {
+      "label": "مدة الاستيلاء على العلم",
+      "desc": "الوقت (HH:MM:SS) اللازم للاستيلاء على العلم."
+    },
+    "az": {
+      "label": "Bayraq Zəbt Müddəti",
+      "desc": "Bayrağı zəbt etmək üçün lazım olan vaxt (HH:MM:SS)."
+    }
+  },
+  "scum.MaximumAmountOfElementsPerFlag": {
+    "ru": {
+      "label": "Макс. элементов на флаг",
+      "desc": "Лимит строительных элементов на область флага."
+    },
+    "de": {
+      "label": "Max. Elemente pro Flagge",
+      "desc": "Bauteil-Obergrenze pro Flaggenbereich."
+    },
+    "fr": {
+      "label": "Max éléments par drapeau",
+      "desc": "Limite de pièces de construction par zone de drapeau."
+    },
+    "it": {
+      "label": "Max Elementi per Bandiera",
+      "desc": "Limite di elementi costruttivi per area di bandiera."
+    },
+    "ar": {
+      "label": "الحد الأقصى للعناصر لكل علم",
+      "desc": "حد قطعة البناء لكل منطقة علم."
+    },
+    "az": {
+      "label": "Bayraq Başına Maks. Elementlər",
+      "desc": "Bayraq sahəsi üçün tikinti hissəsi limiti."
+    }
+  },
+  "scum.AllowMultipleFlagsPerPlayer": {
+    "ru": {
+      "label": "Несколько флагов на игрока",
+      "desc": "Позволить одному игроку ставить несколько флагов."
+    },
+    "de": {
+      "label": "Mehrere Flaggen pro Spieler",
+      "desc": "Einem Spieler erlauben, mehrere Flaggen zu setzen."
+    },
+    "fr": {
+      "label": "Plusieurs drapeaux par joueur",
+      "desc": "Permet à un joueur de placer plusieurs drapeaux."
+    },
+    "it": {
+      "label": "Più Bandiere per Giocatore",
+      "desc": "Consenti a un giocatore di posizionare più bandiere."
+    },
+    "ar": {
+      "label": "السماح بأعلام متعددة لكل لاعب",
+      "desc": "السماح للاعب واحد بوضع أعلام متعددة."
+    },
+    "az": {
+      "label": "Hər oyunçuya bir neçə bayraq",
+      "desc": "Bir oyunçuya bir neçə bayraq qoymağa icazə ver."
+    }
+  },
+  "scum.StartTimeOfDay": {
+    "ru": {
+      "label": "Начальное время суток",
+      "desc": "Начальное внутриигровое время (HH:MM:SS)."
+    },
+    "de": {
+      "label": "Startzeit des Tages",
+      "desc": "Startzeit im Spiel (HH:MM:SS)."
+    },
+    "fr": {
+      "label": "Heure de début du jour",
+      "desc": "Heure de début en jeu (HH:MM:SS)."
+    },
+    "it": {
+      "label": "Ora Iniziale del Giorno",
+      "desc": "Ora di inizio in gioco (HH:MM:SS)."
+    },
+    "ar": {
+      "label": "وقت بدء اليوم",
+      "desc": "وقت بدء اللعبة (HH:MM:SS)."
+    },
+    "az": {
+      "label": "Günün Başlama Vaxtı",
+      "desc": "Oyun içi başlama vaxtı (HH:MM:SS)."
+    }
+  },
+  "scum.TimeOfDaySpeed": {
+    "ru": {
+      "label": "Скорость дня/ночи",
+      "desc": "Скорость симуляции цикла дня/ночи. 1.0 = реальное время."
+    },
+    "de": {
+      "label": "Tag/Nacht-Geschwindigkeit",
+      "desc": "Simulationsgeschwindigkeit für Tag-/Nachtzyklus. 1.0 = Echtzeit."
+    },
+    "fr": {
+      "label": "Vitesse jour/nuit",
+      "desc": "Vitesse de simulation du cycle jour/nuit. 1.0 = temps réel."
+    },
+    "it": {
+      "label": "Velocità Giorno/Notte",
+      "desc": "Velocità di simulazione del ciclo giorno/notte. 1.0 = tempo reale."
+    },
+    "ar": {
+      "label": "سرعة الليل/النهار",
+      "desc": "سرعة المحاكاة لدورة الليل/النهار. 1.0 = الوقت الفعلي."
+    },
+    "az": {
+      "label": "Gündüz/Gecə Sürəti",
+      "desc": "Gündüz/gecə dövrü üçün simulyasiya sürəti. 1.0 = real vaxt."
+    }
+  },
+  "scum.SunriseTime": {
+    "ru": {
+      "label": "Время восхода солнца",
+      "desc": "Время восхода солнца (HH:MM:SS)."
+    },
+    "de": {
+      "label": "Sonnenaufgangszeit",
+      "desc": "Zeit des Sonnenaufgangs (HH:MM:SS)."
+    },
+    "fr": {
+      "label": "Heure lever du soleil",
+      "desc": "Heure du lever du soleil (HH:MM:SS)."
+    },
+    "it": {
+      "label": "Ora Alba",
+      "desc": "Ora dell'alba (HH:MM:SS)."
+    },
+    "ar": {
+      "label": "وقت الشروق",
+      "desc": "وقت شروق الشمس (HH:MM:SS)."
+    },
+    "az": {
+      "label": "Günəşin Çıxış Vaxtı",
+      "desc": "Günəşin çıxma vaxtı (HH:MM:SS)."
+    }
+  },
+  "scum.SunsetTime": {
+    "ru": {
+      "label": "Время заката",
+      "desc": "Время заката солнца (HH:MM:SS)."
+    },
+    "de": {
+      "label": "Sonnenuntergangszeit",
+      "desc": "Zeit des Sonnenuntergangs (HH:MM:SS)."
+    },
+    "fr": {
+      "label": "Heure coucher du soleil",
+      "desc": "Heure du coucher du soleil (HH:MM:SS)."
+    },
+    "it": {
+      "label": "Ora Tramonto",
+      "desc": "Ora del tramonto (HH:MM:SS)."
+    },
+    "ar": {
+      "label": "وقت الغروب",
+      "desc": "وقت غروب الشمس (HH:MM:SS)."
+    },
+    "az": {
+      "label": "Günəşin Batış Vaxtı",
+      "desc": "Günəşin batma vaxtı (HH:MM:SS)."
+    }
+  },
+  "scum.EnableFog": {
+    "ru": {
+      "label": "Включить туман",
+      "desc": "Включить динамический туман в мире."
+    },
+    "de": {
+      "label": "Nebel aktivieren",
+      "desc": "Dynamischen Weltnebel aktivieren."
+    },
+    "fr": {
+      "label": "Activer le brouillard",
+      "desc": "Activer le brouillard dynamique du monde."
+    },
+    "it": {
+      "label": "Abilita Nebbia",
+      "desc": "Abilita la nebbia dinamica del mondo."
+    },
+    "ar": {
+      "label": "تمكين الضباب",
+      "desc": "تمكين الضباب الديناميكي في العالم."
+    },
+    "az": {
+      "label": "Dumanı aktivləşdir",
+      "desc": "Dinamik dünya dumanını aktivləşdir."
+    }
+  },
+  "scum.BearMaxHealthMultiplier": {
+    "ru": {
+      "label": "HP медведей",
+      "desc": "Множитель максимального HP для медведей."
+    },
+    "de": {
+      "label": "Bären-HP",
+      "desc": "Max HP-Multiplikator für Bären."
+    },
+    "fr": {
+      "label": "HP ours",
+      "desc": "Multiplicateur de HP max pour les ours."
+    },
+    "it": {
+      "label": "HP Orso",
+      "desc": "Moltiplicatore HP massimo per orsi."
+    },
+    "ar": {
+      "label": "نقاط صحة الدب",
+      "desc": "مضاعف HP الأقصى للدببة."
+    },
+    "az": {
+      "label": "Ayı HP",
+      "desc": "Ayılar üçün maksimum HP multiplikatoru."
+    }
+  },
+  "scum.WolfMaxHealthMultiplier": {
+    "ru": {
+      "label": "HP волков",
+      "desc": "Множитель максимального HP для волков."
+    },
+    "de": {
+      "label": "Wolf-HP",
+      "desc": "Max HP-Multiplikator für Wölfe."
+    },
+    "fr": {
+      "label": "HP loups",
+      "desc": "Multiplicateur de HP max pour les loups."
+    },
+    "it": {
+      "label": "HP Lupo",
+      "desc": "Moltiplicatore HP massimo per lupi."
+    },
+    "ar": {
+      "label": "نقاط صحة الذئب",
+      "desc": "مضاعف HP الأقصى للذئاب."
+    },
+    "az": {
+      "label": "Canavar HP",
+      "desc": "Canavarlar üçün maksimum HP multiplikatoru."
+    }
+  },
+  "scum.BoarMaxHealthMultiplier": {
+    "ru": {
+      "label": "HP кабанов",
+      "desc": "Множитель максимального HP для кабанов."
+    },
+    "de": {
+      "label": "Wildschwein-HP",
+      "desc": "Max HP-Multiplikator für Wildschweine."
+    },
+    "fr": {
+      "label": "HP sangliers",
+      "desc": "Multiplicateur de HP max pour les sangliers."
+    },
+    "it": {
+      "label": "HP Cinghiale",
+      "desc": "Moltiplicatore HP massimo per cinghiali."
+    },
+    "ar": {
+      "label": "نقاط صحة الخنزير البري",
+      "desc": "مضاعف HP الأقصى للخنازير البرية."
+    },
+    "az": {
+      "label": "Çöl Donuzu HP",
+      "desc": "Çöl donuzları üçün maksimum HP multiplikatoru."
+    }
+  },
+  "scum.DeerMaxHealthMultiplier": {
+    "ru": {
+      "label": "HP оленей",
+      "desc": "Множитель максимального HP для оленей."
+    },
+    "de": {
+      "label": "Reh-HP",
+      "desc": "Max HP-Multiplikator für Rehe."
+    },
+    "fr": {
+      "label": "HP cerfs",
+      "desc": "Multiplicateur de HP max pour les cerfs."
+    },
+    "it": {
+      "label": "HP Cervo",
+      "desc": "Moltiplicatore HP massimo per cervi."
+    },
+    "ar": {
+      "label": "نقاط صحة الغزلان",
+      "desc": "مضاعف HP الأقصى للغزلان."
+    },
+    "az": {
+      "label": "Maral HP",
+      "desc": "Marallar üçün maksimum HP multiplikatoru."
+    }
+  },
+  "scum.RabbitMaxHealthMultiplier": {
+    "ru": {
+      "label": "HP кроликов",
+      "desc": "Множитель максимального HP для кроликов."
+    },
+    "de": {
+      "label": "Kaninchen-HP",
+      "desc": "Max HP-Multiplikator für Kaninchen."
+    },
+    "fr": {
+      "label": "HP lapins",
+      "desc": "Multiplicateur de HP max pour les lapins."
+    },
+    "it": {
+      "label": "HP Coniglio",
+      "desc": "Moltiplicatore HP massimo per conigli."
+    },
+    "ar": {
+      "label": "نقاط صحة الأرانب",
+      "desc": "مضاعف HP الأقصى للأرانب."
+    },
+    "az": {
+      "label": "Dovşan HP",
+      "desc": "Dovşanlar üçün maksimum HP multiplikatoru."
+    }
+  },
+  "scum.CargoDropCooldownMinimum": {
+    "ru": {
+      "label": "Мин. КД грузового сброса (min)",
+      "desc": "Минимальное количество минут между сбросами груза."
+    },
+    "de": {
+      "label": "Cargo Drop Cooldown Min (min)",
+      "desc": "Minimale Minuten zwischen Cargo Drops."
+    },
+    "fr": {
+      "label": "CD largage cargo min (min)",
+      "desc": "Minutes minimales entre les largages de cargaison."
+    },
+    "it": {
+      "label": "Cooldown Min Drop Cargo (min)",
+      "desc": "Minuti minimi tra i drop di carico."
+    },
+    "ar": {
+      "label": "أقل مدة انتظار لإنزال الشحنات (min)",
+      "desc": "الحد الأدنى من الدقائق بين عمليات إنزال الشحنات."
+    },
+    "az": {
+      "label": "Yük Atma Soyuqdövrü Min (dəq)",
+      "desc": "Yük atışları arasında minimum dəqiqələr."
+    }
+  },
+  "scum.CargoDropCooldownMaximum": {
+    "ru": {
+      "label": "Макс. КД грузового сброса (min)",
+      "desc": "Максимальное количество минут между сбросами груза."
+    },
+    "de": {
+      "label": "Cargo Drop Cooldown Max (min)",
+      "desc": "Maximale Minuten zwischen Cargo Drops."
+    },
+    "fr": {
+      "label": "CD largage cargo max (min)",
+      "desc": "Minutes maximales entre les largages de cargaison."
+    },
+    "it": {
+      "label": "Cooldown Max Drop Cargo (min)",
+      "desc": "Minuti massimi tra i drop di carico."
+    },
+    "ar": {
+      "label": "أقصى مدة انتظار لإنزال الشحنات (min)",
+      "desc": "الحد الأقصى من الدقائق بين عمليات إنزال الشحنات."
+    },
+    "az": {
+      "label": "Yük Atma Soyuqdövrü Maks (dəq)",
+      "desc": "Yük atışları arasında maksimum dəqiqələr."
+    }
+  },
+  "scum.QuestsEnabled": {
+    "ru": {
+      "label": "Квесты включены",
+      "desc": "Главный переключатель для квестов."
+    },
+    "de": {
+      "label": "Quests aktiviert",
+      "desc": "Hauptschalter für Quests."
+    },
+    "fr": {
+      "label": "Quêtes activées",
+      "desc": "Interrupteur principal pour les quêtes."
+    },
+    "it": {
+      "label": "Missioni Abilitate",
+      "desc": "Interruttore principale per le missioni."
+    },
+    "ar": {
+      "label": "المهام ممكّنة",
+      "desc": "المفتاح الرئيسي للمهام."
+    },
+    "az": {
+      "label": "Missiyalar aktivdir",
+      "desc": "Missiyalar üçün əsas açar."
+    }
+  },
+  "scum.MaxQuestsPerCyclePerTrader": {
+    "ru": {
+      "label": "Макс. квестов за цикл/торговца",
+      "desc": "Количество квестов, которые торговец дает за цикл."
+    },
+    "de": {
+      "label": "Max. Quests pro Händler/Zyklus",
+      "desc": "Quests, die ein Händler pro Zyklus gibt."
+    },
+    "fr": {
+      "label": "Max quêtes par marchand/cycle",
+      "desc": "Quêtes qu'un marchand donne par cycle."
+    },
+    "it": {
+      "label": "Max Missioni per Mercante/Ciclo",
+      "desc": "Missioni che un mercante assegna per ciclo."
+    },
+    "ar": {
+      "label": "الحد الأقصى للمهام لكل تاجر/دورة",
+      "desc": "المهام التي يقدمها التاجر لكل دورة."
+    },
+    "az": {
+      "label": "Ticarətçi/Dövrə Üzrə Maks. Missiyalar",
+      "desc": "Bir ticarətçinin bir dövrədə verdiyi missiyaların sayı."
+    }
+  },
+  "scum.TurretsAttackPuppets": {
+    "ru": {
+      "label": "Турели атакуют зомби",
+      "desc": "Турели нацеливаются на марионеток/зомби."
+    },
+    "de": {
+      "label": "Türme greifen Zombies an",
+      "desc": "Türme zielen auf Puppen/Zombies."
+    },
+    "fr": {
+      "label": "Tourelles attaquent zombies",
+      "desc": "Les tourelles ciblent les marionnettes/zombies."
+    },
+    "it": {
+      "label": "Torrette Attaccano Zombie",
+      "desc": "Le torrette prendono di mira marionette/zombie."
+    },
+    "ar": {
+      "label": "الأبراج تهاجم الزومبي",
+      "desc": "الأبراج تستهدف الدمى/الزومبي."
+    },
+    "az": {
+      "label": "Turellər Zombilərə Hücum edir",
+      "desc": "Turellər kuklaları/zombiləri hədəf alır."
+    }
+  },
+  "scum.TurretsAttackPrisoners": {
+    "ru": {
+      "label": "Турели атакуют заключенных",
+      "desc": "Турели стреляют по игрокам (опасно)."
+    },
+    "de": {
+      "label": "Türme greifen Gefangene an",
+      "desc": "Türme schießen auf Spieler (gefährlich)."
+    },
+    "fr": {
+      "label": "Tourelles attaquent prisonniers",
+      "desc": "Les tourelles tirent sur les joueurs (dangereux)."
+    },
+    "it": {
+      "label": "Torrette Attaccano Prigionieri",
+      "desc": "Le torrette sparano sui giocatori (pericoloso)."
+    },
+    "ar": {
+      "label": "الأبراج تهاجم السجناء",
+      "desc": "الأبراج تطلق النار على اللاعبين (خطير)."
+    },
+    "az": {
+      "label": "Turellər Məhbuslara Hücum edir",
+      "desc": "Turellər oyunçulara atəş açır (təhlükəli)."
+    }
+  },
+  "scum.TurretsAttackAnimals": {
+    "ru": {
+      "label": "Турели атакуют животных",
+      "desc": "Турели нацеливаются на диких животных."
+    },
+    "de": {
+      "label": "Türme greifen Tiere an",
+      "desc": "Türme zielen auf Wildtiere."
+    },
+    "fr": {
+      "label": "Tourelles attaquent animaux",
+      "desc": "Les tourelles ciblent la faune."
+    },
+    "it": {
+      "label": "Torrette Attaccano Animali",
+      "desc": "Le torrette prendono di mira la fauna selvatica."
+    },
+    "ar": {
+      "label": "الأبراج تهاجم الحيوانات",
+      "desc": "الأبراج تستهدف الحياة البرية."
+    },
+    "az": {
+      "label": "Turellər Heyvanlara Hücum edir",
+      "desc": "Turellər vəhşi təbiəti hədəf alır."
+    }
+  },
+  "scum.TurretsAttackArmedNPCs": {
+    "ru": {
+      "label": "Турели атакуют вооруж. NPC",
+      "desc": "Турели нацеливаются на вооруженных NPC."
+    },
+    "de": {
+      "label": "Türme greifen bewaffnete NPCs an",
+      "desc": "Türme zielen auf bewaffnete NPCs."
+    },
+    "fr": {
+      "label": "Tourelles attaquent PNJ armés",
+      "desc": "Les tourelles ciblent les PNJ armés."
+    },
+    "it": {
+      "label": "Torrette Attaccano NPC Armati",
+      "desc": "Le torrette prendono di mira gli NPC armati."
+    },
+    "ar": {
+      "label": "الأبراج تهاجم الشخصيات المسلحة",
+      "desc": "الأبراج تستهدف الشخصيات المسلحة."
+    },
+    "az": {
+      "label": "Turellər Silahlı NPC-lərə Hücum edir",
+      "desc": "Turellər silahlı NPC-ləri hədəf alır."
+    }
+  },
+  "scum.SquadMemberCountAtIntLevel1": {
+    "ru": {
+      "label": "Размер отряда — Int 1",
+      "desc": "Максимальный размер отряда при Intelligence 1."
+    },
+    "de": {
+      "label": "Squadgröße — Int 1",
+      "desc": "Max. Squadgröße bei Intelligenz 1."
+    },
+    "fr": {
+      "label": "Taille escouade — Int 1",
+      "desc": "Taille max. d'escouade à Intelligence 1."
+    },
+    "it": {
+      "label": "Dim. Squadra — Int 1",
+      "desc": "Dim. massima squadra a Intelligence 1."
+    },
+    "ar": {
+      "label": "حجم الفرقة — Int 1",
+      "desc": "الحد الأقصى لحجم الفرقة عند Intelligence 1."
+    },
+    "az": {
+      "label": "Dəstə Ölçüsü — Int 1",
+      "desc": "Intelligence 1-də maksimum dəstə ölçüsü."
+    }
+  },
+  "scum.SquadMemberCountAtIntLevel5": {
+    "ru": {
+      "label": "Размер отряда — Int 5",
+      "desc": "Максимальный размер отряда при Intelligence 5."
+    },
+    "de": {
+      "label": "Squadgröße — Int 5",
+      "desc": "Max. Squadgröße bei Intelligenz 5."
+    },
+    "fr": {
+      "label": "Taille escouade — Int 5",
+      "desc": "Taille max. d'escouade à Intelligence 5."
+    },
+    "it": {
+      "label": "Dim. Squadra — Int 5",
+      "desc": "Dim. massima squadra a Intelligence 5."
+    },
+    "ar": {
+      "label": "حجم الفرقة — Int 5",
+      "desc": "الحد الأقصى لحجم الفرقة عند Intelligence 5."
+    },
+    "az": {
+      "label": "Dəstə Ölçüsü — Int 5",
+      "desc": "Intelligence 5-də maksimum dəstə ölçüsü."
+    }
+  },
+  "scum.EnableNewPlayerProtection": {
+    "ru": {
+      "label": "Защита нового игрока",
+      "desc": "Предоставляет временную неуязвимость новым игрокам."
+    },
+    "de": {
+      "label": "Neuspieler-Schutz",
+      "desc": "Gewährt neuen Spielern temporäre Unverwundbarkeit."
+    },
+    "fr": {
+      "label": "Protection nouveau joueur",
+      "desc": "Accorde une invulnérabilité temporaire aux nouveaux joueurs."
+    },
+    "it": {
+      "label": "Protezione Nuovo Giocatore",
+      "desc": "Concede invulnerabilità temporanea ai nuovi giocatori."
+    },
+    "ar": {
+      "label": "حماية اللاعب الجديد",
+      "desc": "يمنح حصانة مؤقتة للاعبين الجدد."
+    },
+    "az": {
+      "label": "Yeni Oyunçu Müdafiəsi",
+      "desc": "Yeni oyunçulara müvəqqəti toxunulmazlıq verir."
+    }
+  },
+  "scum.NewPlayerProtectionDuration": {
+    "ru": {
+      "label": "Длительность защиты (min)",
+      "desc": "Минуты защиты после первого появления."
+    },
+    "de": {
+      "label": "Schutzdauer (min)",
+      "desc": "Minuten Schutz nach dem ersten Spawn."
+    },
+    "fr": {
+      "label": "Durée protection (min)",
+      "desc": "Minutes de protection après la première apparition."
+    },
+    "it": {
+      "label": "Durata Protezione (min)",
+      "desc": "Minuti di protezione dopo il primo spawn."
+    },
+    "ar": {
+      "label": "مدة الحماية (min)",
+      "desc": "دقائق الحماية بعد الظهور الأول."
+    },
+    "az": {
+      "label": "Müdafiə Müddəti (dəq)",
+      "desc": "İlk spawn-dan sonra müdafiə dəqiqələri."
+    }
+  },
+  "economy-logging": {
+    "ru": {
+      "label": "Логирование экономики",
+      "desc": "1 = записывать подробные экономические события в журнал."
+    },
+    "de": {
+      "label": "Ökonomie-Protokollierung",
+      "desc": "1 = detaillierte Wirtschaftsereignisse protokollieren."
+    },
+    "fr": {
+      "label": "Journalisation économie",
+      "desc": "1 = écrire les événements économiques détaillés dans le journal."
+    },
+    "it": {
+      "label": "Log Economia",
+      "desc": "1 = scrivi eventi economici dettagliati nel log."
+    },
+    "ar": {
+      "label": "تسجيل الاقتصاد",
+      "desc": "1 = كتابة أحداث الاقتصاد المفصلة في السجل."
+    },
+    "az": {
+      "label": "İqtisadiyyat Qeydiyyatı",
+      "desc": "1 = ətraflı iqtisadi hadisələri loga yaz."
+    }
+  },
+  "traders-unlimited-funds": {
+    "ru": {
+      "label": "Торговцы: безлимит. средства",
+      "desc": "1 = у торговцев никогда не заканчиваются деньги."
+    },
+    "de": {
+      "label": "Händler: Unbegrenzte Mittel",
+      "desc": "1 = Händlern geht nie das Geld aus."
+    },
+    "fr": {
+      "label": "Marchands: Fonds illimités",
+      "desc": "1 = les marchands ne manquent jamais d'argent."
+    },
+    "it": {
+      "label": "Mercanti: Fondi Illimitati",
+      "desc": "1 = i mercanti non esauriscono mai i soldi."
+    },
+    "ar": {
+      "label": "التجار: أموال غير محدودة",
+      "desc": "1 = لا تنفد أموال التجار أبدًا."
+    },
+    "az": {
+      "label": "Tüccarlar: Limitsiz Vəsait",
+      "desc": "1 = tüccarların pulu heç vaxt qurtarmaz."
+    }
+  },
+  "traders-unlimited-stock": {
+    "ru": {
+      "label": "Торговцы: безлимит. запас",
+      "desc": "1 = бесконечное количество предметов."
+    },
+    "de": {
+      "label": "Händler: Unbegrenzter Bestand",
+      "desc": "1 = unendliche Artikelmengen."
+    },
+    "fr": {
+      "label": "Marchands: Stock illimité",
+      "desc": "1 = quantités d'articles infinies."
+    },
+    "it": {
+      "label": "Mercanti: Stock Illimitato",
+      "desc": "1 = quantità di oggetti infinite."
+    },
+    "ar": {
+      "label": "التجار: مخزون غير محدود",
+      "desc": "1 = كميات عناصر لا نهائية."
+    },
+    "az": {
+      "label": "Tüccarlar: Limitsiz Stok",
+      "desc": "1 = sonsuz əşya miqdarı."
+    }
+  },
+  "gold-base-price": {
+    "ru": {
+      "label": "Базовая цена gold",
+      "desc": "-1 сохраняет значение по умолчанию."
+    },
+    "de": {
+      "label": "Gold Basispreis",
+      "desc": "-1 behält Standard."
+    },
+    "fr": {
+      "label": "Prix de base gold",
+      "desc": "-1 conserve la valeur par défaut."
+    },
+    "it": {
+      "label": "Prezzo Base gold",
+      "desc": "-1 mantiene il default."
+    },
+    "ar": {
+      "label": "سعر الذهب الأساسي",
+      "desc": "-1 يحتفظ بالافتراضي."
+    },
+    "az": {
+      "label": "Gold Əsas Qiyməti",
+      "desc": "-1 defoltu saxlayır."
+    }
+  },
+  "tradeable-rotation-enabled": {
+    "ru": {
+      "label": "Ротация предметов",
+      "desc": "1 = предметы ротируются по расписанию."
+    },
+    "de": {
+      "label": "Handelsrotation",
+      "desc": "1 = Gegenstände rotieren nach Zeitplan."
+    },
+    "fr": {
+      "label": "Rotation échangeable",
+      "desc": "1 = les objets tournent selon un calendrier."
+    },
+    "it": {
+      "label": "Rotazione Scambiabile",
+      "desc": "1 = gli oggetti ruotano secondo un programma."
+    },
+    "ar": {
+      "label": "دوران القابل للتبادل",
+      "desc": "1 = العناصر تدور وفقًا لجدول زمني."
+    },
+    "az": {
+      "label": "Ticarət Dövrəsi",
+      "desc": "1 = əşyalar cədvəl üzrə fırlanır."
+    }
+  },
+  "enable-fame-point-requirement": {
+    "ru": {
+      "label": "Требование славы",
+      "desc": "1 = предметы могут требовать мин. славы для покупки."
+    },
+    "de": {
+      "label": "Ruhmesanforderung",
+      "desc": "1 = Gegenstände erfordern evtl. min. Ruhm zum Kauf."
+    },
+    "fr": {
+      "label": "Exigence de gloire",
+      "desc": "1 = les objets peuvent nécessiter une gloire min. pour l'achat."
+    },
+    "it": {
+      "label": "Requisito Fama",
+      "desc": "1 = gli oggetti possono richiedere fama min. per l'acquisto."
+    },
+    "ar": {
+      "label": "متطلب الشهرة",
+      "desc": "1 = قد تتطلب العناصر حدًا أدنى من الشهرة للشراء."
+    },
+    "az": {
+      "label": "Şöhrət Tələbi",
+      "desc": "1 = əşyalar almaq üçün min. şöhrət tələb edə bilər."
+    }
+  },
+  "scum.MasterVolume": {
+    "ru": {
+      "label": "Общая громкость",
+      "desc": "Общая громкость звука (0-100)."
+    },
+    "de": {
+      "label": "Master-Lautstärke",
+      "desc": "Gesamte Audiolautstärke (0-100)."
+    },
+    "fr": {
+      "label": "Volume général",
+      "desc": "Volume audio général (0-100)."
+    },
+    "it": {
+      "label": "Volume Master",
+      "desc": "Volume audio complessivo (0-100)."
+    },
+    "ar": {
+      "label": "الحجم الرئيسي",
+      "desc": "الحجم الكلي للصوت (0-100)."
+    },
+    "az": {
+      "label": "Əsas Səs",
+      "desc": "Ümumi səs səviyyəsi (0-100)."
+    }
+  },
+  "scum.FirstPersonFOV": {
+    "ru": {
+      "label": "FP FOV",
+      "desc": "Поле зрения в режиме FP (60-120)."
+    },
+    "de": {
+      "label": "FP FOV",
+      "desc": "Sichtfeld im FP-Modus (60-120)."
+    },
+    "fr": {
+      "label": "FOV 1ère personne",
+      "desc": "Champ de vision en mode FP (60-120)."
+    },
+    "it": {
+      "label": "FOV Prima Persona",
+      "desc": "Campo visivo in modalità FP (60-120)."
+    },
+    "ar": {
+      "label": "FOV منظور الشخص الأول",
+      "desc": "مجال الرؤية في وضع FP (60-120)."
+    },
+    "az": {
+      "label": "FP FOV",
+      "desc": "FP rejimində baxış sahəsi (60-120)."
+    }
+  },
+  "scum.ThirdPersonFOV": {
+    "ru": {
+      "label": "TP FOV",
+      "desc": "Поле зрения в режиме TP."
+    },
+    "de": {
+      "label": "TP FOV",
+      "desc": "Sichtfeld im TP-Modus."
+    },
+    "fr": {
+      "label": "FOV 3ème personne",
+      "desc": "Champ de vision en mode TP."
+    },
+    "it": {
+      "label": "FOV Terza Persona",
+      "desc": "Campo visivo in modalità TP."
+    },
+    "ar": {
+      "label": "FOV منظور الشخص الثالث",
+      "desc": "مجال الرؤية في وضع TP."
+    },
+    "az": {
+      "label": "TP FOV",
+      "desc": "TP rejimində baxış sahəsi."
+    }
+  },
+  "scum.Gamma": {
+    "ru": {
+      "label": "Гамма",
+      "desc": "Коррекция яркости экрана (1.0-4.0)."
+    },
+    "de": {
+      "label": "Gamma",
+      "desc": "Bildschirmhelligkeitskorrektur (1.0-4.0)."
+    },
+    "fr": {
+      "label": "Gamma",
+      "desc": "Correction de la luminosité de l'écran (1.0-4.0)."
+    },
+    "it": {
+      "label": "Gamma",
+      "desc": "Correzione luminosità schermo (1.0-4.0)."
+    },
+    "ar": {
+      "label": "جاما",
+      "desc": "تصحيح سطوع الشاشة (1.0-4.0)."
+    },
+    "az": {
+      "label": "Qamma",
+      "desc": "Ekran parlaqlığının korreksiyası (1.0-4.0)."
+    }
+  },
+  "scum.TextureQuality": {
+    "ru": {
+      "label": "Качество текстур",
+      "desc": "0=Низкое, 1=Среднее, 2=Высокое, 3=Ультра."
+    },
+    "de": {
+      "label": "Texturqualität",
+      "desc": "0=Niedrig, 1=Mittel, 2=Hoch, 3=Ultra."
+    },
+    "fr": {
+      "label": "Qualité textures",
+      "desc": "0=Faible, 1=Moyen, 2=Élevé, 3=Ultra."
+    },
+    "it": {
+      "label": "Qualità Texture",
+      "desc": "0=Basso, 1=Med, 2=Alto, 3=Ultra."
+    },
+    "ar": {
+      "label": "جودة الملمس",
+      "desc": "0=منخفض، 1=متوسط، 2=عالي، 3=فائق."
+    },
+    "az": {
+      "label": "Tekstura Keyfiyyəti",
+      "desc": "0=Aşağı, 1=Orta, 2=Yüksək, 3=Ultra."
+    }
+  },
+  "scum.ShadowQuality": {
+    "ru": {
+      "label": "Качество теней",
+      "desc": "0=Низкое ... 3=Ультра."
+    },
+    "de": {
+      "label": "Schattenqualität",
+      "desc": "0=Niedrig ... 3=Ultra."
+    },
+    "fr": {
+      "label": "Qualité ombres",
+      "desc": "0=Faible ... 3=Ultra."
+    },
+    "it": {
+      "label": "Qualità Ombre",
+      "desc": "0=Basso ... 3=Ultra."
+    },
+    "ar": {
+      "label": "جودة الظلال",
+      "desc": "0=منخفض ... 3=فائق."
+    },
+    "az": {
+      "label": "Kölgə Keyfiyyəti",
+      "desc": "0=Aşağı ... 3=Ultra."
+    }
+  },
+  "scum.PartialWipe": {
+    "ru": {
+      "label": "Частичный вайп",
+      "desc": "Сброс части прогресса при следующем запуске."
+    },
+    "de": {
+      "label": "Partieller Wipe",
+      "desc": "Einige Fortschritte beim nächsten Start zurücksetzen."
+    },
+    "fr": {
+      "label": "Effacement partiel",
+      "desc": "Réinitialiser une partie de la progression au prochain démarrage."
+    },
+    "it": {
+      "label": "Wipe Parziale",
+      "desc": "Reset di parte della progressione al prossimo avvio."
+    },
+    "ar": {
+      "label": "مسح جزئي",
+      "desc": "إعادة تعيين بعض التقدم عند البدء التالي."
+    },
+    "az": {
+      "label": "Qismən Silmə",
+      "desc": "Növbəti başlangıcda bəzi irəliləyişi sıfırla."
+    }
+  },
+  "scum.GoldWipe": {
+    "ru": {
+      "label": "Вайп gold",
+      "desc": "Сброс всего gold игроков при следующем запуске."
+    },
+    "de": {
+      "label": "Gold-Wipe",
+      "desc": "Gesamtes Spieler gold beim nächsten Start zurücksetzen."
+    },
+    "fr": {
+      "label": "Effacement gold",
+      "desc": "Réinitialise tout le gold des joueurs au prochain démarrage."
+    },
+    "it": {
+      "label": "Wipe gold",
+      "desc": "Reset di tutto il gold del giocatore al prossimo avvio."
+    },
+    "ar": {
+      "label": "مسح gold",
+      "desc": "إعادة تعيين جميع gold اللاعبين عند البدء التالي."
+    },
+    "az": {
+      "label": "Gold Silmə",
+      "desc": "Növbəti başlangıcda bütün oyunçu goldunu sıfırla."
+    }
+  },
+  "scum.FullWipe": {
+    "ru": {
+      "label": "Полный вайп",
+      "desc": "Полный сброс мира при следующем запуске."
+    },
+    "de": {
+      "label": "Voller Wipe",
+      "desc": "Kompletter Welt-Reset beim nächsten Start."
+    },
+    "fr": {
+      "label": "Effacement complet",
+      "desc": "Réinitialisation complète du monde au prochain démarrage."
+    },
+    "it": {
+      "label": "Wipe Completo",
+      "desc": "Reset completo del mondo al prossimo avvio."
+    },
+    "ar": {
+      "label": "مسح كامل",
+      "desc": "إعادة تعيين العالم بالكامل عند البدء التالي."
+    },
+    "az": {
+      "label": "Tam Silmə",
+      "desc": "Növbəti başlangıcda tam dünya sıfırlanması."
+    }
+  },
+  "scum.SectorRespawnCooldown": {
+    "ru": {
+      "label": "КД сектора",
+      "desc": "КД между возрождениями в секторах (HH:MM:SS)."
+    },
+    "de": {
+      "label": "Sektor-Cooldown",
+      "desc": "Abklingzeit zwischen Sektor-Respawns (HH:MM:SS)."
+    },
+    "fr": {
+      "label": "CD secteur",
+      "desc": "Temps de recharge entre les réapparitions de secteur (HH:MM:SS)."
+    },
+    "it": {
+      "label": "Cooldown Settore",
+      "desc": "Cooldown tra i respawn di settore (HH:MM:SS)."
+    },
+    "ar": {
+      "label": "تهدئة القطاع",
+      "desc": "فترة تهدئة بين استنساخ القطاعات (HH:MM:SS)."
+    },
+    "az": {
+      "label": "Sektor Soyuqdövrü",
+      "desc": "Sektor respawnları arasında soyuqdövrü (HH:MM:SS)."
+    }
+  },
+  "scum.ShelterRespawnCooldown": {
+    "ru": {
+      "label": "КД убежища",
+      "desc": "КД между возрождениями в убежище."
+    },
+    "de": {
+      "label": "Unterstand-Cooldown",
+      "desc": "Abklingzeit zwischen Unterstand-Respawns."
+    },
+    "fr": {
+      "label": "CD abri",
+      "desc": "Temps de recharge entre les réapparitions d'abri."
+    },
+    "it": {
+      "label": "Cooldown Rifugio",
+      "desc": "Cooldown tra i respawn dei rifugi."
+    },
+    "ar": {
+      "label": "تهدئة الملجأ",
+      "desc": "فترة تهدئة بين استنساخ الملاجئ."
+    },
+    "az": {
+      "label": "Sığınacaq Soyuqdövrü",
+      "desc": "Sığınacaq respawnları arasında soyuqdövrü."
+    }
+  },
+  "scum.SquadmateRespawnCooldown": {
+    "ru": {
+      "label": "КД отряда",
+      "desc": "Перезарядка для возрождения товарища по отряду."
+    },
+    "de": {
+      "label": "Squad-Cooldown",
+      "desc": "Abklingzeit für Squadmate-Respawn."
+    },
+    "fr": {
+      "label": "CD équipier",
+      "desc": "Temps de recharge pour la réapparition d'un équipier."
+    },
+    "it": {
+      "label": "Cooldown Compagno",
+      "desc": "Cooldown per il respawn del compagno di squadra."
+    },
+    "ar": {
+      "label": "تهدئة الزميل",
+      "desc": "فترة تهدئة لإعادة ظهور زميل الفرقة."
+    },
+    "az": {
+      "label": "Dəstə Yoldaşı Soyuqdövrü",
+      "desc": "Dəstə yoldaşının respawn üçün soyuqdövrü."
+    }
+  },
+  "scum.RandomRespawnTime": {
+    "ru": {
+      "label": "Случайная задержка респауна",
+      "desc": "Время после смерти до случайного появления."
+    },
+    "de": {
+      "label": "Zufälliger Respawn Verzögerung",
+      "desc": "Zeit nach dem Tod vor zufälligem Spawn."
+    },
+    "fr": {
+      "label": "Délai respawn aléatoire",
+      "desc": "Temps après la mort avant une apparition aléatoire."
+    },
+    "it": {
+      "label": "Ritardo Respawn Casuale",
+      "desc": "Tempo dopo la morte prima dello spawn casuale."
+    },
+    "ar": {
+      "label": "تأخير استنساخ عشوائي",
+      "desc": "الوقت بعد الموت قبل الظهور العشوائي."
+    },
+    "az": {
+      "label": "Təsadüfi Respawn Gecikməsi",
+      "desc": "Ölümdən sonra təsadüfi spawn-a qədər vaxt."
+    }
+  },
+  "scum.SectorRespawnTime": {
+    "ru": {
+      "label": "Задержка респауна сектора",
+      "desc": "Время до активации выбранного сектора для возрождения."
+    },
+    "de": {
+      "label": "Sektor-Respawn Verzögerung",
+      "desc": "Zeit, bevor der Sektor-Spawn aktiviert wird."
+    },
+    "fr": {
+      "label": "Délai respawn secteur",
+      "desc": "Temps avant l'activation de l'apparition choisie par secteur."
+    },
+    "it": {
+      "label": "Ritardo Respawn Settore",
+      "desc": "Tempo prima dell'attivazione dello spawn scelto dal settore."
+    },
+    "ar": {
+      "label": "تأخير استنساخ القطاع",
+      "desc": "الوقت قبل تفعيل الظهور المختار في القطاع."
+    },
+    "az": {
+      "label": "Sektor Respawn Gecikməsi",
+      "desc": "Sektor üzrə seçilmiş spawn aktivləşməzdən əvvəl vaxt."
+    }
+  },
+  "scum.ShelterRespawnTime": {
+    "ru": {
+      "label": "Задержка респауна убежища",
+      "desc": "Время до активации возрождения в убежище."
+    },
+    "de": {
+      "label": "Unterstand-Respawn Verzögerung",
+      "desc": "Zeit, bevor der Unterstand-Spawn aktiviert wird."
+    },
+    "fr": {
+      "label": "Délai respawn abri",
+      "desc": "Temps avant l'activation de l'apparition dans l'abri."
+    },
+    "it": {
+      "label": "Ritardo Respawn Rifugio",
+      "desc": "Tempo prima dell'attivazione dello spawn nel rifugio."
+    },
+    "ar": {
+      "label": "تأخير استنساخ الملجأ",
+      "desc": "الوقت قبل تفعيل الظهور في الملجأ."
+    },
+    "az": {
+      "label": "Sığınacaq Respawn Gecikməsi",
+      "desc": "Sığınacaq spawn aktivləşməzdən əvvəl vaxt."
+    }
+  },
+  "scum.SquadmateRespawnTime": {
+    "ru": {
+      "label": "Задержка респауна отряда",
+      "desc": "Время до активации появления у товарища по отряду."
+    },
+    "de": {
+      "label": "Squad-Respawn Verzögerung",
+      "desc": "Zeit, bevor der Squadmate-Spawn aktiviert wird."
+    },
+    "fr": {
+      "label": "Délai respawn équipier",
+      "desc": "Temps avant l'activation de l'apparition à côté d'un équipier."
+    },
+    "it": {
+      "label": "Ritardo Respawn Compagno",
+      "desc": "Tempo prima dell'attivazione dello spawn del compagno di squadra."
+    },
+    "ar": {
+      "label": "تأخير استنساخ الزميل",
+      "desc": "الوقت قبل تفعيل ظهور زميل الفرقة."
+    },
+    "az": {
+      "label": "Dəstə Yoldaşı Respawn Gecikməsi",
+      "desc": "Dəstə yoldaşı spawn aktivləşməzdən əvvəl vaxt."
+    }
+  },
+  "scum.HumanToSentryDamageMultiplier": {
+    "ru": {
+      "label": "Урон: Игрок → Часовой",
+      "desc": "Урон, наносимый игроками часовым."
+    },
+    "de": {
+      "label": "Schaden: Mensch → Sentry",
+      "desc": "Schaden, den Spieler Sentries zufügen."
+    },
+    "fr": {
+      "label": "Dégâts : Humain → Sentry",
+      "desc": "Dégâts infligés par les joueurs aux sentinelles."
+    },
+    "it": {
+      "label": "Danni: Umano → Sentry",
+      "desc": "Danni inflitti dai giocatori alle sentinelle."
+    },
+    "ar": {
+      "label": "ضرر: بشري ← حارس",
+      "desc": "الضرر الذي يلحقه اللاعبون بالحراس."
+    },
+    "az": {
+      "label": "Zərər: İnsan → Gözətçi",
+      "desc": "Oyunçuların gözətçilərə vurduğu zərər."
+    }
+  },
+  "scum.SentryToHumanDamageMultiplier": {
+    "ru": {
+      "label": "Урон: Часовой → Игрок",
+      "desc": "Урон, наносимый часовыми игрокам."
+    },
+    "de": {
+      "label": "Schaden: Sentry → Mensch",
+      "desc": "Schaden, den Sentries Spielern zufügen."
+    },
+    "fr": {
+      "label": "Dégâts : Sentry → Humain",
+      "desc": "Dégâts infligés par les sentinelles aux joueurs."
+    },
+    "it": {
+      "label": "Danni: Sentry → Umano",
+      "desc": "Danni inflitti dalle sentinelle ai giocatori."
+    },
+    "ar": {
+      "label": "ضرر: حارس ← بشري",
+      "desc": "الضرر الذي يلحقه الحراس باللاعبين."
+    },
+    "az": {
+      "label": "Zərər: Gözətçi → İnsan",
+      "desc": "Gözətçilərin oyunçulara vurduğu zərər."
+    }
+  },
+  "scum.HumanToPuppetDamageMultiplier": {
+    "ru": {
+      "label": "Урон: Игрок → Марионетка",
+      "desc": "Урон, наносимый игроками марионеткам."
+    },
+    "de": {
+      "label": "Schaden: Mensch → Puppet",
+      "desc": "Schaden, den Spieler Puppets zufügen."
+    },
+    "fr": {
+      "label": "Dégâts : Humain → Puppet",
+      "desc": "Dégâts infligés par les joueurs aux marionnettes."
+    },
+    "it": {
+      "label": "Danni: Umano → Puppet",
+      "desc": "Danni inflitti dai giocatori alle marionette."
+    },
+    "ar": {
+      "label": "ضرر: بشري ← دمية",
+      "desc": "الضرر الذي يلحقه اللاعبون بالدمى."
+    },
+    "az": {
+      "label": "Zərər: İnsan → Kukla",
+      "desc": "Oyunçuların kuklalara vurduğu zərər."
+    }
+  },
+  "scum.BaseElementDamageMultiplier": {
+    "ru": {
+      "label": "Урон элементам базы",
+      "desc": "Урон, наносимый элементам строений базы."
+    },
+    "de": {
+      "label": "Basiselement-Schaden",
+      "desc": "Schaden an Bauteilen der Basis."
+    },
+    "fr": {
+      "label": "Dégâts élément base",
+      "desc": "Dégâts infligés aux éléments de construction de base."
+    },
+    "it": {
+      "label": "Danni Elemento Base",
+      "desc": "Danni inflitti ai pezzi di costruzione della base."
+    },
+    "ar": {
+      "label": "ضرر عناصر القاعدة",
+      "desc": "الضرر الذي يلحق بقطع بناء القاعدة."
+    },
+    "az": {
+      "label": "Baza Element Zərəri",
+      "desc": "Baza tikinti hissələrinə vurulan zərər."
+    }
+  },
+  "scum.ArcherySkillMultiplier": {
+    "ru": {
+      "label": "XP: Лучник",
+      "desc": "Множитель XP для навыка стрельбы из лука."
+    },
+    "de": {
+      "label": "Bogenschießen XP",
+      "desc": "XP-Multiplikator für Bogenschießen-Fähigkeit."
+    },
+    "fr": {
+      "label": "XP: Tir à l'arc",
+      "desc": "Multiplicateur XP pour la compétence de tir à l'arc."
+    },
+    "it": {
+      "label": "XP: Tiro con l'Arco",
+      "desc": "Moltiplicatore XP per abilità di tiro con l'arco."
+    },
+    "ar": {
+      "label": "XP الرماية",
+      "desc": "مضاعف XP لمهارة الرماية."
+    },
+    "az": {
+      "label": "Oxatma XP",
+      "desc": "Oxatma bacarığı üçün XP multiplikatoru."
+    }
+  },
+  "scum.AviationSkillMultiplier": {
+    "ru": {
+      "label": "XP: Авиация",
+      "desc": "Множитель XP для навыка авиации."
+    },
+    "de": {
+      "label": "Luftfahrt XP",
+      "desc": "XP-Multiplikator für Luftfahrt-Fähigkeit."
+    },
+    "fr": {
+      "label": "XP: Aviation",
+      "desc": "Multiplicateur XP pour la compétence d'aviation."
+    },
+    "it": {
+      "label": "XP: Aviazione",
+      "desc": "Moltiplicatore XP per abilità di aviazione."
+    },
+    "ar": {
+      "label": "XP الطيران",
+      "desc": "مضاعف XP لمهارة الطيران."
+    },
+    "az": {
+      "label": "Aviasiya XP",
+      "desc": "Aviasiya bacarığı üçün XP multiplikatoru."
+    }
+  },
+  "scum.AwarenessSkillMultiplier": {
+    "ru": {
+      "label": "XP: Внимательность",
+      "desc": "Множитель XP для навыка внимательности."
+    },
+    "de": {
+      "label": "Aufmerksamkeit XP",
+      "desc": "XP-Multiplikator für Aufmerksamkeit-Fähigkeit."
+    },
+    "fr": {
+      "label": "XP: Vigilance",
+      "desc": "Multiplicateur XP pour la compétence de vigilance."
+    },
+    "it": {
+      "label": "XP: Consapevolezza",
+      "desc": "Moltiplicatore XP per abilità di consapevolezza."
+    },
+    "ar": {
+      "label": "XP الوعي",
+      "desc": "مضاعف XP لمهارة الوعي."
+    },
+    "az": {
+      "label": "Diqqət XP",
+      "desc": "Diqqət bacarığı üçün XP multiplikatoru."
+    }
+  },
+  "scum.BrawlingSkillMultiplier": {
+    "ru": {
+      "label": "XP: Рукопашка",
+      "desc": "Множитель XP для навыка рукопашного боя."
+    },
+    "de": {
+      "label": "Nahkampf XP",
+      "desc": "XP-Multiplikator für Nahkampf-Fähigkeit."
+    },
+    "fr": {
+      "label": "XP: Bagarre",
+      "desc": "Multiplicateur XP pour la compétence de bagarre."
+    },
+    "it": {
+      "label": "XP: Rissa",
+      "desc": "Moltiplicatore XP per abilità di rissa."
+    },
+    "ar": {
+      "label": "XP القتال بالأيدي",
+      "desc": "مضاعف XP لمهارة القتال بالأيدي."
+    },
+    "az": {
+      "label": "Döyüş XP",
+      "desc": "Döyüş bacarığı üçün XP multiplikatoru."
+    }
+  },
+  "scum.CamouflageSkillMultiplier": {
+    "ru": {
+      "label": "XP: Камуфляж",
+      "desc": "Множитель XP для навыка камуфляжа."
+    },
+    "de": {
+      "label": "Tarnung XP",
+      "desc": "XP-Multiplikator für Tarnung-Fähigkeit."
+    },
+    "fr": {
+      "label": "XP: Camouflage",
+      "desc": "Multiplicateur XP pour la compétence de camouflage."
+    },
+    "it": {
+      "label": "XP: Camuffamento",
+      "desc": "Moltiplicatore XP per abilità di camuffamento."
+    },
+    "ar": {
+      "label": "XP التمويه",
+      "desc": "مضاعف XP لمهارة التمويه."
+    },
+    "az": {
+      "label": "Kamuflyaj XP",
+      "desc": "Kamuflyaj bacarığı üçün XP multiplikatoru."
+    }
+  },
+  "scum.CookingSkillMultiplier": {
+    "ru": {
+      "label": "XP: Кулинария",
+      "desc": "Множитель XP для навыка кулинарии."
+    },
+    "de": {
+      "label": "Kochen XP",
+      "desc": "XP-Multiplikator für Kochkunst-Fähigkeit."
+    },
+    "fr": {
+      "label": "XP: Cuisine",
+      "desc": "Multiplicateur XP pour la compétence de cuisine."
+    },
+    "it": {
+      "label": "XP: Cucina",
+      "desc": "Moltiplicatore XP per abilità di cucina."
+    },
+    "ar": {
+      "label": "XP الطهي",
+      "desc": "مضاعف XP لمهارة الطهي."
+    },
+    "az": {
+      "label": "Bişirmə XP",
+      "desc": "Bişirmə bacarığı üçün XP multiplikatoru."
+    }
+  },
+  "scum.DemolitionSkillMultiplier": {
+    "ru": {
+      "label": "XP: Подрывник",
+      "desc": "Множитель XP для навыка подрывника."
+    },
+    "de": {
+      "label": "Abriss XP",
+      "desc": "XP-Multiplikator für Abriss."
+    },
+    "fr": {
+      "label": "XP: Démolition",
+      "desc": "Multiplicateur XP pour la démolition."
+    },
+    "it": {
+      "label": "XP: Demolizione",
+      "desc": "Moltiplicatore XP per demolizione."
+    },
+    "ar": {
+      "label": "XP الهدم",
+      "desc": "مضاعف XP لمهارة الهدم."
+    },
+    "az": {
+      "label": "Söküntü XP",
+      "desc": "Söküntü üçün XP multiplikatoru."
+    }
+  },
+  "scum.DrivingSkillMultiplier": {
+    "ru": {
+      "label": "XP: Вождение",
+      "desc": "Множитель XP для навыка вождения."
+    },
+    "de": {
+      "label": "Fahren XP",
+      "desc": "XP-Multiplikator für Fahr-Fähigkeit."
+    },
+    "fr": {
+      "label": "XP: Conduite",
+      "desc": "Multiplicateur XP pour la compétence de conduite."
+    },
+    "it": {
+      "label": "XP: Guida",
+      "desc": "Moltiplicatore XP per abilità di guida."
+    },
+    "ar": {
+      "label": "XP القيادة",
+      "desc": "مضاعف XP لمهارة القيادة."
+    },
+    "az": {
+      "label": "Sürmə XP",
+      "desc": "Sürmə bacarığı üçün XP multiplikatoru."
+    }
+  },
+  "scum.EnduranceSkillMultiplier": {
+    "ru": {
+      "label": "XP: Выносливость",
+      "desc": "Множитель XP для выносливости."
+    },
+    "de": {
+      "label": "Ausdauer XP",
+      "desc": "XP-Multiplikator für Ausdauer."
+    },
+    "fr": {
+      "label": "XP: Endurance",
+      "desc": "Multiplicateur XP pour l'endurance."
+    },
+    "it": {
+      "label": "XP: Resistenza",
+      "desc": "Moltiplicatore XP per resistenza."
+    },
+    "ar": {
+      "label": "XP التحمل",
+      "desc": "مضاعف XP للتحمل."
+    },
+    "az": {
+      "label": "Dözümlülük XP",
+      "desc": "Dözümlülük üçün XP multiplikatoru."
+    }
+  },
+  "scum.EngineeringSkillMultiplier": {
+    "ru": {
+      "label": "XP: Инженерия",
+      "desc": "Множитель XP для инженерии."
+    },
+    "de": {
+      "label": "Ingenieurwesen XP",
+      "desc": "XP-Multiplikator für Ingenieurwesen."
+    },
+    "fr": {
+      "label": "XP: Ingénierie",
+      "desc": "Multiplicateur XP pour l'ingénierie."
+    },
+    "it": {
+      "label": "XP: Ingegneria",
+      "desc": "Moltiplicatore XP per ingegneria."
+    },
+    "ar": {
+      "label": "XP الهندسة",
+      "desc": "مضاعف XP للهندسة."
+    },
+    "az": {
+      "label": "Mühəndislik XP",
+      "desc": "Mühəndislik üçün XP multiplikatoru."
+    }
+  },
+  "scum.FarmingSkillMultiplier": {
+    "ru": {
+      "label": "XP: Фермерство",
+      "desc": "Множитель XP для фермерства."
+    },
+    "de": {
+      "label": "Landwirtschaft XP",
+      "desc": "XP-Multiplikator für Landwirtschaft."
+    },
+    "fr": {
+      "label": "XP: Agriculture",
+      "desc": "Multiplicateur XP pour l'agriculture."
+    },
+    "it": {
+      "label": "XP: Agricoltura",
+      "desc": "Moltiplicatore XP per agricoltura."
+    },
+    "ar": {
+      "label": "XP الزراعة",
+      "desc": "مضاعف XP للزراعة."
+    },
+    "az": {
+      "label": "Əkinçilik XP",
+      "desc": "Əkinçilik üçün XP multiplikatoru."
+    }
+  },
+  "scum.HandgunSkillMultiplier": {
+    "ru": {
+      "label": "XP: Пистолеты",
+      "desc": "Множитель XP для пистолетов."
+    },
+    "de": {
+      "label": "Pistolen XP",
+      "desc": "XP-Multiplikator für Handfeuerwaffen."
+    },
+    "fr": {
+      "label": "XP: Pistolets",
+      "desc": "Multiplicateur XP pour les pistolets."
+    },
+    "it": {
+      "label": "XP: Pistole",
+      "desc": "Moltiplicatore XP per pistole."
+    },
+    "ar": {
+      "label": "XP المسدسات",
+      "desc": "مضاعف XP للمسدسات."
+    },
+    "az": {
+      "label": "Tapança XP",
+      "desc": "Tapança bacarığı üçün XP multiplikatoru."
+    }
+  },
+  "scum.MedicalSkillMultiplier": {
+    "ru": {
+      "label": "XP: Медицина",
+      "desc": "Множитель XP для навыка медицины."
+    },
+    "de": {
+      "label": "Medizin XP",
+      "desc": "XP-Multiplikator für medizinische Fähigkeit."
+    },
+    "fr": {
+      "label": "XP: Médical",
+      "desc": "Multiplicateur XP pour la compétence médicale."
+    },
+    "it": {
+      "label": "XP: Medico",
+      "desc": "Moltiplicatore XP per abilità medica."
+    },
+    "ar": {
+      "label": "XP الطب",
+      "desc": "مضاعف XP لمهارة الطب."
+    },
+    "az": {
+      "label": "Tibb XP",
+      "desc": "Tibb bacarığı üçün XP multiplikatoru."
+    }
+  },
+  "scum.MeleeWeaponsSkillMultiplier": {
+    "ru": {
+      "label": "XP: Оружие ближ. боя",
+      "desc": "Множитель XP для оружия ближнего боя."
+    },
+    "de": {
+      "label": "Nahkampfwaffen XP",
+      "desc": "XP-Multiplikator für Nahkampfwaffen."
+    },
+    "fr": {
+      "label": "XP: Armes de mêlée",
+      "desc": "Multiplicateur XP pour les armes de mêlée."
+    },
+    "it": {
+      "label": "XP: Armi Corpo a Corpo",
+      "desc": "Moltiplicatore XP per armi da mischia."
+    },
+    "ar": {
+      "label": "XP أسلحة المشاجرة",
+      "desc": "مضاعف XP لأسلحة المشاجرة."
+    },
+    "az": {
+      "label": "Yaxın Döyüş Silahları XP",
+      "desc": "Yaxın döyüş silahları üçün XP multiplikatoru."
+    }
+  },
+  "scum.MotorcycleSkillMultiplier": {
+    "ru": {
+      "label": "XP: Мотоцикл",
+      "desc": "Множитель XP для навыка вождения мотоцикла."
+    },
+    "de": {
+      "label": "Motorrad XP",
+      "desc": "XP-Multiplikator für Motorrad-Fähigkeit."
+    },
+    "fr": {
+      "label": "XP: Moto",
+      "desc": "Multiplicateur XP pour la compétence moto."
+    },
+    "it": {
+      "label": "XP: Moto",
+      "desc": "Moltiplicatore XP per abilità moto."
+    },
+    "ar": {
+      "label": "XP الدراجة النارية",
+      "desc": "مضاعف XP لمهارة الدراجة النارية."
+    },
+    "az": {
+      "label": "Motosiklet XP",
+      "desc": "Motosiklet bacarığı üçün XP multiplikatoru."
+    }
+  },
+  "scum.RiflesSkillMultiplier": {
+    "ru": {
+      "label": "XP: Винтовки",
+      "desc": "Множитель XP для винтовок."
+    },
+    "de": {
+      "label": "Gewehre XP",
+      "desc": "XP-Multiplikator für Gewehre."
+    },
+    "fr": {
+      "label": "XP: Fusils",
+      "desc": "Multiplicateur XP pour les fusils."
+    },
+    "it": {
+      "label": "XP: Fucili",
+      "desc": "Moltiplicatore XP per fucili."
+    },
+    "ar": {
+      "label": "XP البنادق",
+      "desc": "مضاعف XP للبنادق."
+    },
+    "az": {
+      "label": "Tüfənglər XP",
+      "desc": "Tüfənglər üçün XP multiplikatoru."
+    }
+  },
+  "scum.RunningSkillMultiplier": {
+    "ru": {
+      "label": "XP: Бег",
+      "desc": "Множитель XP для бега."
+    },
+    "de": {
+      "label": "Laufen XP",
+      "desc": "XP-Multiplikator für Laufen."
+    },
+    "fr": {
+      "label": "XP: Course",
+      "desc": "Multiplicateur XP pour la course."
+    },
+    "it": {
+      "label": "XP: Corsa",
+      "desc": "Moltiplicatore XP per corsa."
+    },
+    "ar": {
+      "label": "XP الجري",
+      "desc": "مضاعف XP للجري."
+    },
+    "az": {
+      "label": "Qaçış XP",
+      "desc": "Qaçış üçün XP multiplikatoru."
+    }
+  },
+  "scum.SnipingSkillMultiplier": {
+    "ru": {
+      "label": "XP: Снайперство",
+      "desc": "Множитель XP для снайперства."
+    },
+    "de": {
+      "label": "Scharfschießen XP",
+      "desc": "XP-Multiplikator für Scharfschießen."
+    },
+    "fr": {
+      "label": "XP: Tir de précision",
+      "desc": "Multiplicateur XP pour le tir de précision."
+    },
+    "it": {
+      "label": "XP: Cecchinaggio",
+      "desc": "Moltiplicatore XP per cecchinaggio."
+    },
+    "ar": {
+      "label": "XP القنص",
+      "desc": "مضاعف XP للقنص."
+    },
+    "az": {
+      "label": "Snayper XP",
+      "desc": "Snayper üçün XP multiplikatoru."
+    }
+  },
+  "scum.StealthSkillMultiplier": {
+    "ru": {
+      "label": "XP: Скрытность",
+      "desc": "Множитель XP для скрытности."
+    },
+    "de": {
+      "label": "Heimlichkeit XP",
+      "desc": "XP-Multiplikator für Heimlichkeit."
+    },
+    "fr": {
+      "label": "XP: Furtivité",
+      "desc": "Multiplicateur XP pour la furtivité."
+    },
+    "it": {
+      "label": "XP: Furtività",
+      "desc": "Moltiplicatore XP per furtività."
+    },
+    "ar": {
+      "label": "XP التخفي",
+      "desc": "مضاعف XP للتخفي."
+    },
+    "az": {
+      "label": "Gizlilik XP",
+      "desc": "Gizlilik üçün XP multiplikatoru."
+    }
+  },
+  "scum.SurvivalSkillMultiplier": {
+    "ru": {
+      "label": "XP: Выживание",
+      "desc": "Множитель XP для выживания."
+    },
+    "de": {
+      "label": "Überleben XP",
+      "desc": "XP-Multiplikator für Überleben."
+    },
+    "fr": {
+      "label": "XP: Survie",
+      "desc": "Multiplicateur XP pour la survie."
+    },
+    "it": {
+      "label": "XP: Sopravvivenza",
+      "desc": "Moltiplicatore XP per sopravvivenza."
+    },
+    "ar": {
+      "label": "XP البقاء",
+      "desc": "مضاعف XP للبقاء على قيد الحياة."
+    },
+    "az": {
+      "label": "Sağqalma XP",
+      "desc": "Sağqalma üçün XP multiplikatoru."
+    }
+  },
+  "scum.ThieverySkillMultiplier": {
+    "ru": {
+      "label": "XP: Воровство",
+      "desc": "Множитель XP для воровства."
+    },
+    "de": {
+      "label": "Diebstahl XP",
+      "desc": "XP-Multiplikator für Diebstahl."
+    },
+    "fr": {
+      "label": "XP: Vol",
+      "desc": "Multiplicateur XP pour le vol."
+    },
+    "it": {
+      "label": "XP: Furto",
+      "desc": "Moltiplicatore XP per furto."
+    },
+    "ar": {
+      "label": "XP السرقة",
+      "desc": "مضاعف XP للسرقة."
+    },
+    "az": {
+      "label": "Oğurluq XP",
+      "desc": "Oğurluq üçün XP multiplikatoru."
+    }
+  },
+  "economy-reset-time-hours": {
+    "ru": {
+      "label": "Сброс экономики (ч)",
+      "desc": "Часы между полными сбросами экономики. -1 отключает."
+    },
+    "de": {
+      "label": "Wirtschafts-Reset (h)",
+      "desc": "Stunden zwischen vollständigen Wirtschafts-Resets. -1 deaktiviert."
+    },
+    "fr": {
+      "label": "Réinitialisation économie (h)",
+      "desc": "Heures entre les réinitialisations complètes de l'économie. -1 désactive."
+    },
+    "it": {
+      "label": "Reset Economia (h)",
+      "desc": "Ore tra reset completi dell'economia. -1 disabilita."
+    },
+    "ar": {
+      "label": "إعادة ضبط الاقتصاد (س)",
+      "desc": "الساعات بين عمليات إعادة ضبط الاقتصاد الكاملة. -1 يُعطّل."
+    },
+    "az": {
+      "label": "İqtisadiyyat Sıfırlanması (saat)",
+      "desc": "Tam iqtisadiyyat sıfırlanmaları arasında saatlar. -1 deaktiv edir."
+    }
+  },
+  "prices-randomization-time-hours": {
+    "ru": {
+      "label": "Перетасовка цен (ч)",
+      "desc": "Часы между рандомизацией цен. -1 отключает."
+    },
+    "de": {
+      "label": "Preis-Zufall (h)",
+      "desc": "Stunden zwischen Preis-Zufallsgenerierung. -1 deaktiviert."
+    },
+    "fr": {
+      "label": "Mélange prix (h)",
+      "desc": "Heures entre la randomisation des prix. -1 désactive."
+    },
+    "it": {
+      "label": "Rimescolamento Prezzi (h)",
+      "desc": "Ore tra la randomizzazione dei prezzi. -1 disabilita."
+    },
+    "ar": {
+      "label": "خلط الأسعار (س)",
+      "desc": "الساعات بين عشوائية الأسعار. -1 يُعطّل."
+    },
+    "az": {
+      "label": "Qiymət Qarışdırma (saat)",
+      "desc": "Qiymət randomizasiyaları arasında saatlar. -1 deaktiv edir."
+    }
+  },
+  "tradeable-rotation-time-ingame-hours-min": {
+    "ru": {
+      "label": "Мин. ротация (игровые ч)",
+      "desc": "Минимум игровых часов между ротациями предметов."
+    },
+    "de": {
+      "label": "Rotation Min. (In-game h)",
+      "desc": "Minimale In-Game-Stunden zwischen Item-Rotationen."
+    },
+    "fr": {
+      "label": "Rotation Min (h en jeu)",
+      "desc": "Heures minimum en jeu entre les rotations d'objets."
+    },
+    "it": {
+      "label": "Rotazione Min (h in-game)",
+      "desc": "Ore minime in-game tra le rotazioni degli oggetti."
+    },
+    "ar": {
+      "label": "الحد الأدنى للدوران (ساعة داخل اللعبة)",
+      "desc": "الحد الأدنى للساعات داخل اللعبة بين دورات العناصر."
+    },
+    "az": {
+      "label": "Minimum Fırlanma (oyun içi saat)",
+      "desc": "Əşya fırlanmaları arasında minimum oyun içi saatlar."
+    }
+  },
+  "tradeable-rotation-time-ingame-hours-max": {
+    "ru": {
+      "label": "Макс. ротация (игровые ч)",
+      "desc": "Максимум игровых часов между ротациями."
+    },
+    "de": {
+      "label": "Rotation Max. (In-game h)",
+      "desc": "Maximale In-Game-Stunden zwischen Rotation."
+    },
+    "fr": {
+      "label": "Rotation Max (h en jeu)",
+      "desc": "Heures maximum en jeu entre les rotations."
+    },
+    "it": {
+      "label": "Rotazione Max (h in-game)",
+      "desc": "Ore massime in-game tra le rotazioni."
+    },
+    "ar": {
+      "label": "الحد الأقصى للدوران (ساعة داخل اللعبة)",
+      "desc": "الحد الأقصى للساعات داخل اللعبة بين الدورات."
+    },
+    "az": {
+      "label": "Maksimum Fırlanma (oyun içi saat)",
+      "desc": "Fırlanmalar arasında maksimum oyun içi saatlar."
+    }
+  },
+  "trader-funds-change-rate-per-hour-multiplier": {
+    "ru": {
+      "label": "Реген. средств торговцев",
+      "desc": "Как быстро торговцы пополняют средства."
+    },
+    "de": {
+      "label": "Händler Geld Regen Mult",
+      "desc": "Wie schnell Händler Gelder auffüllen."
+    },
+    "fr": {
+      "label": "Mult. régén. fonds marchands",
+      "desc": "Vitesse à laquelle les marchands réapprovisionnent leurs fonds."
+    },
+    "it": {
+      "label": "Mercanti Rigenerazione Fondi",
+      "desc": "Velocità con cui i mercanti riforniscono i fondi."
+    },
+    "ar": {
+      "label": "تجديد أموال التجار",
+      "desc": "مدى سرعة تجديد التجار لأموالهم."
+    },
+    "az": {
+      "label": "Tüccar Fond Yenilənmə Multi",
+      "desc": "Tüccarların pulu nə qədər sürətli yenilədiyini."
+    }
+  },
+  "prices-subject-to-player-count": {
+    "ru": {
+      "label": "Динамические цены",
+      "desc": "1 = цены меняются в зависимости от количества игроков."
+    },
+    "de": {
+      "label": "Dynamische Preise",
+      "desc": "1 = Preise ändern sich mit der Spieleranzahl."
+    },
+    "fr": {
+      "label": "Prix dynamiques",
+      "desc": "1 = les prix changent avec le nombre de joueurs."
+    },
+    "it": {
+      "label": "Prezzi Dinamici",
+      "desc": "1 = i prezzi cambiano con il numero di giocatori."
+    },
+    "ar": {
+      "label": "أسعار ديناميكية",
+      "desc": "1 = تتغير الأسعار مع عدد اللاعبين."
+    },
+    "az": {
+      "label": "Dinamik Qiymətlər",
+      "desc": "1 = qiymətlər oyunçu sayı ilə dəyişir."
+    }
+  },
+  "fully-restock-tradeable-hours": {
+    "ru": {
+      "label": "Полное пополнение (ч)",
+      "desc": "Часы до полного пополнения пустого запаса."
+    },
+    "de": {
+      "label": "Volle Nachfüllung (h)",
+      "desc": "Stunden bis der leere Bestand vollständig aufgefüllt ist."
+    },
+    "fr": {
+      "label": "Réapprovisionnement complet (h)",
+      "desc": "Heures avant le réapprovisionnement complet du stock vide."
+    },
+    "it": {
+      "label": "Rifornimento Completo (h)",
+      "desc": "Ore fino al rifornimento completo delle scorte vuote."
+    },
+    "ar": {
+      "label": "إعادة تخزين كاملة (س)",
+      "desc": "الساعات حتى يتم إعادة تخزين المخزون الفارغ بالكامل."
+    },
+    "az": {
+      "label": "Tam Yenidən Təchizat (saat)",
+      "desc": "Boş stokun tamamilə yenidən təchiz olunmasına qədər saatlar."
+    }
+  },
+  "gold-price-subject-to-global-multiplier": {
+    "ru": {
+      "label": "Gold ~ Глобальный множитель",
+      "desc": "1 = цена gold зависит от глобального множителя."
+    },
+    "de": {
+      "label": "Gold ~ Global Mult",
+      "desc": "1 = gold Preis wird vom globalen Multiplikator beeinflusst."
+    },
+    "fr": {
+      "label": "Gold ~ Mult. global",
+      "desc": "1 = le prix gold est affecté par le multiplicateur global."
+    },
+    "it": {
+      "label": "Gold ~ Molt. Globale",
+      "desc": "1 = il prezzo gold è influenzato dal moltiplicatore globale."
+    },
+    "ar": {
+      "label": "Gold ~ مضاعف عالمي",
+      "desc": "1 = سعر gold يتأثر بالمضاعف العالمي."
+    },
+    "az": {
+      "label": "Gold ~ Qlobal Multi",
+      "desc": "1 = gold qiyməti qlobal multiplikator təsirindədir."
+    }
+  },
+  "global-only-after-player-sale-tradeable-availability-enabled": {
+    "ru": {
+      "label": "Доступность после продажи",
+      "desc": "Предметы появляются только после их продажи игроками."
+    },
+    "de": {
+      "label": "Verfügbarkeit nach Verkauf",
+      "desc": "Gegenstände erscheinen erst, nachdem Spieler sie verkauft haben."
+    },
+    "fr": {
+      "label": "Disponibilité après vente",
+      "desc": "Les objets n'apparaissent qu'après que les joueurs les aient vendus."
+    },
+    "it": {
+      "label": "Disponibilità Post-Vendita",
+      "desc": "Gli oggetti appaiono solo dopo che i giocatori li hanno venduti."
+    },
+    "ar": {
+      "label": "التوفر بعد البيع",
+      "desc": "تظهر العناصر فقط بعد أن يبيعها اللاعبون."
+    },
+    "az": {
+      "label": "Satış Sonrası Mövcudluq",
+      "desc": "Əşyalar yalnız oyunçular onları satdıqdan sonra görünür."
+    }
+  },
+  "gold-sale-price-modifier": {
+    "ru": {
+      "label": "Модификатор продажи gold",
+      "desc": "Модификатор, применяемый к цене продажи gold. -1 = по умолчанию."
+    },
+    "de": {
+      "label": "Gold Verkauf Modifikator",
+      "desc": "Modifikator, der auf den gold Verkaufspreis angewendet wird. -1 = Standard."
+    },
+    "fr": {
+      "label": "Modificateur vente gold",
+      "desc": "Modificateur appliqué au prix de vente gold. -1 = par défaut."
+    },
+    "it": {
+      "label": "Modificatore Vendita Gold",
+      "desc": "Modificatore applicato al prezzo di vendita gold. -1 = predefinito."
+    },
+    "ar": {
+      "label": "معدل بيع الذهب",
+      "desc": "معدل يُطبق على سعر بيع gold. -1 = افتراضي."
+    },
+    "az": {
+      "label": "Gold Satış Modifikatoru",
+      "desc": "Gold satış qiymətinə tətbiq olunan modifikator. -1 = defolt."
+    }
+  },
+  "gold-price-change-percentage-step": {
+    "ru": {
+      "label": "Шаг % gold",
+      "desc": "Процентный шаг, используемый для изменения цены gold."
+    },
+    "de": {
+      "label": "Gold % Schritt",
+      "desc": "Prozentschritt, der für gold Preisänderungen verwendet wird."
+    },
+    "fr": {
+      "label": "Pas % gold",
+      "desc": "Pas en pourcentage utilisé pour les changements de prix gold."
+    },
+    "it": {
+      "label": "Passo % Gold",
+      "desc": "Passo percentuale utilizzato per i cambiamenti di prezzo gold."
+    },
+    "ar": {
+      "label": "خطوة % للذهب",
+      "desc": "الخطوة المئوية المستخدمة لتغيرات سعر gold."
+    },
+    "az": {
+      "label": "Gold % Addım",
+      "desc": "Gold qiymət dəyişiklikləri üçün istifadə olunan faiz addımı."
+    }
+  },
+  "gold-price-change-per-step": {
+    "ru": {
+      "label": "Изменение gold за шаг",
+      "desc": "Насколько меняется цена gold за один шаг."
+    },
+    "de": {
+      "label": "Gold Änderung pro Schritt",
+      "desc": "Wie stark sich der gold Preis pro Schritt ändert."
+    },
+    "fr": {
+      "label": "Changement gold par pas",
+      "desc": "Montant du changement de prix gold par pas."
+    },
+    "it": {
+      "label": "Cambio Gold per Passo",
+      "desc": "Quanto cambia il prezzo gold per passo."
+    },
+    "ar": {
+      "label": "تغيير الذهب لكل خطوة",
+      "desc": "مقدار تغير سعر gold لكل خطوة."
+    },
+    "az": {
+      "label": "Hər Addıma Gold Dəyişikliyi",
+      "desc": "Hər addıma gold qiymətinin nə qədər dəyişməsi."
+    }
+  },
+  "scum.EnableItemCooldownGroups": {
+    "ru": {
+      "label": "Группы КД предметов",
+      "desc": "Включить группы перезарядки для предметов."
+    },
+    "de": {
+      "label": "Item-Cooldown-Gruppen",
+      "desc": "Cooldown-Gruppen für Gegenstände aktivieren."
+    },
+    "fr": {
+      "label": "Groupes CD objets",
+      "desc": "Activer les groupes de temps de recharge pour les objets."
+    },
+    "it": {
+      "label": "Gruppi Cooldown Oggetti",
+      "desc": "Abilita i gruppi di cooldown per gli oggetti."
+    },
+    "ar": {
+      "label": "مجموعات تهدئة العناصر",
+      "desc": "تمكين مجموعات تهدئة للعناصر."
+    },
+    "az": {
+      "label": "Əşya Soyuqdövrü Qrupları",
+      "desc": "Əşyalar üçün soyuqdövrü qruplarını aktivləşdir."
+    }
+  },
+  "scum.ItemCooldownGroupsDurationMultiplier": {
+    "ru": {
+      "label": "Множ. КД предметов",
+      "desc": "Множитель для длительности групп перезарядки."
+    },
+    "de": {
+      "label": "Item-Cooldown-Mult",
+      "desc": "Multiplikator für Cooldown-Gruppen-Dauern."
+    },
+    "fr": {
+      "label": "Mult. CD objets",
+      "desc": "Multiplicateur pour les durées des groupes de temps de recharge."
+    },
+    "it": {
+      "label": "Molt. Cooldown Oggetti",
+      "desc": "Moltiplicatore per le durate dei gruppi di cooldown."
+    },
+    "ar": {
+      "label": "مضاعف تهدئة العناصر",
+      "desc": "مضاعف لمدد مجموعات التهدئة."
+    },
+    "az": {
+      "label": "Əşya Soyuqdövrü Multi",
+      "desc": "Soyuqdövrü qrup müddətləri üçün multiplikator."
+    }
+  },
+  "scum.SpawnerProbabilityMultiplier": {
+    "ru": {
+      "label": "Шанс появления лута",
+      "desc": "Шанс появления предметов в контейнерах."
+    },
+    "de": {
+      "label": "Loot-Spawn-Chance",
+      "desc": "Chance, dass Gegenstände in Containern erscheinen."
+    },
+    "fr": {
+      "label": "Chance de spawn butin",
+      "desc": "Chance d'apparition d'objets dans les conteneurs."
+    },
+    "it": {
+      "label": "Probabilità Spawn Loot",
+      "desc": "Possibilità che gli oggetti appaiano nei container."
+    },
+    "ar": {
+      "label": "فرصة ظهور الغنائم",
+      "desc": "فرصة ظهور العناصر في الحاويات."
+    },
+    "az": {
+      "label": "Loot Spawn Şansı",
+      "desc": "Konteynerlərdə əşyaların spawn olma şansı."
+    }
+  },
+  "scum.SpawnerExpirationTimeMultiplier": {
+    "ru": {
+      "label": "Множ. срока годности лута",
+      "desc": "Как долго остается появившийся лут."
+    },
+    "de": {
+      "label": "Loot-Ablauf-Mult",
+      "desc": "Wie lange gespawnter Loot bleibt."
+    },
+    "fr": {
+      "label": "Mult. expiration butin",
+      "desc": "Durée de persistance du butin apparu."
+    },
+    "it": {
+      "label": "Molt. Scadenza Loot",
+      "desc": "Quanto a lungo rimane il loot generato."
+    },
+    "ar": {
+      "label": "مضاعف انتهاء الغنائم",
+      "desc": "مدة بقاء الغنائم التي ظهرت."
+    },
+    "az": {
+      "label": "Loot Bitmə Multi",
+      "desc": "Spawn edilmiş lootun nə qədər qalması."
+    }
+  },
+  "scum.ExamineSpawnerProbabilityMultiplier": {
+    "ru": {
+      "label": "Шанс лута при осмотре",
+      "desc": "Шанс лута при осмотре контейнеров."
+    },
+    "de": {
+      "label": "Beute-Chance (Prüfung)",
+      "desc": "Beute-Chance beim Untersuchen von Containern."
+    },
+    "fr": {
+      "label": "Chance butin (examen)",
+      "desc": "Chance de butin lors de l'examen des conteneurs."
+    },
+    "it": {
+      "label": "Probabilità Loot Esame",
+      "desc": "Probabilità di loot esaminando i container."
+    },
+    "ar": {
+      "label": "فرصة غنائم الفحص",
+      "desc": "فرصة الغنائم عند فحص الحاويات."
+    },
+    "az": {
+      "label": "Təftiş Loot Şansı",
+      "desc": "Konteynerləri təftiş edərkən loot şansı."
+    }
+  },
+  "scum.RaidProtectionFlagSpecificChangeSettingCooldown": {
+    "ru": {
+      "label": "КД настроек флага",
+      "desc": "Перезарядка для изменения настроек, специфичных для флага."
+    },
+    "de": {
+      "label": "Flaggen-Einstellungen Cooldown",
+      "desc": "Cooldown zum Ändern flaggenspezifischer Einstellungen."
+    },
+    "fr": {
+      "label": "CD paramètres drapeau",
+      "desc": "Temps de recharge pour changer les paramètres spécifiques au drapeau."
+    },
+    "it": {
+      "label": "Cooldown Impost. Bandiera",
+      "desc": "Cooldown per cambiare impostazioni specifiche della bandiera."
+    },
+    "ar": {
+      "label": "تهدئة إعدادات العلم",
+      "desc": "فترة تهدئة لتغيير الإعدادات الخاصة بالعلم."
+    },
+    "az": {
+      "label": "Bayraq Ayarı Soyuqdövrü",
+      "desc": "Bayrağa xas ayarları dəyişmək üçün soyuqdövrü."
+    }
+  },
+  "scum.RaidProtectionFlagSpecificChangeSettingPrice": {
+    "ru": {
+      "label": "Цена настроек флага",
+      "desc": "Цена за изменение настроек, специфичных для флага."
+    },
+    "de": {
+      "label": "Flaggen-Einstellungen Preis",
+      "desc": "Preis für das Ändern flaggenspezifischer Einstellungen."
+    },
+    "fr": {
+      "label": "Prix paramètres drapeau",
+      "desc": "Prix pour changer les paramètres spécifiques au drapeau."
+    },
+    "it": {
+      "label": "Costo Impost. Bandiera",
+      "desc": "Prezzo per cambiare impostazione specifica della bandiera."
+    },
+    "ar": {
+      "label": "سعر إعدادات العلم",
+      "desc": "سعر تغيير الإعدادات الخاصة بالعلم."
+    },
+    "az": {
+      "label": "Bayraq Ayarı Qiyməti",
+      "desc": "Bayrağa xas ayarları dəyişmək üçün qiymət."
+    }
+  },
+  "scum.RaidProtectionFlagSpecificMaxProtectionTime": {
+    "ru": {
+      "label": "Макс. защита флага",
+      "desc": "Макс. время защиты на флаг (HH:MM:SS)."
+    },
+    "de": {
+      "label": "Flagge Max. Schutz",
+      "desc": "Max. Schutzzeit pro Flagge (HH:MM:SS)."
+    },
+    "fr": {
+      "label": "Protection max. drapeau",
+      "desc": "Temps de protection max. par drapeau (HH:MM:SS)."
+    },
+    "it": {
+      "label": "Max Protezione Bandiera",
+      "desc": "Tempo max. protezione per bandiera (HH:MM:SS)."
+    },
+    "ar": {
+      "label": "حد أقصى لحماية العلم",
+      "desc": "أقصى وقت حماية لكل علم (HH:MM:SS)."
+    },
+    "az": {
+      "label": "Bayraq Maks. Müdafiəsi",
+      "desc": "Hər bayraq üçün maksimum müdafiə vaxtı (HH:MM:SS)."
+    }
+  },
+  "scum.RaidProtectionOfflineProtectionStartDelay": {
+    "ru": {
+      "label": "Задержка оффлайн защиты",
+      "desc": "Задержка перед началом оффлайн защиты."
+    },
+    "de": {
+      "label": "Offline Schutz Verzögerung",
+      "desc": "Verzögerung, bevor Offline-Schutz beginnt."
+    },
+    "fr": {
+      "label": "Délai protection hors ligne",
+      "desc": "Délai avant le début de la protection hors ligne."
+    },
+    "it": {
+      "label": "Ritardo Prot. Offline",
+      "desc": "Ritardo prima dell'avvio della protezione offline."
+    },
+    "ar": {
+      "label": "تأخير حماية عدم الاتصال",
+      "desc": "تأخير قبل بدء الحماية في وضع عدم الاتصال."
+    },
+    "az": {
+      "label": "Offline Müdafiə Gecikməsi",
+      "desc": "Offline müdafiə başlamazdan əvvəl gecikmə."
+    }
+  },
+  "scum.RaidProtectionOfflineMaxProtectionTime": {
+    "ru": {
+      "label": "Макс. оффлайн защита",
+      "desc": "Максимальное время оффлайн защиты."
+    },
+    "de": {
+      "label": "Offline Max. Schutz",
+      "desc": "Maximale Offline-Schutzzeit."
+    },
+    "fr": {
+      "label": "Protection max. hors ligne",
+      "desc": "Temps de protection hors ligne maximum."
+    },
+    "it": {
+      "label": "Max Prot. Offline",
+      "desc": "Tempo massimo di protezione offline."
+    },
+    "ar": {
+      "label": "الحد الأقصى لحماية عدم الاتصال",
+      "desc": "أقصى وقت حماية في وضع عدم الاتصال."
+    },
+    "az": {
+      "label": "Offline Maks. Müdafiə",
+      "desc": "Maksimum offline müdafiə vaxtı."
+    }
+  },
+  "scum.ExtraElementsPerFlagForAdditionalSquadMember": {
+    "ru": {
+      "label": "Доп. элементы/соотрядник",
+      "desc": "Бонус строительных элементов за каждого соотрядника."
+    },
+    "de": {
+      "label": "Extra Elemente/Squadmate",
+      "desc": "Gebäudeelement-Bonus pro Squadmitglied."
+    },
+    "fr": {
+      "label": "Éléments supp./équipier",
+      "desc": "Bonus d'éléments de construction par équipier."
+    },
+    "it": {
+      "label": "Elementi Extra/Compagno",
+      "desc": "Bonus elemento costruzione per compagno di squadra."
+    },
+    "ar": {
+      "label": "عناصر إضافية/زميل",
+      "desc": "مكافأة عناصر البناء لكل زميل."
+    },
+    "az": {
+      "label": "Əlavə Elementlər/Dəstə Yoldaşı",
+      "desc": "Hər dəstə yoldaşı üçün tikinti elementi bonusu."
+    }
+  },
+  "scum.MaximumNumberOfExpandedElementsPerFlag": {
+    "ru": {
+      "label": "Макс. расшир. элементов",
+      "desc": "Лимит на расширенные элементы на флаг."
+    },
+    "de": {
+      "label": "Max. Erweiterte Elemente",
+      "desc": "Obergrenze für erweiterte Elemente pro Flagge."
+    },
+    "fr": {
+      "label": "Max éléments étendus",
+      "desc": "Limite des éléments étendus par drapeau."
+    },
+    "it": {
+      "label": "Max Elementi Espansi",
+      "desc": "Limite per elementi espansi per bandiera."
+    },
+    "ar": {
+      "label": "الحد الأقصى للعناصر الموسعة",
+      "desc": "حد أقصى للعناصر الموسعة لكل علم."
+    },
+    "az": {
+      "label": "Maks. Genişləndirilmiş Elementlər",
+      "desc": "Hər bayraq üçün genişləndirilmiş elementlərin yuxarı həddi."
+    }
+  },
+  "scum.AllowFlagPlacementOnBBElements": {
+    "ru": {
+      "label": "Флаг на элементах ББ",
+      "desc": "Разрешить размещение флага на строительных элементах."
+    },
+    "de": {
+      "label": "Flagge auf BB Elementen",
+      "desc": "Platzierung von Flaggen auf Bauteilen erlauben."
+    },
+    "fr": {
+      "label": "Drapeau sur éléments BB",
+      "desc": "Autoriser la pose de drapeau sur des pièces de construction."
+    },
+    "it": {
+      "label": "Bandiera su Elementi BB",
+      "desc": "Consenti posizionamento bandiera su elementi di costruzione."
+    },
+    "ar": {
+      "label": "العلم على عناصر البناء",
+      "desc": "السماح بوضع العلم على قطع البناء."
+    },
+    "az": {
+      "label": "BB Elementlərində Bayraq",
+      "desc": "Tikinti hissələrinə bayraq yerləşdirməyə icazə ver."
+    }
+  },
+  "scum.AllowFloorPlacementOnHalfAndLowWalls": {
+    "ru": {
+      "label": "Пол на низких стенах",
+      "desc": "Разрешить установку пола на коротких стенах."
+    },
+    "de": {
+      "label": "Boden auf halben Wänden",
+      "desc": "Bodenplatzierung auf niedrigen Wänden erlauben."
+    },
+    "fr": {
+      "label": "Plancher sur demi-murs",
+      "desc": "Autoriser le placement de planchers sur les murs courts."
+    },
+    "it": {
+      "label": "Pavimento su Muri Bassi",
+      "desc": "Consenti posizionamento pavimento su muri corti."
+    },
+    "ar": {
+      "label": "أرضية على الجدران النصفية",
+      "desc": "السماح بوضع الأرضية على الجدران القصيرة."
+    },
+    "az": {
+      "label": "Yarım Divarlarda Döşəmə",
+      "desc": "Qısa divarlara döşəmə yerləşdirməyə icazə ver."
+    }
+  },
+  "scum.AllowWallPlacementOnHalfAndLowWalls": {
+    "ru": {
+      "label": "Стена на низких стенах",
+      "desc": "Разрешить установку стен на коротких стенах."
+    },
+    "de": {
+      "label": "Wand auf halben Wänden",
+      "desc": "Wandplatzierung auf niedrigen Wänden erlauben."
+    },
+    "fr": {
+      "label": "Mur sur demi-murs",
+      "desc": "Autoriser le placement de murs sur les murs courts."
+    },
+    "it": {
+      "label": "Muro su Muri Bassi",
+      "desc": "Consenti posizionamento muro su muri corti."
+    },
+    "ar": {
+      "label": "جدار على الجدران النصفية",
+      "desc": "السماح بوضع الجدار على الجدران القصيرة."
+    },
+    "az": {
+      "label": "Yarım Divarlarda Divar",
+      "desc": "Qısa divarlara divar yerləşdirməyə icazə ver."
+    }
+  },
+  "scum.ChestAcquisitionDuration": {
+    "ru": {
+      "label": "Время захвата сундука",
+      "desc": "Время на захват невостребованного сундука (HH:MM:SS)."
+    },
+    "de": {
+      "label": "Truhen-Erwerbszeit",
+      "desc": "Zeit zum Beanspruchen einer nicht beanspruchten Truhe (HH:MM:SS)."
+    },
+    "fr": {
+      "label": "Temps acquisition coffre",
+      "desc": "Temps pour réclamer un coffre non revendiqué (HH:MM:SS)."
+    },
+    "it": {
+      "label": "Tempo Acquisizione Cassa",
+      "desc": "Tempo per reclamare una cassa non rivendicata (HH:MM:SS)."
+    },
+    "ar": {
+      "label": "مدة الحصول على الصندوق",
+      "desc": "الوقت اللازم للمطالبة بصندوق غير مطالب به (HH:MM:SS)."
+    },
+    "az": {
+      "label": "Sandıq Əldə etmə Vaxtı",
+      "desc": "Tələb olunmamış sandığı əldə etmək üçün vaxt (HH:MM:SS)."
+    }
+  },
+  "scum.RustyLocksLogging": {
+    "ru": {
+      "label": "Лог ржавых замков",
+      "desc": "Записывать все попытки взлома замков."
+    },
+    "de": {
+      "label": "Rostige Schlösser Log",
+      "desc": "Alle Schlossknackversuche protokollieren."
+    },
+    "fr": {
+      "label": "Journal serrures rouillées",
+      "desc": "Journaliser toutes les tentatives de crochetage."
+    },
+    "it": {
+      "label": "Log Serrature Arrugginite",
+      "desc": "Registra tutti i tentativi di scassinamento."
+    },
+    "ar": {
+      "label": "سجل الأقفال الصدئة",
+      "desc": "تسجيل جميع محاولات فتح الأقفال."
+    },
+    "az": {
+      "label": "Paslı Kilidlər Logu",
+      "desc": "Bütün kilid açma cəhdlərini log et."
+    }
+  },
+  "scum.PlaySafeIdProtection": {
+    "ru": {
+      "label": "PlaySafe ID Защита",
+      "desc": "Дополнительная защита от спуфинга SteamID."
+    },
+    "de": {
+      "label": "PlaySafe ID-Schutz",
+      "desc": "Zusätzlicher Schutz vor SteamID-Spoofing."
+    },
+    "fr": {
+      "label": "Protection ID PlaySafe",
+      "desc": "Protection supplémentaire contre l'usurpation de SteamID."
+    },
+    "it": {
+      "label": "Protezione ID PlaySafe",
+      "desc": "Protezione aggiuntiva contro lo spoofing di SteamID."
+    },
+    "ar": {
+      "label": "حماية PlaySafe ID",
+      "desc": "حماية إضافية ضد انتحال SteamID."
+    },
+    "az": {
+      "label": "PlaySafe ID Müdafiəsi",
+      "desc": "Əlavə SteamID spoofing müdafiəsi."
+    }
+  },
+  "scum.DeleteInactiveUsers": {
+    "ru": {
+      "label": "Авто-удаление неактивных",
+      "desc": "Удалять пользователей, неактивных N дней."
+    },
+    "de": {
+      "label": "Inaktive autom. löschen",
+      "desc": "Benutzer löschen, die N Tage inaktiv sind."
+    },
+    "fr": {
+      "label": "Suppression auto inactifs",
+      "desc": "Supprime les utilisateurs inactifs pendant N jours."
+    },
+    "it": {
+      "label": "Elimina Inattivi Auto",
+      "desc": "Elimina utenti inattivi per N giorni."
+    },
+    "ar": {
+      "label": "حذف التلقائي للمستخدمين غير النشطين",
+      "desc": "حذف المستخدمين غير النشطين لمدة N أيام."
+    },
+    "az": {
+      "label": "Aktiv olmayanları avtomatik sil",
+      "desc": "N gün aktiv olmayan istifadəçiləri sil."
+    }
+  },
+  "scum.DaysSinceLastLoginToBecomeInactive": {
+    "ru": {
+      "label": "Порог неактивности (дни)",
+      "desc": "Дней с последнего входа до неактивности."
+    },
+    "de": {
+      "label": "Inaktivitätsschwelle (Tage)",
+      "desc": "Tage seit letztem Login, bevor inaktiv."
+    },
+    "fr": {
+      "label": "Seuil inactivité (jours)",
+      "desc": "Jours depuis la dernière connexion avant l'inactivité."
+    },
+    "it": {
+      "label": "Soglia Inattività (giorni)",
+      "desc": "Giorni dall'ultimo login prima di diventare inattivo."
+    },
+    "ar": {
+      "label": "عتبة عدم النشاط (أيام)",
+      "desc": "الأيام منذ آخر تسجيل دخول قبل أن يصبح غير نشط."
+    },
+    "az": {
+      "label": "Aktiv olmama həddi (gün)",
+      "desc": "Son girişdən sonra aktiv olmama günləri."
+    }
+  },
+  "scum.DeleteBannedUsers": {
+    "ru": {
+      "label": "Удалить забаненные аккаунты",
+      "desc": "Удалить данные забаненных пользователей."
+    },
+    "de": {
+      "label": "Gesperrte Benutzer löschen",
+      "desc": "Daten gesperrter Benutzer entfernen."
+    },
+    "fr": {
+      "label": "Supprimer comptes bannis",
+      "desc": "Supprimer les données des utilisateurs bannis."
+    },
+    "it": {
+      "label": "Elimina Utenti Bannati",
+      "desc": "Rimuovi i dati degli utenti bannati."
+    },
+    "ar": {
+      "label": "حذف الحسابات المحظورة",
+      "desc": "إزالة بيانات المستخدمين المحظورين."
+    },
+    "az": {
+      "label": "Ban olunmuş istifadəçiləri sil",
+      "desc": "Ban edilmiş istifadəçilərin məlumatlarını sil."
+    }
+  },
+  "scum.LogChestOwnership": {
+    "ru": {
+      "label": "Лог владения сундуками",
+      "desc": "Записывать изменения владения сундуками в журнал."
+    },
+    "de": {
+      "label": "Truhenbesitz protokollieren",
+      "desc": "Änderungen des Truhenbesitzes in Log schreiben."
+    },
+    "fr": {
+      "label": "Journal propriété coffres",
+      "desc": "Écrire les changements de propriété des coffres dans le journal."
+    },
+    "it": {
+      "label": "Log Proprietà Cassa",
+      "desc": "Scrivi cambiamenti di proprietà cassa nel log."
+    },
+    "ar": {
+      "label": "تسجيل ملكية الصندوق",
+      "desc": "كتابة تغييرات ملكية الصندوق في السجل."
+    },
+    "az": {
+      "label": "Sandıq Mülkiyyətini Log et",
+      "desc": "Sandıq mülkiyyəti dəyişikliklərini loga yaz."
+    }
+  },
+  "scum.FuelDrainFromEngineMultiplier": {
+    "ru": {
+      "label": "Множ. расхода топлива",
+      "desc": "Множитель расхода топлива двигателем."
+    },
+    "de": {
+      "label": "Kraftstoffverbrauch Mult",
+      "desc": "Multiplikator für Motor-Kraftstoffverbrauch."
+    },
+    "fr": {
+      "label": "Mult. conso carburant",
+      "desc": "Multiplicateur de consommation de carburant du moteur."
+    },
+    "it": {
+      "label": "Molt. Consumo Carburante",
+      "desc": "Moltiplicatore consumo carburante motore."
+    },
+    "ar": {
+      "label": "مضاعف استنزاف الوقود",
+      "desc": "مضاعف استهلاك وقود المحرك."
+    },
+    "az": {
+      "label": "Yanacaq Sərfiyyatı Multi",
+      "desc": "Mühərrik yanacaq sərfiyyatı multiplikatoru."
+    }
+  },
+  "scum.BatteryDrainFromEngineMultiplier": {
+    "ru": {
+      "label": "Разряд батареи (двигатель)",
+      "desc": "Разряд батареи при работе двигателя."
+    },
+    "de": {
+      "label": "Batterieentladung (Motor)",
+      "desc": "Batterieentladung bei laufendem Motor."
+    },
+    "fr": {
+      "label": "Décharge batterie (moteur)",
+      "desc": "Décharge batterie lorsque le moteur tourne."
+    },
+    "it": {
+      "label": "Scarica Batteria (Motore)",
+      "desc": "Scarica batteria mentre il motore è in funzione."
+    },
+    "ar": {
+      "label": "استنزاف البطارية (المحرك)",
+      "desc": "استنزاف البطارية أثناء تشغيل المحرك."
+    },
+    "az": {
+      "label": "Batareya Sərfiyyatı (Mühərrik)",
+      "desc": "Mühərrik işləyərkən batareya sərfiyyatı."
+    }
+  },
+  "scum.BatteryDrainFromDevicesMultiplier": {
+    "ru": {
+      "label": "Разряд батареи (устройства)",
+      "desc": "Разряд батареи от аксессуаров."
+    },
+    "de": {
+      "label": "Batterieentladung (Geräte)",
+      "desc": "Batterieentladung durch Zubehör."
+    },
+    "fr": {
+      "label": "Décharge batterie (appareils)",
+      "desc": "Décharge batterie des accessoires."
+    },
+    "it": {
+      "label": "Scarica Batteria (Dispositivi)",
+      "desc": "Scarica batteria dagli accessori."
+    },
+    "ar": {
+      "label": "استنزاف البطارية (الأجهزة)",
+      "desc": "استنزاف البطارية من الملحقات."
+    },
+    "az": {
+      "label": "Batareya Sərfiyyatı (Cihazlar)",
+      "desc": "Aksesuarlardan batareya sərfiyyatı."
+    }
+  },
+  "scum.BatteryDrainFromInactivityMultiplier": {
+    "ru": {
+      "label": "Разряд батареи (простой)",
+      "desc": "Разряд батареи в простое."
+    },
+    "de": {
+      "label": "Batterieentladung (Leerlauf)",
+      "desc": "Batterieentladung im Leerlauf."
+    },
+    "fr": {
+      "label": "Décharge batterie (veille)",
+      "desc": "Décharge batterie au ralenti."
+    },
+    "it": {
+      "label": "Scarica Batteria (Inattività)",
+      "desc": "Scarica batteria in inattività."
+    },
+    "ar": {
+      "label": "استنزاف البطارية (الخمول)",
+      "desc": "استنزاف البطارية أثناء الخمول."
+    },
+    "az": {
+      "label": "Batareya Sərfiyyatı (Boş)",
+      "desc": "Boş vəziyyətdə batareya sərfiyyatı."
+    }
+  },
+  "scum.BatteryChargeWithAlternatorMultiplier": {
+    "ru": {
+      "label": "Заряд генератора",
+      "desc": "Скорость зарядки генератора."
+    },
+    "de": {
+      "label": "Lichtmaschinenladung",
+      "desc": "Lichtmaschinen-Laderate."
+    },
+    "fr": {
+      "label": "Charge alternateur",
+      "desc": "Taux de charge de l'alternateur."
+    },
+    "it": {
+      "label": "Carica Alternatore",
+      "desc": "Tasso di ricarica dell'alternatore."
+    },
+    "ar": {
+      "label": "شحن الدينامو",
+      "desc": "معدل شحن الدينامو."
+    },
+    "az": {
+      "label": "Alternator Yükləmə",
+      "desc": "Alternator yükləmə sürəti."
+    }
+  },
+  "scum.BatteryChargeWithDynamoMultiplier": {
+    "ru": {
+      "label": "Заряд динамо",
+      "desc": "Скорость зарядки динамо."
+    },
+    "de": {
+      "label": "Dynamo-Ladung",
+      "desc": "Dynamo-Laderate."
+    },
+    "fr": {
+      "label": "Charge dynamo",
+      "desc": "Taux de charge du dynamo."
+    },
+    "it": {
+      "label": "Carica Dinamo",
+      "desc": "Tasso di ricarica della dinamo."
+    },
+    "ar": {
+      "label": "شحن المولد",
+      "desc": "معدل شحن المولد."
+    },
+    "az": {
+      "label": "Dinamo Yükləmə",
+      "desc": "Dinamo yükləmə sürəti."
+    }
+  },
+  "scum.MaximumTimeOfVehicleInactivity": {
+    "ru": {
+      "label": "Макс. неактивность (HH:MM:SS)",
+      "desc": "Время до удаления брошенного транспорта."
+    },
+    "de": {
+      "label": "Max. Inaktivität (HH:MM:SS)",
+      "desc": "Zeit, bevor verlassenes Fahrzeug entfernt wird."
+    },
+    "fr": {
+      "label": "Inactivité max (HH:MM:SS)",
+      "desc": "Temps avant la suppression d'un véhicule abandonné."
+    },
+    "it": {
+      "label": "Max Inattività (HH:MM:SS)",
+      "desc": "Tempo prima della rimozione del veicolo abbandonato."
+    },
+    "ar": {
+      "label": "أقصى خمول (HH:MM:SS)",
+      "desc": "الوقت قبل إزالة المركبة المهجورة."
+    },
+    "az": {
+      "label": "Maks. Aktiv olmama (HH:MM:SS)",
+      "desc": "Atılmış nəqliyyat vasitəsinin silinməsinə qədər vaxt."
+    }
+  },
+  "scum.MaximumTimeForVehiclesInForbiddenZones": {
+    "ru": {
+      "label": "Макс. в запретной зоне",
+      "desc": "Время, в течение которого транспорт может находиться в запретных зонах."
+    },
+    "de": {
+      "label": "Max. in Verbotszone",
+      "desc": "Zeit, die Fahrzeuge in verbotenen Zonen verbleiben dürfen."
+    },
+    "fr": {
+      "label": "Max zone interdite",
+      "desc": "Temps de séjour des véhicules dans les zones interdites."
+    },
+    "it": {
+      "label": "Max Zona Proibita",
+      "desc": "Tempo massimo di permanenza dei veicoli in zone proibite."
+    },
+    "ar": {
+      "label": "أقصى مدة في منطقة محظورة",
+      "desc": "المدة التي يمكن للمركبات أن تبقى فيها في المناطق المحظورة."
+    },
+    "az": {
+      "label": "Maks. Qadağan Zonada",
+      "desc": "Nəqliyyat vasitələrinin qadağan olunmuş zonalarda qala biləcəyi vaxt."
+    }
+  },
+  "scum.LogVehicleDestroyed": {
+    "ru": {
+      "label": "Лог уничтожения транспорта",
+      "desc": "Записывать события уничтожения транспорта в журнал."
+    },
+    "de": {
+      "label": "Fahrzeugzerstörung protokollieren",
+      "desc": "Ereignisse der Fahrzeugzerstörung protokollieren."
+    },
+    "fr": {
+      "label": "Journal destruction véhicule",
+      "desc": "Écrire les événements de destruction de véhicule dans le journal."
+    },
+    "it": {
+      "label": "Log Veicolo Distrutto",
+      "desc": "Scrivi eventi di distruzione veicolo nel log."
+    },
+    "ar": {
+      "label": "سجل تدمير المركبة",
+      "desc": "كتابة أحداث تدمير المركبة في السجل."
+    },
+    "az": {
+      "label": "Avtomobil Məhvini Log et",
+      "desc": "Nəqliyyat vasitəsinin məhv edilməsi hadisələrini loga yaz."
+    }
+  },
+  "scum.CargoDropFallDelay": {
+    "ru": {
+      "label": "Задержка падения груза (s)",
+      "desc": "Секунды до фактического падения груза."
+    },
+    "de": {
+      "label": "Cargo Drop Fall Verzögerung (s)",
+      "desc": "Sekunden, bevor die Ladung tatsächlich fällt."
+    },
+    "fr": {
+      "label": "Délai chute cargo (s)",
+      "desc": "Secondes avant la chute effective du cargo."
+    },
+    "it": {
+      "label": "Ritardo Caduta Cargo (s)",
+      "desc": "Secondi prima della caduta effettiva del carico."
+    },
+    "ar": {
+      "label": "تأخير سقوط الشحنة (s)",
+      "desc": "الثواني قبل سقوط الشحنة فعليًا."
+    },
+    "az": {
+      "label": "Yük Düşmə Gecikməsi (s)",
+      "desc": "Yükün həqiqətən düşməsinə qədər saniyələr."
+    }
+  },
+  "scum.CargoDropFallDuration": {
+    "ru": {
+      "label": "Длительность падения груза (s)",
+      "desc": "Продолжительность падения груза."
+    },
+    "de": {
+      "label": "Cargo Drop Fall Dauer (s)",
+      "desc": "Dauer des Cargo Drops."
+    },
+    "fr": {
+      "label": "Durée chute cargo (s)",
+      "desc": "Durée de la chute du cargo."
+    },
+    "it": {
+      "label": "Durata Caduta Cargo (s)",
+      "desc": "Durata della caduta del carico."
+    },
+    "ar": {
+      "label": "مدة سقوط الشحنة (s)",
+      "desc": "مدة سقوط الشحنة."
+    },
+    "az": {
+      "label": "Yük Düşmə Müddəti (s)",
+      "desc": "Yükün düşmə müddəti."
+    }
+  },
+  "scum.CargoDropSelfdestructTime": {
+    "ru": {
+      "label": "Самоуничтожение груза (s)",
+      "desc": "Секунды до самоуничтожения невостребованного груза."
+    },
+    "de": {
+      "label": "Cargo Selbstzerstörung (s)",
+      "desc": "Sekunden, bevor unbeanspruchte Ladung sich selbst zerstört."
+    },
+    "fr": {
+      "label": "Auto-destr. cargo (s)",
+      "desc": "Secondes avant l'auto-destruction du cargo non réclamé."
+    },
+    "it": {
+      "label": "Auto-distruzione Cargo (s)",
+      "desc": "Secondi prima che il carico non reclamato si autodistrugga."
+    },
+    "ar": {
+      "label": "تدمير ذاتي للشحنة (s)",
+      "desc": "الثواني قبل تدمير الشحنة غير المطالب بها لنفسها."
+    },
+    "az": {
+      "label": "Yük Öz-özünü Məhv etmə (s)",
+      "desc": "Tələb olunmamış yükün özünü məhv etməsinə qədər saniyələr."
+    }
+  },
+  "scum.AbandonedBunkerMaxSimultaneouslyActive": {
+    "ru": {
+      "label": "Макс. активных бункеров",
+      "desc": "Макс. одновременно открытых заброшенных бункеров."
+    },
+    "de": {
+      "label": "Max. aktive Bunker",
+      "desc": "Max. gleichzeitig geöffnete verlassene Bunker."
+    },
+    "fr": {
+      "label": "Max bunkers actifs",
+      "desc": "Max. bunkers abandonnés ouverts simultanément."
+    },
+    "it": {
+      "label": "Max Bunker Attivi",
+      "desc": "Max bunker abbandonati aperti simultaneamente."
+    },
+    "ar": {
+      "label": "الحد الأقصى للمخابئ النشطة",
+      "desc": "الحد الأقصى للمخابئ المهجورة المفتوحة في نفس الوقت."
+    },
+    "az": {
+      "label": "Maks. Aktiv Bunkerlər",
+      "desc": "Maksimum eyni vaxtda aktiv olan tərk edilmiş bunkerlər."
+    }
+  },
+  "scum.AbandonedBunkerActiveDurationHours": {
+    "ru": {
+      "label": "Часы активности бункера",
+      "desc": "Количество часов, в течение которых бункер остается доступным."
+    },
+    "de": {
+      "label": "Bunker Aktivstunden",
+      "desc": "Stunden, die ein Bunker zugänglich bleibt."
+    },
+    "fr": {
+      "label": "Heures activité bunker",
+      "desc": "Heures pendant lesquelles un bunker reste accessible."
+    },
+    "it": {
+      "label": "Ore Attive Bunker",
+      "desc": "Ore di accessibilità di un bunker."
+    },
+    "ar": {
+      "label": "ساعات نشاط الملجأ",
+      "desc": "الساعات التي يبقى فيها الملجأ متاحًا."
+    },
+    "az": {
+      "label": "Bunker Aktiv Saatları",
+      "desc": "Bunkerin əlçatan qaldığı saatlar."
+    }
+  },
+  "scum.AbandonedBunkerKeyCardActiveDurationHours": {
+    "ru": {
+      "label": "Часы действия карты бункера",
+      "desc": "Количество часов, в течение которых ключ-карта бункера остается активной."
+    },
+    "de": {
+      "label": "Bunker KeyCard Stunden",
+      "desc": "Stunden, die die Bunker-Keycard aktiv bleibt."
+    },
+    "fr": {
+      "label": "Heures carte-clé bunker",
+      "desc": "Heures pendant lesquelles la carte-clé du bunker reste active."
+    },
+    "it": {
+      "label": "Ore KeyCard Bunker",
+      "desc": "Ore di attività della KeyCard bunker."
+    },
+    "ar": {
+      "label": "ساعات بطاقة مفتاح الملجأ",
+      "desc": "الساعات التي تبقى فيها بطاقة مفتاح الملجأ نشطة."
+    },
+    "az": {
+      "label": "Bunker Açar Kart Saatları",
+      "desc": "Bunker açar kartının aktiv qaldığı saatlar."
+    }
+  },
+  "scum.MaxAllowedKillboxKeycards": {
+    "ru": {
+      "label": "Макс. ключ-карт killbox",
+      "desc": "Общее количество ключ-карт killbox на карте."
+    },
+    "de": {
+      "label": "Max. Killbox Keycards",
+      "desc": "Gesamte Killbox-Keycards auf der Karte."
+    },
+    "fr": {
+      "label": "Max cartes-clés killbox",
+      "desc": "Total des cartes-clés killbox sur la carte."
+    },
+    "it": {
+      "label": "Max KeyCard Killbox",
+      "desc": "Totale keycard killbox sulla mappa."
+    },
+    "ar": {
+      "label": "الحد الأقصى لبطاقات مفتاح صندوق القتل",
+      "desc": "إجمالي بطاقات مفتاح صندوق القتل على الخريطة."
+    },
+    "az": {
+      "label": "Maks. Killbox Açar Kartları",
+      "desc": "Xəritədə ümumi killbox açar kartları."
+    }
+  },
+  "scum.EncounterBaseCharacterAmountMultiplier": {
+    "ru": {
+      "label": "Базовое кол-во в столкновениях",
+      "desc": "Базовый множитель для количества персонажей в столкновениях."
+    },
+    "de": {
+      "label": "Basis Begegnungsmenge",
+      "desc": "Basis-Multiplikator für die Anzahl der Begegnungscharaktere."
+    },
+    "fr": {
+      "label": "Quantité rencontre de base",
+      "desc": "Multiplicateur de base pour le nombre de personnages de rencontre."
+    },
+    "it": {
+      "label": "Quantità Base Incontro",
+      "desc": "Moltiplicatore base per il conteggio dei personaggi nell'incontro."
+    },
+    "ar": {
+      "label": "كمية المواجهة الأساسية",
+      "desc": "مضاعف أساسي لعدد شخصيات المواجهة."
+    },
+    "az": {
+      "label": "Əsas Qarşılaşma Sayı",
+      "desc": "Qarşılaşma personaj sayının əsas multiplikatoru."
+    }
+  },
+  "scum.EncounterExtraCharacterPerPlayerMultiplier": {
+    "ru": {
+      "label": "Доп. на игрока",
+      "desc": "Дополнительные персонажи на каждого онлайн-игрока."
+    },
+    "de": {
+      "label": "Extra pro Spieler",
+      "desc": "Zusätzliche Charaktere pro Online-Spieler."
+    },
+    "fr": {
+      "label": "Supp. par joueur",
+      "desc": "Personnages supplémentaires par joueur en ligne."
+    },
+    "it": {
+      "label": "Extra per Giocatore",
+      "desc": "Personaggi aggiuntivi per giocatore online."
+    },
+    "ar": {
+      "label": "إضافي لكل لاعب",
+      "desc": "شخصيات إضافية لكل لاعب متصل بالإنترنت."
+    },
+    "az": {
+      "label": "Hər Oyunçuya Əlavə",
+      "desc": "Hər onlayn oyunçu üçün əlavə personajlar."
+    }
+  },
+  "scum.EncounterCharacterRespawnTimeMultiplier": {
+    "ru": {
+      "label": "Множ. респауна столкновения",
+      "desc": "Множитель времени возрождения для персонажей столкновения."
+    },
+    "de": {
+      "label": "Begegnung Respawn Mult",
+      "desc": "Respawn-Zeit-Multiplikator für Begegnungscharaktere."
+    },
+    "fr": {
+      "label": "Mult. respawn rencontre",
+      "desc": "Multiplicateur du temps de réapparition pour les personnages de rencontre."
+    },
+    "it": {
+      "label": "Molt. Respawn Incontro",
+      "desc": "Moltiplicatore del tempo di respawn per i personaggi dell'incontro."
+    },
+    "ar": {
+      "label": "مضاعف إعادة ظهور الشخصيات",
+      "desc": "مضاعف وقت إعادة الظهور لشخصيات المواجهة."
+    },
+    "az": {
+      "label": "Qarşılaşma Respawn Multi",
+      "desc": "Qarşılaşma personajları üçün respawn vaxtı multiplikatoru."
+    }
+  },
+  "scum.EncounterHordeActivationChanceMultiplier": {
+    "ru": {
+      "label": "Шанс активации орды",
+      "desc": "Шанс срабатывания событий орды."
+    },
+    "de": {
+      "label": "Horden-Aktivierungs-Chance",
+      "desc": "Chance auf Auslösung von Horden-Events."
+    },
+    "fr": {
+      "label": "Chance activation horde",
+      "desc": "Chance de déclenchement des événements de horde."
+    },
+    "it": {
+      "label": "Probabilità Attivazione Orda",
+      "desc": "Probabilità di attivazione di eventi orda."
+    },
+    "ar": {
+      "label": "فرصة تفعيل الحشد",
+      "desc": "فرصة تشغيل أحداث الحشد."
+    },
+    "az": {
+      "label": "Hordanın Aktivləşmə Şansı",
+      "desc": "Horda hadisələrinin işə düşmə şansı."
+    }
+  },
+  "scum.EncounterNeverRespawnCharacters": {
+    "ru": {
+      "label": "Никогда не возрождаются",
+      "desc": "1 = персонажи столкновения не возрождаются."
+    },
+    "de": {
+      "label": "Niemals respawnen",
+      "desc": "1 = Begegnungscharaktere respawnen nicht."
+    },
+    "fr": {
+      "label": "Jamais de respawn",
+      "desc": "1 = les personnages de rencontre ne réapparaissent pas."
+    },
+    "it": {
+      "label": "Mai Respawnare",
+      "desc": "1 = i personaggi dell'incontro non respawnano."
+    },
+    "ar": {
+      "label": "لا يعيد الظهور أبدًا",
+      "desc": "1 = شخصيات المواجهة لا تعيد الظهور."
+    },
+    "az": {
+      "label": "Heç Vaxt Yenidən Spawn Etmə",
+      "desc": "1 = qarşılaşma personajları yenidən spawn etmir."
+    }
+  },
+  "scum.QuestsGlobalCycleDuration": {
+    "ru": {
+      "label": "Длительность цикла квестов",
+      "desc": "Длительность глобального цикла квестов."
+    },
+    "de": {
+      "label": "Questzyklus-Dauer",
+      "desc": "Dauer eines globalen Questzyklus."
+    },
+    "fr": {
+      "label": "Durée cycle quêtes",
+      "desc": "Durée d'un cycle de quêtes global."
+    },
+    "it": {
+      "label": "Durata Ciclo Missioni",
+      "desc": "Durata di un ciclo di missioni globali."
+    },
+    "ar": {
+      "label": "مدة دورة المهام العالمية",
+      "desc": "مدة دورة المهام العالمية."
+    },
+    "az": {
+      "label": "Missiya Dövrü Müddəti",
+      "desc": "Qlobal missiya dövrünün müddəti."
+    }
+  },
+  "scum.MaxSimultaneousQuestsPerTrader": {
+    "ru": {
+      "label": "Макс. одноврем./торговец",
+      "desc": "Макс. одновременных квестов на торговца."
+    },
+    "de": {
+      "label": "Max. gleichzeitige/Händler",
+      "desc": "Max. gleichzeitige Quests pro Händler."
+    },
+    "fr": {
+      "label": "Max quêtes simult./marchand",
+      "desc": "Quêtes simultanées max. par marchand."
+    },
+    "it": {
+      "label": "Max Missioni Sim./Mercante",
+      "desc": "Max missioni simultanee per mercante."
+    },
+    "ar": {
+      "label": "الحد الأقصى للمهام المتزامنة/لكل تاجر",
+      "desc": "الحد الأقصى للمهام المتزامنة لكل تاجر."
+    },
+    "az": {
+      "label": "Tüccar Başına Maks. Eyni Anda",
+      "desc": "Hər tüccar üçün maksimum eyni vaxtda missiya."
+    }
+  },
+  "scum.CustomMapEnabled": {
+    "ru": {
+      "label": "Пользовательская карта",
+      "desc": "Включить пользовательские границы игровой зоны."
+    },
+    "de": {
+      "label": "Benutzerdefinierte Karte",
+      "desc": "Benutzerdefinierte Spielbereichsgrenzen aktivieren."
+    },
+    "fr": {
+      "label": "Carte personnalisée",
+      "desc": "Activer les limites de zone jouable personnalisées."
+    },
+    "it": {
+      "label": "Mappa Personalizzata",
+      "desc": "Abilita confini area giocabile personalizzati."
+    },
+    "ar": {
+      "label": "خريطة مخصصة",
+      "desc": "تمكين حدود منطقة اللعب المخصصة."
+    },
+    "az": {
+      "label": "Fərdi Xəritə",
+      "desc": "Fərdi oynanış sahəsi sərhədlərini aktivləşdir."
+    }
+  },
+  "scum.SquadMemberCountAtIntLevel2": {
+    "ru": {
+      "label": "Размер отряда — Int 2",
+      "desc": "Максимальный размер отряда при Intelligence 2."
+    },
+    "de": {
+      "label": "Squadgröße — Int 2",
+      "desc": "Max. Squadgröße bei Intelligenz 2."
+    },
+    "fr": {
+      "label": "Taille escouade — Int 2",
+      "desc": "Taille max. d'escouade à Intelligence 2."
+    },
+    "it": {
+      "label": "Dim. Squadra — Int 2",
+      "desc": "Dim. massima squadra a Intelligence 2."
+    },
+    "ar": {
+      "label": "حجم الفرقة — Int 2",
+      "desc": "الحد الأقصى لحجم الفرقة عند Intelligence 2."
+    },
+    "az": {
+      "label": "Dəstə Ölçüsü — Int 2",
+      "desc": "Intelligence 2-də maksimum dəstə ölçüsü."
+    }
+  },
+  "scum.SquadMemberCountAtIntLevel3": {
+    "ru": {
+      "label": "Размер отряда — Int 3",
+      "desc": "Максимальный размер отряда при Intelligence 3."
+    },
+    "de": {
+      "label": "Squadgröße — Int 3",
+      "desc": "Max. Squadgröße bei Intelligenz 3."
+    },
+    "fr": {
+      "label": "Taille escouade — Int 3",
+      "desc": "Taille max. d'escouade à Intelligence 3."
+    },
+    "it": {
+      "label": "Dim. Squadra — Int 3",
+      "desc": "Dim. massima squadra a Intelligence 3."
+    },
+    "ar": {
+      "label": "حجم الفرقة — Int 3",
+      "desc": "الحد الأقصى لحجم الفرقة عند Intelligence 3."
+    },
+    "az": {
+      "label": "Dəstə Ölçüsü — Int 3",
+      "desc": "Intelligence 3-də maksimum dəstə ölçüsü."
+    }
+  },
+  "scum.SquadMemberCountAtIntLevel4": {
+    "ru": {
+      "label": "Размер отряда — Int 4",
+      "desc": "Максимальный размер отряда при Intelligence 4."
+    },
+    "de": {
+      "label": "Squadgröße — Int 4",
+      "desc": "Max. Squadgröße bei Intelligenz 4."
+    },
+    "fr": {
+      "label": "Taille escouade — Int 4",
+      "desc": "Taille max. d'escouade à Intelligence 4."
+    },
+    "it": {
+      "label": "Dim. Squadra — Int 4",
+      "desc": "Dim. massima squadra a Intelligence 4."
+    },
+    "ar": {
+      "label": "حجم الفرقة — Int 4",
+      "desc": "الحد الأقصى لحجم الفرقة عند Intelligence 4."
+    },
+    "az": {
+      "label": "Dəstə Ölçüsü — Int 4",
+      "desc": "Intelligence 4-də maksimum dəstə ölçüsü."
+    }
+  },
+  "scum.RenderScale": {
+    "ru": {
+      "label": "Масштаб рендера",
+      "desc": "Внутренний масштаб разрешения рендеринга (0.5-2.0)."
+    },
+    "de": {
+      "label": "Render-Skalierung",
+      "desc": "Interne Render-Auflösungsskalierung (0.5-2.0)."
+    },
+    "fr": {
+      "label": "Échelle de rendu",
+      "desc": "Échelle de résolution de rendu interne (0.5-2.0)."
+    },
+    "it": {
+      "label": "Scala Render",
+      "desc": "Scala risoluzione render interno (0.5-2.0)."
+    },
+    "ar": {
+      "label": "مقياس العرض",
+      "desc": "مقياس دقة العرض الداخلية (0.5-2.0)."
+    },
+    "az": {
+      "label": "Render Miqyası",
+      "desc": "Daxili render çözünürlük miqyası (0.5-2.0)."
+    }
+  },
+  "scum.MotionBlur": {
+    "ru": {
+      "label": "Размытие движения",
+      "desc": "0 = выкл, 1 = вкл."
+    },
+    "de": {
+      "label": "Bewegungsunschärfe",
+      "desc": "0 = aus, 1 = ein."
+    },
+    "fr": {
+      "label": "Flou de mouvement",
+      "desc": "0 = désactivé, 1 = activé."
+    },
+    "it": {
+      "label": "Motion Blur",
+      "desc": "0 = spento, 1 = acceso."
+    },
+    "ar": {
+      "label": "ضبابية الحركة",
+      "desc": "0 = إيقاف، 1 = تشغيل."
+    },
+    "az": {
+      "label": "Hərəkət Bulanıklığı",
+      "desc": "0 = söndürülmüş, 1 = aktiv."
+    }
+  },
+  "scum.ViewDistance": {
+    "ru": {
+      "label": "Дальность прорисовки",
+      "desc": "0 = низкая ... 3 = эпическая."
+    },
+    "de": {
+      "label": "Sichtweite",
+      "desc": "0 = niedrig ... 3 = episch."
+    },
+    "fr": {
+      "label": "Distance d'affichage",
+      "desc": "0 = faible ... 3 = épique."
+    },
+    "it": {
+      "label": "Distanza Visuale",
+      "desc": "0 = bassa ... 3 = epica."
+    },
+    "ar": {
+      "label": "مسافة الرؤية",
+      "desc": "0 = منخفض ... 3 = ملحمي."
+    },
+    "az": {
+      "label": "Görüş Məsafəsi",
+      "desc": "0 = aşağı ... 3 = epik."
+    }
+  },
+  "scum.FoliageQuality": {
+    "ru": {
+      "label": "Качество листвы",
+      "desc": "0 = низкое ... 3 = эпическое."
+    },
+    "de": {
+      "label": "Pflanzenqualität",
+      "desc": "0 = niedrig ... 3 = episch."
+    },
+    "fr": {
+      "label": "Qualité feuillage",
+      "desc": "0 = faible ... 3 = épique."
+    },
+    "it": {
+      "label": "Qualità Fogliame",
+      "desc": "0 = basso ... 3 = epico."
+    },
+    "ar": {
+      "label": "جودة أوراق الشجر",
+      "desc": "0 = منخفض ... 3 = ملحمي."
+    },
+    "az": {
+      "label": "Bitki Keyfiyyəti",
+      "desc": "0 = aşağı ... 3 = epik."
+    }
+  },
+  "scum.PostProcessingQuality": {
+    "ru": {
+      "label": "Постобработка",
+      "desc": "0 = низкая ... 3 = эпическая."
+    },
+    "de": {
+      "label": "Nachbearbeitung",
+      "desc": "0 = niedrig ... 3 = episch."
+    },
+    "fr": {
+      "label": "Post-traitement",
+      "desc": "0 = faible ... 3 = épique."
+    },
+    "it": {
+      "label": "Post-elaborazione",
+      "desc": "0 = basso ... 3 = epico."
+    },
+    "ar": {
+      "label": "المعالجة اللاحقة",
+      "desc": "0 = منخفض ... 3 = ملحمي."
+    },
+    "az": {
+      "label": "Post-İşləmə",
+      "desc": "0 = aşağı ... 3 = epik."
+    }
+  },
+  "scum.EffectsQuality": {
+    "ru": {
+      "label": "Качество эффектов",
+      "desc": "0 = низкое ... 3 = эпическое."
+    },
+    "de": {
+      "label": "Effektqualität",
+      "desc": "0 = niedrig ... 3 = episch."
+    },
+    "fr": {
+      "label": "Qualité effets",
+      "desc": "0 = faible ... 3 = épique."
+    },
+    "it": {
+      "label": "Qualità Effetti",
+      "desc": "0 = basso ... 3 = epico."
+    },
+    "ar": {
+      "label": "جودة المؤثرات",
+      "desc": "0 = منخفض ... 3 = ملحمي."
+    },
+    "az": {
+      "label": "Effekt Keyfiyyəti",
+      "desc": "0 = aşağı ... 3 = epik."
+    }
+  },
+  "scum.NudityCensoring": {
+    "ru": {
+      "label": "Цензура наготы",
+      "desc": "Цензура наготы на стороне клиента."
+    },
+    "de": {
+      "label": "Nacktheitszensur",
+      "desc": "Clientseitige Nacktheitszensur."
+    },
+    "fr": {
+      "label": "Censure nudité",
+      "desc": "Censure de la nudité côté client."
+    },
+    "it": {
+      "label": "Censura Nudità",
+      "desc": "Censura nudità lato client."
+    },
+    "ar": {
+      "label": "رقابة العري",
+      "desc": "رقابة العري من جانب العميل."
+    },
+    "az": {
+      "label": "Çılpaqlıq Sansoru",
+      "desc": "Client tərəfindən çılpaqlıq sansoru."
+    }
+  },
+  "scum.ShowSimpleTooltipOnHover": {
+    "ru": {
+      "label": "Простые подсказки",
+      "desc": "Показывать упрощенные подсказки при наведении."
+    },
+    "de": {
+      "label": "Einfache Tooltips",
+      "desc": "Vereinfachte Tooltips beim Überfahren anzeigen."
+    },
+    "fr": {
+      "label": "Infobulles simples",
+      "desc": "Afficher des infobulles simplifiées au survol."
+    },
+    "it": {
+      "label": "Tooltip Semplici",
+      "desc": "Mostra tooltip semplificati al passaggio del mouse."
+    },
+    "ar": {
+      "label": "تلميحات بسيطة",
+      "desc": "إظهار تلميحات مبسطة عند التمرير."
+    },
+    "az": {
+      "label": "Sadə İpuçları",
+      "desc": "Hover zamanı sadələşdirilmiş ipuçlarını göstər."
+    }
+  },
+  "scum.EnableDeena": {
+    "ru": {
+      "label": "Включить Deena",
+      "desc": "Включить ассистента Deena."
+    },
+    "de": {
+      "label": "Deena aktivieren",
+      "desc": "Deena-Assistent aktivieren."
+    },
+    "fr": {
+      "label": "Activer Deena",
+      "desc": "Activer l'assistant Deena."
+    },
+    "it": {
+      "label": "Abilita Deena",
+      "desc": "Abilita assistente Deena."
+    },
+    "ar": {
+      "label": "تمكين دينا",
+      "desc": "تمكين مساعد دينا."
+    },
+    "az": {
+      "label": "Deena-nı aktivləşdir",
+      "desc": "Deena köməkçisini aktivləşdir."
+    }
+  },
+  "scum.AutoStartFirstDeenaTask": {
+    "ru": {
+      "label": "Автозапуск задачи Deena",
+      "desc": "Автоматически начинать первую задачу Deena."
+    },
+    "de": {
+      "label": "Auto Deena-Aufgabe",
+      "desc": "Erste Deena-Aufgabe automatisch starten."
+    },
+    "fr": {
+      "label": "Tâche auto Deena",
+      "desc": "Démarrage automatique de la première tâche Deena."
+    },
+    "it": {
+      "label": "Auto Task Deena",
+      "desc": "Avvio automatico della prima task Deena."
+    },
+    "ar": {
+      "label": "مهمة دينا تلقائية",
+      "desc": "بدء أول مهمة دينا تلقائيًا."
+    },
+    "az": {
+      "label": "Avto Deena Tapşırığı",
+      "desc": "İlk Deena tapşırığını avtomatik başlat."
+    }
+  },
+  "scum.ShowAnnouncementMessages": {
+    "ru": {
+      "label": "Показывать объявления",
+      "desc": "Показывать внутриигровые объявления."
+    },
+    "de": {
+      "label": "Ankündigungen anzeigen",
+      "desc": "In-Game-Ankündigungen anzeigen."
+    },
+    "fr": {
+      "label": "Afficher annonces",
+      "desc": "Afficher les annonces en jeu."
+    },
+    "it": {
+      "label": "Mostra Annunci",
+      "desc": "Mostra annunci in gioco."
+    },
+    "ar": {
+      "label": "إظهار الإعلانات",
+      "desc": "إظهار الإعلانات داخل اللعبة."
+    },
+    "az": {
+      "label": "Elanları göstər",
+      "desc": "Oyun içi elanları göstər."
+    }
+  },
+  "scum.NametagMode": {
+    "ru": {
+      "label": "Режим именных меток",
+      "desc": "0 = выкл, 1 = только союзники, 2 = все."
+    },
+    "de": {
+      "label": "Nametag-Modus",
+      "desc": "0 = aus, 1 = nur Freunde, 2 = alle."
+    },
+    "fr": {
+      "label": "Mode étiquette",
+      "desc": "0 = désactivé, 1 = amis seulement, 2 = tous."
+    },
+    "it": {
+      "label": "Modalità Targhetta",
+      "desc": "0 = spento, 1 = solo amici, 2 = tutti."
+    },
+    "ar": {
+      "label": "وضع الاسم",
+      "desc": "0 = إيقاف، 1 = الأصدقاء فقط، 2 = الكل."
+    },
+    "az": {
+      "label": "Ad etiketi rejimi",
+      "desc": "0 = söndürülmüş, 1 = yalnız dostlar, 2 = hamı."
+    }
+  },
+  "scum.AimDownSightsMode": {
+    "ru": {
+      "label": "Режим ADS (удержание)",
+      "desc": "Удержание или переключение для прицеливания."
+    },
+    "de": {
+      "label": "ADS Haltemodus",
+      "desc": "Halten oder Umschalten zum Zielen."
+    },
+    "fr": {
+      "label": "Mode ADS (maintenir)",
+      "desc": "Maintenir vs basculer pour viser."
+    },
+    "it": {
+      "label": "Modalità ADS Tieni",
+      "desc": "Tieni o attiva/disattiva per mirare."
+    },
+    "ar": {
+      "label": "وضع ADS (الإمساك)",
+      "desc": "الإمساك مقابل التبديل للتصويب."
+    },
+    "az": {
+      "label": "ADS Tutma Rejimi",
+      "desc": "Nişan almaq üçün tutma və ya keçid."
+    }
+  },
+  "scum.MasterServerUpdateSendInterval": {
+    "ru": {
+      "label": "Синхр. мастер-сервера (s)",
+      "desc": "Секунды между обновлениями мастер-сервера."
+    },
+    "de": {
+      "label": "Master-Server-Sync (s)",
+      "desc": "Sekunden zwischen Master-Server-Updates."
+    },
+    "fr": {
+      "label": "Synchro serveur maître (s)",
+      "desc": "Secondes entre les mises à jour du serveur maître."
+    },
+    "it": {
+      "label": "Sincron. Master Server (s)",
+      "desc": "Secondi tra gli aggiornamenti del master server."
+    },
+    "ar": {
+      "label": "مزامنة الخادم الرئيسي (s)",
+      "desc": "الثواني بين تحديثات الخادم الرئيسي."
+    },
+    "az": {
+      "label": "Əsas Server Sinx (s)",
+      "desc": "Əsas server yeniləmələri arasında saniyələr."
+    }
+  },
+  "scum.LogoutTimerInBunker": {
+    "ru": {
+      "label": "Выход в бункере (s)",
+      "desc": "Увеличенный таймер выхода в бункерах."
+    },
+    "de": {
+      "label": "Logout im Bunker (s)",
+      "desc": "Verlängerter Logout-Timer in Bunkern."
+    },
+    "fr": {
+      "label": "Déconnexion en bunker (s)",
+      "desc": "Minuteur de déconnexion prolongé dans les bunkers."
+    },
+    "it": {
+      "label": "Logout in Bunker (s)",
+      "desc": "Timer di logout esteso nei bunker."
+    },
+    "ar": {
+      "label": "تسجيل الخروج في الملجأ (s)",
+      "desc": "مؤقت تسجيل الخروج الممتد في الملاجئ."
+    },
+    "az": {
+      "label": "Bunkerdə Çıxış (s)",
+      "desc": "Bunkerlərdə uzadılmış çıxış sayğacı."
+    }
+  },
+  "scum.HideKillNotification": {
+    "ru": {
+      "label": "Скрыть уведомление об убийстве",
+      "desc": "Не транслировать убийства в чат."
+    },
+    "de": {
+      "label": "Kill-Benachr. ausblenden",
+      "desc": "Tötungen nicht im Chat übertragen."
+    },
+    "fr": {
+      "label": "Masquer notif. élimination",
+      "desc": "Ne pas diffuser les éliminations au chat."
+    },
+    "it": {
+      "label": "Nascondi Notifica Uccisione",
+      "desc": "Non trasmettere le uccisioni in chat."
+    },
+    "ar": {
+      "label": "إخفاء إشعار القتل",
+      "desc": "عدم بث عمليات القتل في الدردشة."
+    },
+    "az": {
+      "label": "Öldürmə Bildirişini Gizlə",
+      "desc": "Öldürmələri çata yayma."
+    }
+  },
+  "scum.DisableExamineGhost": {
+    "ru": {
+      "label": "Отключить призрак осмотра",
+      "desc": "Отключить призрачный вид осматриваемых предметов."
+    },
+    "de": {
+      "label": "Untersuchungs-Geist aus",
+      "desc": "Geist-Ansicht untersuchter Gegenstände deaktivieren."
+    },
+    "fr": {
+      "label": "Désactiver fantôme examen",
+      "desc": "Désactiver la vue fantôme des objets examinés."
+    },
+    "it": {
+      "label": "Disabilita Fantasma Esame",
+      "desc": "Disabilita vista fantasma degli oggetti esaminati."
+    },
+    "ar": {
+      "label": "تعطيل شبح الفحص",
+      "desc": "تعطيل عرض الشبح للعناصر المفحوصة."
+    },
+    "az": {
+      "label": "Təftiş Kabusunu Söndür",
+      "desc": "Təftiş edilmiş əşyaların kabus görünüşünü söndür."
+    }
+  },
+  "scum.LogSuicides": {
+    "ru": {
+      "label": "Лог суицидов",
+      "desc": "Записывать события самоубийств в лог сервера."
+    },
+    "de": {
+      "label": "Suizide protokollieren",
+      "desc": "Suizid-Ereignisse im Server-Log speichern."
+    },
+    "fr": {
+      "label": "Journal suicides",
+      "desc": "Écrire les événements de suicide dans le journal du serveur."
+    },
+    "it": {
+      "label": "Log Suicidi",
+      "desc": "Scrivi eventi di suicidio nel log del server."
+    },
+    "ar": {
+      "label": "سجل حالات الانتحار",
+      "desc": "كتابة أحداث الانتحار في سجل الخادم."
+    },
+    "az": {
+      "label": "Özünüöldürmələri Log et",
+      "desc": "Özünüöldürmə hadisələrini server loguna yaz."
+    }
+  },
+  "scum.EnableSpawnOnGround": {
+    "ru": {
+      "label": "Спаун на земле",
+      "desc": "Разрешить начальное появление на земле."
+    },
+    "de": {
+      "label": "Boden-Spawn",
+      "desc": "Bodenbasiertes initiales Spawning erlauben."
+    },
+    "fr": {
+      "label": "Spawn au sol",
+      "desc": "Autoriser l'apparition initiale au sol."
+    },
+    "it": {
+      "label": "Spawn a Terra",
+      "desc": "Consenti spawn iniziale basato a terra."
+    },
+    "ar": {
+      "label": "الظهور على الأرض",
+      "desc": "السماح بالظهور الأولي على الأرض."
+    },
+    "az": {
+      "label": "Yerdə Spawn",
+      "desc": "İlkin yerdə spawn olmağa icazə ver."
+    }
+  }
+}

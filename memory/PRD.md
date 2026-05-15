@@ -46,6 +46,9 @@ Electron-based desktop server manager for SCUM game. On first launch: ask user t
 - Schema cleanup: removed `client` section + client_mouse/video/graphics/sound; moved `client_game` under `gameplay`
 
 ## Recent Changes
+- **2026-02 (v1.0.8 — full i18n coverage)**:
+  1. **`fieldMeta.js` deep translation completed**: All 217 SCUM setting labels + descriptions now have full translations for all 8 supported languages (EN, TR, RU, DE, FR, IT, AR, AZ). Previously only the first 9 entries had RU/DE/FR/IT/AR/AZ; remaining 208 fell back to English.
+  2. **Translation pipeline**: Added `/app/scripts/translate_field_meta.py` — a re-usable batch translator that parses `fieldMeta.js`, sends untranslated entries to Claude/Gemini via Emergent LLM Key (configurable provider + model), caches progress per-batch to `.fieldmeta_cache.json` so partial failures don't lose work, then re-emits the JS file with 8 languages per entry. Used `gemini-2.5-flash` for the bulk run (Anthropic budget was exhausted mid-run; the cache + provider switch made resumption trivial).
 - **2026-02 (v1.0.7 — admin UX polish)**:
   1. **Open Server Folder button**: New `FolderOpen` icon next to the server switcher in `ServerDashboard.jsx`. Calls new `POST /api/servers/{id}/open-folder` which spawns `explorer.exe "<path>"` (Windows), `open` (macOS), or `xdg-open` (Linux). Disabled when server has no `folder_path` yet.
   2. **Section header source-file badge moved**: `Collapsible.jsx` now renders the `server_settings` / `gameusersettings` source-file label on the **right side**, dimmed (opacity-50), hidden on mobile. Cleaner heading hierarchy — title left, optional metadata right.
@@ -68,6 +71,7 @@ Electron-based desktop server manager for SCUM game. On first launch: ask user t
 
 ### P2
 - "Load Preset" for Configs (Vanilla/Max Loot/Custom Traders templates).
+- Player Leaderboards (Top Richest / Most Active) using `scum_logs.py` parsers.
 
 ### Refactoring
 - `server.py` (~2400 lines) — split into `/app/backend/routes/`.

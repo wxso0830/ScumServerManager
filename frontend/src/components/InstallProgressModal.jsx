@@ -12,7 +12,7 @@ import { useI18n } from "../providers/I18nProvider";
  *  - onClose: () => void
  *  - onDone: (success:boolean) => void   // parent refetches server state
  */
-export const InstallProgressModal = ({ open, server, onClose, onDone }) => {
+export const InstallProgressModal = ({ open, server, onClose, onDone, mode = "install" }) => {
   const { t } = useI18n();
   const [state, setState] = useState({ percent: 0, phase: "starting", running: true, log_tail: "", error: null });
   const logRef = useRef(null);
@@ -55,7 +55,9 @@ export const InstallProgressModal = ({ open, server, onClose, onDone }) => {
           <div className="flex items-center gap-2">
             <Download size={15} className="text-accent-brand" />
             <div>
-              <div className="label-accent leading-none">{t("install_server") || "INSTALL"}</div>
+              <div className="label-accent leading-none">
+                {mode === "update" ? (t("update_server") || "UPDATE") : (t("install_server") || "INSTALL")}
+              </div>
               <h3 className="heading-stencil text-base mt-1">{server.name}</h3>
             </div>
           </div>
@@ -104,7 +106,11 @@ export const InstallProgressModal = ({ open, server, onClose, onDone }) => {
           {finished && success && (
             <div className="flex items-center gap-2 text-sm" style={{ color: "var(--success)" }}>
               <CheckCircle2 size={16} />
-              <span>Kurulum tamamlandı — sunucu başlatılmaya hazır.</span>
+              <span>
+                {mode === "update"
+                  ? (t("toast_update_done") || "Update complete — server ready to start.")
+                  : (t("install_complete_msg") || "Install complete — server ready to start.")}
+              </span>
             </div>
           )}
           {finished && hasError && (

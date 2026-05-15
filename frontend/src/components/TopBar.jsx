@@ -4,7 +4,7 @@ import {
   RotateCcw, Activity, Server, HardDrive, Terminal, LayoutDashboard, SlidersHorizontal, ScrollText, Users, Archive,
 } from "lucide-react";
 import { useTheme } from "../providers/ThemeProvider";
-import { useI18n } from "../providers/I18nProvider";
+import { useI18n, LANG_META } from "../providers/I18nProvider";
 import { endpoints } from "../lib/api";
 import { ConfirmModal } from "./ConfirmModal";
 
@@ -64,13 +64,18 @@ export const TopBar = ({
         {/* Brand */}
         <div className="flex items-center gap-3 pr-6 mr-6 border-r border-brand">
           <div
-            className="h-12 w-12 relative flex items-center justify-center"
+            className="h-12 w-12 relative overflow-hidden flex items-center justify-center bg-bg-deep"
             style={{
-              background: "linear-gradient(135deg, var(--accent) 0%, var(--accent-hover) 100%)",
               clipPath: "polygon(10% 0, 100% 0, 90% 100%, 0 100%)",
+              border: "1px solid var(--accent)",
             }}
           >
-            <Terminal size={20} style={{ color: "#0A0A0C" }} strokeWidth={2.5} />
+            <img
+              src="/icon.png"
+              alt="LGSS"
+              className="h-full w-full object-cover"
+              draggable="false"
+            />
           </div>
           <div className="leading-none">
             <div className="font-mono text-[9px] tracking-[0.3em] text-muted">LEGENDARY GAMING</div>
@@ -78,7 +83,7 @@ export const TopBar = ({
               SCUM SERVER MANAGER
             </div>
             <div className="font-mono text-[9px] tracking-[0.22em] text-accent-brand mt-1">
-              v1.0.3
+              v1.0.4
             </div>
           </div>
         </div>
@@ -160,16 +165,19 @@ export const TopBar = ({
               <Languages size={17} />
             </button>
             <Popover open={langOpen} onClose={() => setLangOpen(false)}>
-              <div className="p-1">
+              <div className="p-1 max-h-[360px] overflow-y-auto scrollbar-thin">
                 <div className="label-accent px-3 py-2">{t("language")}</div>
-                {[["en", "English"], ["tr", "Türkçe"]].map(([code, label]) => (
+                {Object.entries(LANG_META).map(([code, meta]) => (
                   <button
                     key={code}
                     onClick={() => { setLang(code); setLangOpen(false); }}
                     data-testid={`lang-option-${code}`}
                     className="w-full flex items-center justify-between px-3 py-2 text-sm hover:bg-surface-2 transition-colors font-display uppercase tracking-wider text-xs"
                   >
-                    <span className="text-brand">{label}</span>
+                    <span className="flex items-center gap-2.5">
+                      <span className="text-base leading-none">{meta.flag}</span>
+                      <span className="text-brand normal-case">{meta.label}</span>
+                    </span>
                     {lang === code && <Check size={14} className="text-accent-brand" />}
                   </button>
                 ))}

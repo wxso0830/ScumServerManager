@@ -32,7 +32,7 @@ export const AutomationEditor = ({ server, onChange, mode = "both" }) => {
   const [draft, setDraft] = useState({
     enabled: !!automation.enabled,
     restart_times: [...(automation.restart_times || [])],
-    pre_warning_minutes: [...(automation.pre_warning_minutes || [15, 10, 5, 4, 3, 2, 1])],
+    pre_warning_minutes: [...(automation.pre_warning_minutes || [15, 10, 5])],
     final_message_duration: automation.final_message_duration ?? 10,
     auto_update_enabled: !!automation.auto_update_enabled,
     update_check_interval_min: automation.update_check_interval_min ?? 360,

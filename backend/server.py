@@ -103,7 +103,7 @@ class ServerProfile(BaseModel):
     automation: Dict[str, Any] = Field(default_factory=lambda: {
         "enabled": False,
         "restart_times": [],          # ["06:00", "12:00", "18:00", "00:00"]
-        "pre_warning_minutes": [15, 10, 5, 4, 3, 2, 1],
+        "pre_warning_minutes": [15, 10, 5],
         "final_message_duration": 10,
         "auto_update_enabled": False,
         "update_check_interval_min": 360,  # 6 hours default per user preference
@@ -162,7 +162,7 @@ def default_scum_settings() -> Dict[str, Any]:
 # ---------- ENDPOINTS ----------
 @api_router.get("/")
 async def root():
-    return {"service": "LGSS SCUM Server Manager", "version": "1.0.3"}
+    return {"service": "LGSS SCUM Server Manager", "version": "1.0.4"}
 
 
 _PUBLIC_IP_CACHE = {"ts": 0, "ip": None}
@@ -783,7 +783,7 @@ async def _schedule_graceful_update(server_id: str, server_doc: Dict[str, Any], 
         # Match the default offsets when possible. Custom update messages the
         # admin wrote stay usable because we re-stamp only transient copies.
     }
-    OFFSETS = [15, 10, 5, 4, 3, 2, 1]
+    OFFSETS = [15, 10, 5]  # 15/10/5 min countdown — was [15,10,5,4,3,2,1] which spammed chat
     for m in OFFSETS:
         fire_at = target - timedelta(minutes=m)
         # Only include offsets that are in the future
@@ -920,7 +920,7 @@ async def server_post_install(server_id: str):
         # Seed with sane template mirroring the user's own config pattern
         settings["notifications"] = _generate_notifications_from_schedule({
             "restart_times": ["06:00", "18:00"],
-            "pre_warning_minutes": [15, 10, 5, 4, 3, 2, 1],
+            "pre_warning_minutes": [15, 10, 5],
             "final_message_duration": 10,
         })
         await db.servers.update_one({"id": server_id}, {"$set": {"settings": settings}})
@@ -1973,7 +1973,7 @@ async def first_boot_result(server_id: str):
 
 
 # ---------- MANAGER VERSION / SELF-UPDATE ----------
-CURRENT_MANAGER_VERSION = "1.0.3"
+CURRENT_MANAGER_VERSION = "1.0.4"
 LATEST_MANAGER_VERSION_KEY = "manager-latest-version"
 
 
@@ -2616,6 +2616,29 @@ async def _tick_scheduler():
 
                 # --- Pending graceful update: execute when target reached ---
                 pending = s.get("pending_update_at")
+                # Defensive cleanup: if there's no pending update but stale
+                # "_transient_update" notifications are still sitting in the
+                # settings doc / Notifications.json, strip them. Without this,
+                # SCUM keeps broadcasting "A new version is available... in 5
+                # minutes" every day at the same time (because the notifs are
+                # written with day="Everyday" — SCUM can't express "one-shot").
+                # Reported by user 2026-02: chat was spammed with stale update
+                # countdowns every day even though no update was happening.
+                if not pending:
+                    cur_notifs = (s.get("settings") or {}).get("notifications") or []
+                    stale = [n for n in cur_notifs if isinstance(n, dict) and n.get("_transient_update")]
+                    if stale:
+                        clean_notifs = [n for n in cur_notifs if not (isinstance(n, dict) and n.get("_transient_update"))]
+                        clean_settings = {**(s.get("settings") or {}), "notifications": clean_notifs}
+                        await db.servers.update_one(
+                            {"id": sid}, {"$set": {"settings": clean_settings}},
+                        )
+                        try:
+                            if s.get("folder_path"):
+                                save_notifications_to_disk(s["folder_path"], clean_notifs)
+                        except Exception as e:
+                            logger.info("stale update-notification cleanup write failed: %s", e)
+                        logger.warning("Removed %d stale _transient_update notifications from %s", len(stale), s.get("name"))
                 if pending:
                     try:
                         target = datetime.fromisoformat(pending)

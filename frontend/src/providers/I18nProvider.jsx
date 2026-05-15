@@ -374,6 +374,14 @@ const translations = {
     col_gold: "Altın",
     col_playtime: "Toplam Süre",
     col_kd_ratio: "K/D Oranı",
+    en_panel_launch_args_title: "BAŞLATMA SEÇENEKLERİ",
+    en_panel_launch_args_intro: "Gelişmiş kullanıcılar başlatma seçeneklerinde değişiklikler yapabilir. Buraya yazdığınız argümanlar SCUMServer.exe'ye -log ile birlikte aktarılır. Mod yüklemek, özel bayraklar veya .ini geçersiz kılmaları için kullanılır.",
+    en_panel_launch_args_running_warn: "Sunucu çalışıyor. Değişiklik bir sonraki başlatmada etkili olur.",
+    en_panel_launch_args_hint: "Boşlukla ayrılmış argümanlar · Tırnak içindeki değerler tek argüman olarak işlenir",
+    en_panel_launch_args_preview: "Tam Komut",
+    en_panel_launch_args_save: "Kaydet",
+    en_panel_launch_args_saving: "Kaydediliyor...",
+    en_panel_launch_args_saved: "Başlatma seçenekleri kaydedildi",
     activity_chart: "AKTİVİTE GRAFİĞİ",
     activity_chart_empty: "Sunucu çalışırken her 5 dakikada bir örnek kaydedilir. İlk veriler birkaç dakika içinde görünecek.",
     peak: "Zirve",
@@ -858,6 +866,14 @@ const translations = {
     col_gold: "Gold",
     col_playtime: "Total Time",
     col_kd_ratio: "K/D Ratio",
+    en_panel_launch_args_title: "LAUNCH OPTIONS",
+    en_panel_launch_args_intro: "Advanced users can change launch options. Arguments you type here are passed to SCUMServer.exe alongside -log. Use this for mod ids, custom flags, or .ini overrides.",
+    en_panel_launch_args_running_warn: "Server is running. Changes take effect on the next start.",
+    en_panel_launch_args_hint: "Space-separated arguments · Quoted values are treated as one argument",
+    en_panel_launch_args_preview: "Full Command",
+    en_panel_launch_args_save: "Save",
+    en_panel_launch_args_saving: "Saving...",
+    en_panel_launch_args_saved: "Launch options saved",
     activity_chart: "ACTIVITY CHART",
     activity_chart_empty: "A sample is recorded every 5 minutes while the server is running. First data will appear in a few minutes.",
     peak: "Peak",
@@ -969,17 +985,131 @@ const translations = {
     admin_not_confirmed: "Running in standard mode",
     disk_picker_info: "Disks with less than {gb} GB free space are disabled.",
   },
+
+  // ====================== Additional language packs ======================
+  // Minimal coverage: navigation, action buttons, top-bar, common labels.
+  // Anything missing falls back to English automatically (see `t()` below).
+  // To extend a language: copy keys from `translations.en` and translate them.
+  ru: {
+    nav_dashboard: "Панель", nav_configs: "Настройки", nav_players: "Игроки",
+    nav_logs: "Логи", nav_backups: "Резервные копии",
+    start: "Запуск", stop: "Остановить", restart: "Перезапуск",
+    install_server: "Установить", installing: "Установка...",
+    update_server: "Обновить", running: "Работает", stopped: "Остановлен",
+    starting_all: "Запуск всех", stop_all: "Остановить все", restart_all: "Перезапустить все",
+    updating_all: "Обновление всех", action_grid: "ПАНЕЛЬ ДЕЙСТВИЙ",
+    settings: "Настройки", language: "Язык", theme: "Тема",
+    save: "Сохранить", cancel: "Отмена", delete: "Удалить",
+    confirm_delete_title: "Удалить сервер?", confirm_yes_delete: "Да, удалить",
+    activity_chart: "ГРАФИК АКТИВНОСТИ", peak: "Пик", avg: "Средн", loading: "Загрузка...",
+  },
+  de: {
+    nav_dashboard: "Übersicht", nav_configs: "Einstellungen", nav_players: "Spieler",
+    nav_logs: "Protokolle", nav_backups: "Sicherungen",
+    start: "Starten", stop: "Stoppen", restart: "Neustart",
+    install_server: "Installieren", installing: "Installiere...",
+    update_server: "Aktualisieren", running: "Läuft", stopped: "Gestoppt",
+    starting_all: "Alle Starten", stop_all: "Alle Stoppen", restart_all: "Alle Neustarten",
+    updating_all: "Alle Aktualisieren", action_grid: "AKTIONEN",
+    settings: "Einstellungen", language: "Sprache", theme: "Design",
+    save: "Speichern", cancel: "Abbrechen", delete: "Löschen",
+    confirm_delete_title: "Server löschen?", confirm_yes_delete: "Ja, löschen",
+    activity_chart: "AKTIVITÄTSDIAGRAMM", peak: "Spitze", avg: "Schnitt", loading: "Lädt...",
+  },
+  fr: {
+    nav_dashboard: "Tableau de bord", nav_configs: "Paramètres", nav_players: "Joueurs",
+    nav_logs: "Journaux", nav_backups: "Sauvegardes",
+    start: "Démarrer", stop: "Arrêter", restart: "Redémarrer",
+    install_server: "Installer", installing: "Installation...",
+    update_server: "Mettre à jour", running: "En cours", stopped: "Arrêté",
+    starting_all: "Tout démarrer", stop_all: "Tout arrêter", restart_all: "Tout redémarrer",
+    updating_all: "Tout mettre à jour", action_grid: "ACTIONS",
+    settings: "Paramètres", language: "Langue", theme: "Thème",
+    save: "Enregistrer", cancel: "Annuler", delete: "Supprimer",
+    confirm_delete_title: "Supprimer le serveur ?", confirm_yes_delete: "Oui, supprimer",
+    activity_chart: "GRAPHIQUE D'ACTIVITÉ", peak: "Pic", avg: "Moy", loading: "Chargement...",
+  },
+  it: {
+    nav_dashboard: "Pannello", nav_configs: "Impostazioni", nav_players: "Giocatori",
+    nav_logs: "Registri", nav_backups: "Backup",
+    start: "Avvia", stop: "Ferma", restart: "Riavvia",
+    install_server: "Installa", installing: "Installazione...",
+    update_server: "Aggiorna", running: "In esecuzione", stopped: "Fermato",
+    starting_all: "Avvia tutti", stop_all: "Ferma tutti", restart_all: "Riavvia tutti",
+    updating_all: "Aggiorna tutti", action_grid: "AZIONI",
+    settings: "Impostazioni", language: "Lingua", theme: "Tema",
+    save: "Salva", cancel: "Annulla", delete: "Elimina",
+    confirm_delete_title: "Eliminare server?", confirm_yes_delete: "Sì, elimina",
+    activity_chart: "GRAFICO ATTIVITÀ", peak: "Picco", avg: "Med", loading: "Caricamento...",
+  },
+  ar: {
+    nav_dashboard: "لوحة التحكم", nav_configs: "الإعدادات", nav_players: "اللاعبون",
+    nav_logs: "السجلات", nav_backups: "النسخ الاحتياطية",
+    start: "تشغيل", stop: "إيقاف", restart: "إعادة تشغيل",
+    install_server: "تثبيت", installing: "جاري التثبيت...",
+    update_server: "تحديث", running: "قيد التشغيل", stopped: "متوقف",
+    starting_all: "تشغيل الكل", stop_all: "إيقاف الكل", restart_all: "إعادة تشغيل الكل",
+    updating_all: "تحديث الكل", action_grid: "لوحة الإجراءات",
+    settings: "الإعدادات", language: "اللغة", theme: "السمة",
+    save: "حفظ", cancel: "إلغاء", delete: "حذف",
+    confirm_delete_title: "حذف الخادم؟", confirm_yes_delete: "نعم، احذف",
+    activity_chart: "مخطط النشاط", peak: "الذروة", avg: "متوسط", loading: "جاري التحميل...",
+  },
+  az: {
+    nav_dashboard: "İdarə paneli", nav_configs: "Tənzimləmələr", nav_players: "Oyunçular",
+    nav_logs: "Loglar", nav_backups: "Ehtiyat nüsxələr",
+    start: "Başlat", stop: "Dayandır", restart: "Yenidən başlat",
+    install_server: "Quraşdır", installing: "Quraşdırılır...",
+    update_server: "Yenilə", running: "İşləyir", stopped: "Dayandı",
+    starting_all: "Hamısını başlat", stop_all: "Hamısını dayandır", restart_all: "Hamısını yenidən başlat",
+    updating_all: "Hamısını yenilə", action_grid: "ƏMƏLİYYAT PANELİ",
+    settings: "Tənzimləmələr", language: "Dil", theme: "Tema",
+    save: "Yadda saxla", cancel: "Ləğv et", delete: "Sil",
+    confirm_delete_title: "Serveri sil?", confirm_yes_delete: "Bəli, sil",
+    activity_chart: "FƏALİYYƏT QRAFİKİ", peak: "Pik", avg: "Orta", loading: "Yüklənir...",
+  },
+};
+
+// Display metadata for the language picker. Keys must match `translations`.
+export const LANG_META = {
+  en: { label: "English",   flag: "🇬🇧", dir: "ltr" },
+  tr: { label: "Türkçe",    flag: "🇹🇷", dir: "ltr" },
+  ru: { label: "Русский",   flag: "🇷🇺", dir: "ltr" },
+  de: { label: "Deutsch",   flag: "🇩🇪", dir: "ltr" },
+  fr: { label: "Français",  flag: "🇫🇷", dir: "ltr" },
+  it: { label: "Italiano",  flag: "🇮🇹", dir: "ltr" },
+  ar: { label: "العربية",   flag: "🇸🇦", dir: "rtl" },
+  az: { label: "Azərbaycan", flag: "🇦🇿", dir: "ltr" },
 };
 
 const I18nContext = createContext(null);
 
 export const I18nProvider = ({ children }) => {
-  const [lang, setLang] = useState(() => localStorage.getItem("lgss.lang") || "en");
-  useEffect(() => { localStorage.setItem("lgss.lang", lang); }, [lang]);
+  // Default to English. Users can still pick Turkish (or any other language)
+  // from the language menu — their choice is persisted in localStorage.
+  const [lang, setLang] = useState(() => {
+    const saved = localStorage.getItem("lgss.lang");
+    if (saved && translations[saved]) return saved;
+    return "en";
+  });
+  useEffect(() => {
+    localStorage.setItem("lgss.lang", lang);
+    // Reflect text direction (RTL for Arabic) on <html> so layout flips
+    // naturally without each component re-implementing dir handling.
+    const dir = LANG_META[lang]?.dir || "ltr";
+    document.documentElement.setAttribute("dir", dir);
+    document.documentElement.setAttribute("lang", lang);
+  }, [lang]);
 
   const t = (key, vars = {}) => {
-    const dict = translations[lang] || translations.tr;
-    let s = dict[key] || key;
+    const dict = translations[lang] || translations.en;
+    // Two-step lookup: requested language first, then English fallback.
+    // This is what lets us ship Russian/German/etc. with partial coverage —
+    // anything we haven't translated yet still renders (in English) instead
+    // of dumping the raw `key` string into the UI.
+    let s = dict[key];
+    if (s === undefined) s = translations.en[key];
+    if (s === undefined) s = key;
     Object.entries(vars).forEach(([k, v]) => { s = s.replace(`{${k}}`, String(v)); });
     return s;
   };

@@ -268,6 +268,17 @@ export const DashboardView = ({ servers, managerPath, onAdd, onOpen, onChange, o
         onClose={() => setInstallTarget(null)}
         onDone={handleInstallDone}
       />
+
+      {/* Same SteamCMD progress UI, reused for updates. The component itself
+          polls /install/progress — backend writes update progress to the same
+          REGISTRY slot, so a single modal handles both flows. */}
+      <InstallProgressModal
+        open={!!updateTarget}
+        server={updateTarget}
+        mode="update"
+        onClose={() => setUpdateTarget(null)}
+        onDone={handleUpdateDone}
+      />
     </div>
   );
 };

@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { Terminal, Save, AlertTriangle, Info } from "lucide-react";
 import { endpoints } from "../lib/api";
 import { toast } from "sonner";
+import { useI18n } from "../providers/I18nProvider";
 
 /**
  * LaunchArgsPanel — admin-supplied SCUMServer.exe extra command-line args.
@@ -11,6 +12,7 @@ import { toast } from "sonner";
  * Used for mod ids, custom Unreal flags, ini overrides, etc.
  */
 export const LaunchArgsPanel = ({ server, onSaved }) => {
+  const { t } = useI18n();
   const [val, setVal] = useState(server.launch_args || "");
   const [saving, setSaving] = useState(false);
   const [dirty, setDirty] = useState(false);
@@ -26,7 +28,7 @@ export const LaunchArgsPanel = ({ server, onSaved }) => {
       const updated = await endpoints.updateServerLaunchArgs(server.id, val);
       onSaved?.(updated);
       setDirty(false);
-      toast.success("Başlatma seçenekleri kaydedildi");
+      toast.success(t("en_panel_launch_args_saved"));
     } catch (e) {
       toast.error(e.response?.data?.detail || e.message);
     } finally {
@@ -43,20 +45,17 @@ export const LaunchArgsPanel = ({ server, onSaved }) => {
     <div className="space-y-4 pt-2" data-testid="launch-args-panel">
       <div className="flex items-center gap-2 border-b border-brand pb-2">
         <Terminal size={13} className="text-accent-brand" />
-        <span className="label-accent">BAŞLATMA SEÇENEKLERİ</span>
+        <span className="label-accent">{t("en_panel_launch_args_title")}</span>
       </div>
 
       <p className="font-mono text-[11px] text-dim leading-relaxed">
-        Gelişmiş kullanıcılar başlatma seçeneklerinde değişiklikler yapabilir. Buraya
-        yazdığınız argümanlar SCUMServer.exe&apos;ye <span className="text-brand">-log</span>{" "}
-        ile birlikte aktarılır. Mod yüklemek, özel bayraklar veya .ini geçersiz kılmaları
-        için kullanılır.
+        {t("en_panel_launch_args_intro")}
       </p>
 
       {isRunning && (
         <div className="flex items-center gap-2 text-[11px] font-mono border border-warning/40 bg-warning/5 px-3 py-2" style={{ color: "var(--warning)" }}>
           <AlertTriangle size={13} />
-          <span>Sunucu çalışıyor. Değişiklik bir sonraki başlatmada etkili olur.</span>
+          <span>{t("en_panel_launch_args_running_warn")}</span>
         </div>
       )}
 
@@ -72,7 +71,7 @@ export const LaunchArgsPanel = ({ server, onSaved }) => {
         />
         <div className="flex items-center justify-between mt-1">
           <p className="font-mono text-[10px] text-dim">
-            Boşlukla ayrılmış argümanlar · Tırnak içindeki değerler tek argüman olarak işlenir
+            {t("en_panel_launch_args_hint")}
           </p>
           <span className="font-mono text-[10px] text-muted">{val.length}/2000</span>
         </div>
@@ -82,7 +81,7 @@ export const LaunchArgsPanel = ({ server, onSaved }) => {
       <div className="border border-brand bg-bg-deep px-3 py-2">
         <div className="flex items-center gap-2 mb-1">
           <Info size={11} className="text-accent-brand" />
-          <span className="label-overline">Tam Komut</span>
+          <span className="label-overline">{t("en_panel_launch_args_preview")}</span>
         </div>
         <div className="font-mono text-[11px] text-dim leading-relaxed break-all">
           <span className="text-brand">SCUMServer.exe</span>{" "}
@@ -104,7 +103,7 @@ export const LaunchArgsPanel = ({ server, onSaved }) => {
           className="btn-primary px-4 py-2 flex items-center gap-2 shrink-0"
           data-testid="save-launch-args-btn"
         >
-          <Save size={13} /> {saving ? "Kaydediliyor..." : "Kaydet"}
+          <Save size={13} /> {saving ? t("en_panel_launch_args_saving") : t("en_panel_launch_args_save")}
         </button>
       </div>
     </div>

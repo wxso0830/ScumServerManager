@@ -46,6 +46,10 @@ Electron-based desktop server manager for SCUM game. On first launch: ask user t
 - Schema cleanup: removed `client` section + client_mouse/video/graphics/sound; moved `client_game` under `gameplay`
 
 ## Recent Changes
+- **2026-02 (v1.0.11 — TopBar polish)**:
+  1. **Theme picker is now a centered modal**: Matches the language picker UX (full-screen overlay with backdrop, sticky header, close X, color-swatch preview next to each name). Previous popover-dropdown was clipped near the viewport edge and could only fit ~3 items visibly.
+  2. **All 8 themes now show with proper names**: `themeLabels` in `TopBar.jsx` was missing entries for `neon-grid`, `blood-moon`, `arctic`, `carbon` — they rendered as empty rows. Added full mapping plus a `themeSwatches` palette so each theme shows a 3-color preview chip (accent/surface/text) before selection.
+  3. **"Download Update" button no longer looks dim/disabled**: The `update-btn-pulse` animation was overriding the solid accent background with `background-color: transparent` during the pulse cycle — that wiped `btn-primary`'s orange fill, making the button look hollow. Rewrote the keyframes to pulse via `box-shadow` + `filter: brightness()` only, preserving the solid background. Renamed keyframe `update-btn-pulse-glow` (class name unchanged).
 - **2026-02 (v1.0.10 — real restart + pre-stop backup)**:
   1. **Auto-restart / Restart / Stop now actually controls the process**: Previously these endpoints only mutated the DB `status` field — the SCUMServer.exe was never killed/respawned. Refactored into three shared helpers in `server.py`:
      - `_do_pre_stop_backup(server_id, doc, backup_type)` — best-effort SaveFiles snapshot via `scum_backup.create_backup`. Never raises.

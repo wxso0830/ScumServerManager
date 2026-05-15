@@ -14,6 +14,23 @@ const themeLabels = {
   bunker: "theme_bunker",
   ghost: "theme_ghost",
   wastelander: "theme_wastelander",
+  "neon-grid": "theme_neon-grid",
+  "blood-moon": "theme_blood-moon",
+  arctic: "theme_arctic",
+  carbon: "theme_carbon",
+};
+
+// Small color swatches so users can preview a theme before applying it.
+// Keys match THEMES in ThemeProvider. Each entry is [accent, surface, text].
+const themeSwatches = {
+  blacksite:    ["#ff8a2b", "#1a1410", "#f4e9d8"],
+  bunker:       ["#e85d2f", "#161210", "#f0dec7"],
+  ghost:        ["#60a5fa", "#0e131a", "#dde7f2"],
+  wastelander:  ["#d4a23d", "#1c1815", "#ecdcc1"],
+  "neon-grid":  ["#00ffd5", "#0a0f1a", "#c9faff"],
+  "blood-moon": ["#dc2626", "#120808", "#f4d6d6"],
+  arctic:       ["#7dd3fc", "#0d1b22", "#dff3fb"],
+  carbon:       ["#a3a3a3", "#0b0b0d", "#e5e5e5"],
 };
 
 const Popover = ({ open, onClose, children }) => {
@@ -138,22 +155,46 @@ export const TopBar = ({
             >
               <Palette size={17} />
             </button>
-            <Popover open={themeOpen} onClose={() => setThemeOpen(false)}>
-              <div className="p-1">
-                <div className="label-accent px-3 py-2">{t("theme")}</div>
-                {themes.map((tKey) => (
-                  <button
-                    key={tKey}
-                    onClick={() => { setTheme(tKey); setThemeOpen(false); }}
-                    data-testid={`theme-option-${tKey}`}
-                    className="w-full flex items-center justify-between px-3 py-2 text-sm hover:bg-surface-2 transition-colors font-display uppercase tracking-wider text-xs"
-                  >
-                    <span className="text-brand">{t(themeLabels[tKey])}</span>
-                    {theme === tKey && <Check size={14} className="text-accent-brand" />}
-                  </button>
-                ))}
+            {/* Center modal — same UX as the language picker for consistency
+                and so the list never gets clipped against the viewport edge. */}
+            {themeOpen && (
+              <div className="fixed inset-0 z-[100] flex items-center justify-center" data-testid="theme-modal">
+                <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={() => setThemeOpen(false)} />
+                <div className="relative bg-surface border border-accent-brand shadow-2xl w-[360px] max-w-[92vw] max-h-[80vh] overflow-y-auto scrollbar-thin corner-brackets">
+                  <div className="label-accent px-4 py-3 border-b border-brand sticky top-0 bg-surface flex items-center justify-between">
+                    <span>{t("theme")}</span>
+                    <button onClick={() => setThemeOpen(false)} className="text-dim hover:text-brand" data-testid="theme-modal-close">
+                      <X size={14} />
+                    </button>
+                  </div>
+                  <div className="p-1">
+                    {themes.map((tKey) => {
+                      const sw = themeSwatches[tKey] || ["#888", "#222", "#eee"];
+                      const active = theme === tKey;
+                      return (
+                        <button
+                          key={tKey}
+                          onClick={() => { setTheme(tKey); setThemeOpen(false); }}
+                          data-testid={`theme-option-${tKey}`}
+                          className={`w-full flex items-center justify-between px-4 py-3 text-sm hover:bg-surface-2 transition-colors font-display uppercase tracking-wider text-xs ${active ? "bg-accent-soft" : ""}`}
+                        >
+                          <span className="flex items-center gap-3">
+                            {/* Mini color preview — accent / surface / text */}
+                            <span className="flex items-center gap-0 border border-strong" style={{ height: 18 }}>
+                              <span style={{ width: 12, height: 18, background: sw[0] }} />
+                              <span style={{ width: 12, height: 18, background: sw[1] }} />
+                              <span style={{ width: 12, height: 18, background: sw[2] }} />
+                            </span>
+                            <span className="text-brand">{t(themeLabels[tKey]) || tKey.toUpperCase()}</span>
+                          </span>
+                          {active && <Check size={14} className="text-accent-brand flex-shrink-0" />}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
               </div>
-            </Popover>
+            )}
           </div>
 
           <div className="relative">

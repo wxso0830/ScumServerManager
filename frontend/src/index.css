@@ -666,19 +666,20 @@ body::before {
 
 /* Manager Update button — when a new release is available the whole button
    glows rhythmically so the admin can't miss it. Uses a 2s ease so it's
-   noticeable but not distracting. */
-@keyframes update-btn-pulse {
+   noticeable but not distracting. Glow-only (no background override) so it
+   stacks cleanly on .btn-primary (solid accent) AND outlined .nav buttons. */
+@keyframes update-btn-pulse-glow {
   0%, 100% {
-    box-shadow: 0 0 0 0 var(--accent-soft), 0 0 8px 0 var(--accent-soft);
-    background-color: transparent;
+    box-shadow: 0 0 0 0 var(--accent-soft), 0 0 0 0 var(--accent-soft);
+    filter: brightness(1);
   }
   50% {
-    box-shadow: 0 0 0 4px transparent, 0 0 20px 2px var(--accent-soft);
-    background-color: color-mix(in srgb, var(--accent) 8%, transparent);
+    box-shadow: 0 0 0 3px var(--accent-soft), 0 0 22px 3px var(--accent-soft);
+    filter: brightness(1.18);
   }
 }
 .update-btn-pulse {
-  animation: update-btn-pulse 2s ease-in-out infinite;
+  animation: update-btn-pulse-glow 1.8s ease-in-out infinite;
 }
 @keyframes update-dot-pulse {
   0%, 100% { transform: scale(1);   opacity: 1; }

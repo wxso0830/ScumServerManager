@@ -34,7 +34,7 @@ export const NetworkPortsPanel = ({ server, onSaved }) => {
       });
       onSaved?.(updated);
       setDirty(false);
-      toast.success("Portlar kaydedildi");
+      toast.success(t("ports_saved"));
     } catch (e) {
       toast.error(e.response?.data?.detail || e.message);
     } finally {
@@ -48,19 +48,19 @@ export const NetworkPortsPanel = ({ server, onSaved }) => {
     <div className="space-y-4 pt-2" data-testid="network-ports-panel">
       <div className="flex items-center gap-2 border-b border-brand pb-2">
         <Network size={13} className="text-accent-brand" />
-        <span className="label-accent">SUNUCU AĞ PORTLARI</span>
+        <span className="label-accent">{t("ports_title")}</span>
       </div>
 
       {isRunning && (
         <div className="flex items-center gap-2 text-[11px] font-mono border border-warning/40 bg-warning/5 px-3 py-2" style={{ color: "var(--warning)" }}>
           <AlertTriangle size={13} />
-          <span>Sunucu çalışıyor. Port değişikliği sunucuyu yeniden başlatana kadar aktif olmaz.</span>
+          <span>{t("ports_running_warn")}</span>
         </div>
       )}
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
-          <label className="label-overline block mb-1.5">Oyun Portu (Game Port)</label>
+          <label className="label-overline block mb-1.5">{t("ports_game_label")}</label>
           <input
             type="number" min="1024" max="65535"
             value={gamePort}
@@ -68,11 +68,11 @@ export const NetworkPortsPanel = ({ server, onSaved }) => {
             className="w-full bg-bg border border-brand px-3 py-2 font-mono text-sm text-brand focus:outline-none focus:border-accent-brand"
             data-testid="input-game-port"
           />
-          <p className="font-mono text-[10px] text-dim mt-1">Default 7779 · Oyuncular bu UDP portundan bağlanır</p>
+          <p className="font-mono text-[10px] text-dim mt-1">{t("ports_game_hint")}</p>
         </div>
 
         <div>
-          <label className="label-overline block mb-1.5">Query Portu</label>
+          <label className="label-overline block mb-1.5">{t("ports_query_label")}</label>
           <input
             type="number" min="1024" max="65535"
             value={queryPort}
@@ -80,7 +80,7 @@ export const NetworkPortsPanel = ({ server, onSaved }) => {
             className="w-full bg-bg border border-brand px-3 py-2 font-mono text-sm text-brand focus:outline-none focus:border-accent-brand"
             data-testid="input-query-port"
           />
-          <p className="font-mono text-[10px] text-dim mt-1">Default 7780 · Steam sunucu listesi için</p>
+          <p className="font-mono text-[10px] text-dim mt-1">{t("ports_query_hint")}</p>
         </div>
       </div>
 

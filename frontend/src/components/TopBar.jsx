@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import {
   Palette, Languages, Check, Wrench, ShieldCheck, ShieldAlert,
   RotateCcw, Activity, Server, HardDrive, Terminal, LayoutDashboard, SlidersHorizontal, ScrollText, Users, Archive,
-  MessageCircle, MessageSquare,
+  MessageCircle, MessageSquare, X,
 } from "lucide-react";
 import { useTheme } from "../providers/ThemeProvider";
 import { useI18n, LANG_META } from "../providers/I18nProvider";
@@ -165,27 +165,40 @@ export const TopBar = ({
             >
               <Languages size={17} />
             </button>
-            <Popover open={langOpen} onClose={() => setLangOpen(false)}>
-              <div className="p-1 max-h-[420px] overflow-y-auto scrollbar-thin" style={{ minWidth: "230px" }}>
-                <div className="label-accent px-3 py-2 sticky top-0 bg-surface z-10 border-b border-brand">
-                  {t("language")}
+            {/* Center modal — earlier popover-style dropdown was getting
+                clipped against the top of the viewport when the user had
+                the manager near the top edge of their monitor. A modal is
+                fully position-independent of the trigger button. */}
+            {langOpen && (
+              <div className="fixed inset-0 z-[100] flex items-center justify-center" data-testid="lang-modal">
+                <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={() => setLangOpen(false)} />
+                <div className="relative bg-surface border border-accent-brand shadow-2xl w-[320px] max-w-[92vw] max-h-[80vh] overflow-y-auto scrollbar-thin corner-brackets">
+                  <div className="label-accent px-4 py-3 border-b border-brand sticky top-0 bg-surface flex items-center justify-between">
+                    <span>{t("language")}</span>
+                    <button onClick={() => setLangOpen(false)} className="text-dim hover:text-brand" data-testid="lang-modal-close">
+                      <X size={14} />
+                    </button>
+                  </div>
+                  <div className="p-1">
+                    {Object.entries(LANG_META).map(([code, meta]) => (
+                      <button
+                        key={code}
+                        onClick={() => { setLang(code); setLangOpen(false); }}
+                        data-testid={`lang-option-${code}`}
+                        className={`w-full flex items-center justify-between px-4 py-3 text-sm hover:bg-surface-2 transition-colors font-display uppercase tracking-wider text-xs ${lang === code ? "bg-accent-soft" : ""}`}
+                      >
+                        <span className="flex items-center gap-3">
+                          <span className="font-mono text-[11px] text-dim w-7">{code.toUpperCase()}</span>
+                          <span className="text-base leading-none">{meta.flag}</span>
+                          <span className="text-brand normal-case">{meta.label}</span>
+                        </span>
+                        {lang === code && <Check size={14} className="text-accent-brand flex-shrink-0" />}
+                      </button>
+                    ))}
+                  </div>
                 </div>
-                {Object.entries(LANG_META).map(([code, meta]) => (
-                  <button
-                    key={code}
-                    onClick={() => { setLang(code); setLangOpen(false); }}
-                    data-testid={`lang-option-${code}`}
-                    className="w-full flex items-center justify-between px-3 py-2.5 text-sm hover:bg-surface-2 transition-colors font-display uppercase tracking-wider text-xs"
-                  >
-                    <span className="flex items-center gap-2.5">
-                      <span className="text-base leading-none">{meta.flag}</span>
-                      <span className="text-brand normal-case">{meta.label}</span>
-                    </span>
-                    {lang === code && <Check size={14} className="text-accent-brand flex-shrink-0" />}
-                  </button>
-                ))}
               </div>
-            </Popover>
+            )}
           </div>
 
           {/* Discord invite — opens our community server in the default browser */}

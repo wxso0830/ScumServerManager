@@ -2659,6 +2659,38 @@ async def _tick_scheduler():
             for s in servers:
                 auto = s.get("automation") or {}
                 sid = s["id"]
+                # --- Promote Starting → Running once SCUM is really up ---
+                # The /start endpoint sets status="Starting". The real
+                # transition (world loaded, A2S replying OR "Global Stats"
+                # ticking in SCUM.log) is detected by scum_proc.get_metrics()
+                # which sets the per-process `ready` flag — but nothing was
+                # flipping the DB status back, so the UI card stranded at
+                # STARTING forever even though the EXE was happily running.
+                # Fix: every tick, if metrics says ready and DB still says
+                # Starting, promote to Running.
+                if s.get("status") == "Starting" and s.get("installed"):
+                    try:
+                        m_promote = scum_proc.get_metrics(sid, s.get("folder_path"))
+                        if m_promote.get("ready"):
+                            await db.servers.update_one(
+                                {"id": sid}, {"$set": {"status": "Running"}},
+                            )
+                            s = {**s, "status": "Running"}
+                            logger.info(
+                                "Promoted %s Starting→Running (ready via %s)",
+                                s.get("name"),
+                                (scum_proc.REGISTRY.get(sid, {}).get("process") or {}).get("ready_reason") or "metric",
+                            )
+                        elif m_promote.get("running") is False:
+                            # Process died during boot — flip back to Stopped
+                            await db.servers.update_one(
+                                {"id": sid}, {"$set": {"status": "Stopped"}},
+                            )
+                            s = {**s, "status": "Stopped"}
+                            logger.warning("Boot failed for %s: process exited during Starting", s.get("name"))
+                    except Exception as e:
+                        logger.info("Starting→Running promotion check failed for %s: %s", s.get("name"), e)
+
                 # --- Scheduled restarts ---
                 if auto.get("enabled") and s.get("installed") and s.get("status") == "Running":
                     restart_times = auto.get("restart_times") or []

@@ -419,6 +419,38 @@ app.whenReady().then(async () => {
   await requireAdminOrExit();
   showSplash('Yonetici ayricaliklari dogrulandi...');
 
+  // ---- DEV MODE FAST PATH ----
+  // When launched via `npm run dev` (which sets ELECTRON_START_URL), the
+  // developer is running uvicorn + MongoDB themselves in separate terminals.
+  // We MUST NOT spawn our own portable MongoDB / packaged backend EXE here —
+  // those binaries aren't even present in a dev checkout and the spawn fails
+  // with "MongoDB binary bulunamadi". We just wait for whatever backend the
+  // dev started on BACKEND_PORT, then load the React dev server.
+  const isDev = !!process.env.ELECTRON_START_URL;
+  if (isDev) {
+    try {
+      updateSplash('Dev backend bekleniyor...', `${BACKEND_URL}/api/`);
+      await waitForBackend(60000);
+      updateSplash('Arayuz yukleniyor...');
+    } catch (err) {
+      closeSplash();
+      dialog.showErrorBox(
+        'Dev backend bulunamadi',
+        `${err.message}\n\n` +
+        `Dev modu calistiriliyor (ELECTRON_START_URL=${process.env.ELECTRON_START_URL}). ` +
+        `Backend'i ayri bir PowerShell penceresinde manuel calistirin:\n\n` +
+        `  cd backend\n` +
+        `  .\\.venv\\Scripts\\Activate.ps1\n` +
+        `  uvicorn server:app --reload --port ${BACKEND_PORT}`
+      );
+      app.exit(1);
+      return;
+    }
+    createWindow();
+    return;
+  }
+
+  // ---- PRODUCTION PATH ----
   try {
     updateSplash('MongoDB kontrol ediliyor...');
     await spawnMongodIfNeeded();

@@ -88,10 +88,19 @@ export const TopBar = ({
             }}
           >
             <img
-              src="/icon.png"
+              src={`${process.env.PUBLIC_URL || ""}/icon.png`}
               alt="LGSS"
               className="h-full w-full object-cover"
               draggable="false"
+              onError={(e) => {
+                // In packaged Electron, file:///icon.png resolves to disk
+                // root and 404s. Fall back to a relative path which works
+                // when index.html is loaded via file:// from the build dir.
+                if (!e.currentTarget.dataset.fallback) {
+                  e.currentTarget.dataset.fallback = "1";
+                  e.currentTarget.src = "./icon.png";
+                }
+              }}
             />
           </div>
           <div className="leading-none">

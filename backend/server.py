@@ -162,7 +162,7 @@ def default_scum_settings() -> Dict[str, Any]:
 # ---------- ENDPOINTS ----------
 @api_router.get("/")
 async def root():
-    return {"service": "LGSS SCUM Server Manager", "version": "1.0.5"}
+    return {"service": "LGSS SCUM Server Manager", "version": "1.0.6"}
 
 
 _PUBLIC_IP_CACHE = {"ts": 0, "ip": None}
@@ -1973,7 +1973,7 @@ async def first_boot_result(server_id: str):
 
 
 # ---------- MANAGER VERSION / SELF-UPDATE ----------
-CURRENT_MANAGER_VERSION = "1.0.5"
+CURRENT_MANAGER_VERSION = "1.0.6"
 LATEST_MANAGER_VERSION_KEY = "manager-latest-version"
 
 
@@ -2085,18 +2085,37 @@ def _apply_file_to_settings(current: Dict[str, Any], file_key: str, text: str) -
         if isinstance(traders, dict):
             settings["economy_traders"] = traders
     elif file_key == "gameusersettings":
-        tmp_path = Path("/tmp/_gus.ini")
-        tmp_path.write_text(text, encoding="utf-8")
-        sects = parse_ini_sections(tmp_path)
+        # Cross-platform temp file — `Path("/tmp/...")` resolves to "\tmp\..."
+        # on Windows (drive root, not %TEMP%), so the write fails with
+        # "[Errno 2] No such file or directory". Use tempfile instead.
+        import tempfile as _tempfile
+        with _tempfile.NamedTemporaryFile(suffix="_gus.ini", delete=False, mode="w", encoding="utf-8") as tf:
+            tf.write(text)
+            tmp_path = Path(tf.name)
+        try:
+            sects = parse_ini_sections(tmp_path)
+        finally:
+            try:
+                tmp_path.unlink(missing_ok=True)
+            except Exception:
+                pass
         if not sects:
             raise ValueError("No [Section] headers found — not a valid GameUserSettings.ini")
         for sect, dest in (("Game", "client_game"), ("Mouse", "client_mouse"), ("Video", "client_video"), ("Graphics", "client_graphics"), ("Sound", "client_sound")):
             if sect in sects:
                 settings[dest] = sects[sect]
     elif file_key == "server_settings":
-        tmp_path = Path("/tmp/_ss.ini")
-        tmp_path.write_text(text, encoding="utf-8")
-        sects = parse_ini_sections(tmp_path)
+        import tempfile as _tempfile
+        with _tempfile.NamedTemporaryFile(suffix="_ss.ini", delete=False, mode="w", encoding="utf-8") as tf:
+            tf.write(text)
+            tmp_path = Path(tf.name)
+        try:
+            sects = parse_ini_sections(tmp_path)
+        finally:
+            try:
+                tmp_path.unlink(missing_ok=True)
+            except Exception:
+                pass
         if not sects:
             raise ValueError("No [Section] headers found — not a valid ServerSettings.ini")
         if "General" not in sects:
@@ -2117,9 +2136,17 @@ def _apply_file_to_settings(current: Dict[str, Any], file_key: str, text: str) -
             raise ValueError(f"Invalid JSON: {e}") from e
         settings["notifications"] = data.get("Notifications", [])
     elif file_key == "input":
-        tmp_path = Path("/tmp/_in.ini")
-        tmp_path.write_text(text, encoding="utf-8")
-        parsed = parse_input_ini(tmp_path)
+        import tempfile as _tempfile
+        with _tempfile.NamedTemporaryFile(suffix="_in.ini", delete=False, mode="w", encoding="utf-8") as tf:
+            tf.write(text)
+            tmp_path = Path(tf.name)
+        try:
+            parsed = parse_input_ini(tmp_path)
+        finally:
+            try:
+                tmp_path.unlink(missing_ok=True)
+            except Exception:
+                pass
         settings["input_axis"] = parsed["AxisMappings"]
         settings["input_action"] = parsed["ActionMappings"]
     else:

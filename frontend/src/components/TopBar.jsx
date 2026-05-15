@@ -20,7 +20,7 @@ const Popover = ({ open, onClose, children }) => {
   return (
     <>
       <div className="fixed inset-0 z-40" onClick={onClose} />
-      <div className="absolute right-0 top-full mt-1 z-50 w-60 panel bg-surface shadow-2xl corner-brackets">
+      <div className="absolute right-0 top-full mt-1 z-[60] w-64 panel bg-surface shadow-2xl corner-brackets">
         {children}
       </div>
     </>
@@ -83,7 +83,7 @@ export const TopBar = ({
               SCUM SERVER MANAGER
             </div>
             <div className="font-mono text-[9px] tracking-[0.22em] text-accent-brand mt-1">
-              v1.0.5
+              v1.0.6
             </div>
           </div>
         </div>

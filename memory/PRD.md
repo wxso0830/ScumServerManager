@@ -46,7 +46,11 @@ Electron-based desktop server manager for SCUM game. On first launch: ask user t
 - Schema cleanup: removed `client` section + client_mouse/video/graphics/sound; moved `client_game` under `gameplay`
 
 ## Recent Changes
-- **2026-02 (v1.0.5 — i18n hardening sweep)**: All `lang === "tr" ? "..." : "..."` hard-coded branches purged from `ServerCard.jsx`, `ManagerUpdateModal.jsx`, `InstallProgressModal.jsx`, `NetworkPortsPanel.jsx`, `DashboardView.jsx`. ~25 new i18n keys (`connect`, `mu_*`, `ip_*`, `settings_arrow_basic`, `server_files`, etc.) added to **all 8 languages** (en/tr/ru/de/fr/it/ar/az). Verified the screenshot-reported "Ayarlar → Temel" now routes through `t("settings_arrow_basic")` so it displays in whatever language is selected. `fieldMeta.js` already had `en` fallback so the ~140 SCUM setting labels/descriptions auto-fall-back to English for the new languages.
+- **2026-02 (v1.0.6 — import bug fix + i18n popover + 7 critical fields translated)**:
+  1. **Import bug (CRITICAL)**: User reported `[Errno 2] No such file or directory: '\tmp\_ss.ini'` when uploading their real `ServerSettings.ini`. Root cause: `Path("/tmp/_ss.ini")` resolves to `\tmp\_ss.ini` on Windows (drive root, not `%TEMP%`). Replaced all 3 hardcoded `/tmp/...` paths in `import_setting_file` (`server_settings`, `gameusersettings`, `input`) with cross-platform `tempfile.NamedTemporaryFile`. Verified end-to-end with user's real `.ini` (ServerName "RU GlobalScum PVE x3...") — parsed successfully on Linux pod and would now work on Windows.
+  2. **Language picker visibility**: Popover z-index bumped 50 → 60 and width 60 → 64 so the 8-language menu (flag + native name) renders cleanly on top of other UI.
+  3. **Partial settings localization**: Translated 9 most-visible Server Identity & Capacity fields (`scum.ServerName`, `ServerDescription`, `ServerBannerUrl`, `ServerPlaystyle`, `ServerPassword`, `MaxPlayers`, `WelcomeMessage`, `MessageOfTheDay`, `MessageOfTheDayCooldown`) to all 8 languages. Remaining ~130 SCUM technical settings auto-fall-back to English via `meta[lang] || meta.en` (no raw keys shown).
+- **Version 1.0.5 → 1.0.6.**
 - **2026-02 (v1.0.4 — multi-fix release)**:
   - Update notification spam (CRITICAL): defensive scheduler-tick cleanup of stale `_transient_update` rows; OFFSETS [15,10,5,4,3,2,1] → **[15,10,5]**.
   - Update button: real SteamCMD via `install_server(run_first_boot=False)`, `InstallProgressModal mode="update"`, 409 if running.

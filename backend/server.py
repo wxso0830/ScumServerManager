@@ -162,7 +162,7 @@ def default_scum_settings() -> Dict[str, Any]:
 # ---------- ENDPOINTS ----------
 @api_router.get("/")
 async def root():
-    return {"service": "LGSS SCUM Server Manager", "version": "1.0.4"}
+    return {"service": "LGSS SCUM Server Manager", "version": "1.0.5"}
 
 
 _PUBLIC_IP_CACHE = {"ts": 0, "ip": None}
@@ -1973,7 +1973,7 @@ async def first_boot_result(server_id: str):
 
 
 # ---------- MANAGER VERSION / SELF-UPDATE ----------
-CURRENT_MANAGER_VERSION = "1.0.4"
+CURRENT_MANAGER_VERSION = "1.0.5"
 LATEST_MANAGER_VERSION_KEY = "manager-latest-version"
 
 

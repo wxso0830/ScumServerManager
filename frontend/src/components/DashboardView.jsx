@@ -39,7 +39,7 @@ export const DashboardView = ({ servers, managerPath, onAdd, onOpen, onChange, o
       } else if (installTarget) {
         const fresh = await endpoints.getServer(installTarget.id);
         onChange(fresh);
-        toast.error("Kurulum başarısız oldu. Log'u kontrol edin.");
+        toast.error(t("install_failed"));
       }
     } catch {}
   };

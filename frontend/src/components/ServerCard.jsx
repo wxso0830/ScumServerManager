@@ -179,7 +179,7 @@ export const ServerCard = ({ server, onOpen, onStart, onStop, onUpdate, onInstal
           <span className="text-muted">·</span>
           <span className="text-muted">QUERY</span>
           <span className="text-brand">{queryPort}</span>
-          <span className="text-muted ml-auto text-[10px]">Ayarlar → Temel</span>
+          <span className="text-muted ml-auto text-[10px]">{t("settings_arrow_basic")}</span>
         </div>
 
         {/* Connect info — SCUM's in-game "Direct Connect" uses gamePort+2 */}
@@ -316,7 +316,7 @@ const MetricTile = ({ icon: Icon, label, value, small, testId }) => (
  * IP is fetched lazily from the backend (which queries ipify, cached 5min).
  */
 const ConnectInfo = ({ gamePort, testId }) => {
-  const { t, lang } = useI18n();
+  const { t } = useI18n();
   const [ip, setIp] = useState(null);
   const [copied, setCopied] = useState(false);
   const connectPort = (parseInt(gamePort, 10) || 7777) + 2;
@@ -329,7 +329,7 @@ const ConnectInfo = ({ gamePort, testId }) => {
     return () => { alive = false; };
   }, []);
 
-  const addr = ip ? `${ip}:${connectPort}` : (lang === "tr" ? "IP bulunamadı" : "IP unavailable");
+  const addr = ip ? `${ip}:${connectPort}` : t("connect_unavailable");
 
   const copy = async (e) => {
     e.stopPropagation();
@@ -337,10 +337,10 @@ const ConnectInfo = ({ gamePort, testId }) => {
     try {
       await navigator.clipboard.writeText(addr);
       setCopied(true);
-      toast.success(lang === "tr" ? "Bağlantı adresi kopyalandı" : "Connect address copied");
+      toast.success(t("connect_copied"));
       setTimeout(() => setCopied(false), 1600);
     } catch {
-      toast.error(lang === "tr" ? "Panoya yazılamadı" : "Clipboard write failed");
+      toast.error(t("clipboard_failed"));
     }
   };
 
@@ -351,11 +351,11 @@ const ConnectInfo = ({ gamePort, testId }) => {
       disabled={!ip}
       className="w-full flex items-center gap-2 px-2 py-1.5 border border-dashed border-brand hover:border-accent-brand hover:bg-bg-deep transition-colors font-mono text-[11px] text-left group disabled:opacity-60 disabled:cursor-not-allowed"
       data-testid={`card-connect-info-${testId}`}
-      title={lang === "tr" ? "Oyun içi 'Direct Connect' için" : "For in-game Direct Connect"}
+      title={t("connect_tooltip")}
     >
       <Link2 size={11} className="text-accent-brand shrink-0" />
       <span className="text-muted uppercase text-[9px] tracking-widest">
-        {lang === "tr" ? "BAĞLAN" : "CONNECT"}
+        {t("connect")}
       </span>
       <span className="text-brand truncate flex-1">{addr}</span>
       {ip && (

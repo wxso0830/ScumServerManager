@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { Network, Save, AlertTriangle } from "lucide-react";
 import { endpoints } from "../lib/api";
 import { toast } from "sonner";
+import { useI18n } from "../providers/I18nProvider";
 
 /**
  * NetworkPortsPanel — inline editor for SCUMServer.exe CLI args:
@@ -10,6 +11,7 @@ import { toast } from "sonner";
  * Max Players lives in Essentials > Access & Capacity (scum.MaxPlayers).
  */
 export const NetworkPortsPanel = ({ server, onSaved }) => {
+  const { t } = useI18n();
   const [gamePort, setGamePort] = useState(server.game_port ?? 7779);
   const [queryPort, setQueryPort] = useState(server.query_port ?? 7780);
   const [saving, setSaving] = useState(false);
@@ -93,7 +95,7 @@ export const NetworkPortsPanel = ({ server, onSaved }) => {
           className="btn-primary px-4 py-2 flex items-center gap-2 shrink-0"
           data-testid="save-ports-btn"
         >
-          <Save size={13} /> {saving ? "Kaydediliyor..." : "Portları Kaydet"}
+          <Save size={13} /> {saving ? t("saving_dotted") : t("save_ports")}
         </button>
       </div>
     </div>

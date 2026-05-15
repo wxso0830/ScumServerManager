@@ -12,7 +12,7 @@ import { useI18n } from "../providers/I18nProvider";
  * diagnostics while a release is still being uploaded.
  */
 export const ManagerUpdateModal = ({ open, onClose }) => {
-  const { t, lang } = useI18n();
+  const { t } = useI18n();
   const [state, setState] = useState("idle");
   const [info, setInfo] = useState({ currentVersion: "", latestVersion: "" });
   const [progress, setProgress] = useState(0);
@@ -36,7 +36,7 @@ export const ManagerUpdateModal = ({ open, onClose }) => {
       setError(null); setProgress(0); setState("checking");
       if (!window?.lgss?.checkForUpdates) {
         // Browser / dev fallback
-        const v = window?.lgss?.getVersion ? await window.lgss.getVersion() : "1.0.4";
+        const v = window?.lgss?.getVersion ? await window.lgss.getVersion() : "1.0.5";
         setInfo({ currentVersion: v, latestVersion: v });
         setState("uptodate");
         return;
@@ -73,7 +73,7 @@ export const ManagerUpdateModal = ({ open, onClose }) => {
   };
 
   const installNow = async () => {
-    toast(lang === "tr" ? "Yeniden başlatılıyor…" : "Restarting…");
+    toast(t("mu_restarting"));
     await window.lgss.installUpdate();
   };
 
@@ -83,11 +83,11 @@ export const ManagerUpdateModal = ({ open, onClose }) => {
     return (
       <div className="grid grid-cols-2 gap-px bg-brand rounded overflow-hidden">
         <div className="bg-bg-deep px-4 py-3">
-          <div className="label-overline mb-1">{lang === "tr" ? "Yüklü" : "Installed"}</div>
+          <div className="label-overline mb-1">{t("mu_installed")}</div>
           <div className="font-mono text-base text-brand">v{info.currentVersion || "?"}</div>
         </div>
         <div className={`px-4 py-3 ${newer ? "bg-accent-soft" : "bg-bg-deep"}`}>
-          <div className="label-overline mb-1">{lang === "tr" ? "En Son" : "Latest"}</div>
+          <div className="label-overline mb-1">{t("latest") || "Latest"}</div>
           <div className={`font-mono text-base ${newer ? "text-accent-brand" : "text-brand"}`}>
             v{info.latestVersion || "?"}
           </div>
@@ -108,9 +108,7 @@ export const ManagerUpdateModal = ({ open, onClose }) => {
             </div>
             <div>
               <div className="label-accent leading-none">LGSS MANAGER</div>
-              <h3 className="heading-stencil text-base mt-1">
-                {lang === "tr" ? "GÜNCELLEME KONTROLÜ" : "UPDATE CHECK"}
-              </h3>
+              <h3 className="heading-stencil text-base mt-1">{t("mu_update_check")}</h3>
             </div>
           </div>
           <button onClick={onClose} className="icon-btn" data-testid="update-modal-close"><X size={16} /></button>
@@ -124,8 +122,8 @@ export const ManagerUpdateModal = ({ open, onClose }) => {
             <StatusBlock
               icon={RefreshCw}
               spin
-              title={lang === "tr" ? "Kontrol ediliyor…" : "Checking for updates…"}
-              subtitle={lang === "tr" ? "GitHub Releases sorgulanıyor" : "Querying GitHub Releases"}
+              title={t("mu_checking")}
+              subtitle={t("mu_querying_github")}
             />
           )}
 
@@ -133,10 +131,8 @@ export const ManagerUpdateModal = ({ open, onClose }) => {
             <StatusBlock
               icon={CheckCircle2}
               tone="ok"
-              title={lang === "tr" ? "Uygulama güncel" : "You're up to date"}
-              subtitle={lang === "tr"
-                ? "Yeni bir sürüm yayınlandığında bu buton yanıp sönmeye başlayacak."
-                : "This button will start pulsing when a new release is published."}
+              title={t("mu_up_to_date_title")}
+              subtitle={t("mu_up_to_date_msg")}
             />
           )}
 
@@ -145,10 +141,8 @@ export const ManagerUpdateModal = ({ open, onClose }) => {
               <StatusBlock
                 icon={Rocket}
                 tone="accent"
-                title={lang === "tr" ? `v${info.latestVersion} indirmeye hazır` : `v${info.latestVersion} ready to download`}
-                subtitle={lang === "tr"
-                  ? "İndirme arka planda çalışır, tamamlanınca yeniden başlatabilirsiniz."
-                  : "Download runs in the background; restart when it completes."}
+                title={t("mu_ready_to_download", { version: info.latestVersion }) || `v${info.latestVersion} ready to download`}
+                subtitle={t("mu_download_background")}
               />
               <button
                 onClick={startDownload}
@@ -156,7 +150,7 @@ export const ManagerUpdateModal = ({ open, onClose }) => {
                 data-testid="update-download-btn"
               >
                 <Download size={15} />
-                {lang === "tr" ? "GÜNCELLEMEYİ İNDİR" : "DOWNLOAD UPDATE"}
+                {t("mu_download_update")}
               </button>
             </>
           )}
@@ -165,7 +159,7 @@ export const ManagerUpdateModal = ({ open, onClose }) => {
             <div>
               <div className="flex items-center justify-between mb-2">
                 <div className="font-mono text-[11px] uppercase tracking-widest text-dim">
-                  {lang === "tr" ? "İNDİRİLİYOR" : "DOWNLOADING"}
+                  {t("mu_downloading")}
                 </div>
                 <div className="font-mono text-sm text-brand">{progress}%</div>
               </div>
@@ -176,9 +170,7 @@ export const ManagerUpdateModal = ({ open, onClose }) => {
                 />
               </div>
               <p className="text-[10px] text-dim mt-2">
-                {lang === "tr"
-                  ? "İndirme sırasında manager'ı kullanmaya devam edebilirsiniz."
-                  : "You can keep using the manager while it downloads."}
+                {t("mu_download_keep_using")}
               </p>
             </div>
           )}
@@ -188,10 +180,8 @@ export const ManagerUpdateModal = ({ open, onClose }) => {
               <StatusBlock
                 icon={CheckCircle2}
                 tone="ok"
-                title={lang === "tr" ? "İndirme tamamlandı" : "Download complete"}
-                subtitle={lang === "tr"
-                  ? "Manager yeniden başlatılınca güncelleme otomatik yüklenir."
-                  : "The manager will restart and install the update automatically."}
+                title={t("mu_download_complete_title")}
+                subtitle={t("mu_download_complete_msg")}
               />
               <button
                 onClick={installNow}
@@ -199,7 +189,7 @@ export const ManagerUpdateModal = ({ open, onClose }) => {
                 data-testid="update-install-btn"
               >
                 <Rocket size={15} />
-                {lang === "tr" ? "YENİDEN BAŞLAT & YÜKLE" : "RESTART & INSTALL"}
+                {t("mu_restart_install")}
               </button>
             </>
           )}
@@ -208,8 +198,8 @@ export const ManagerUpdateModal = ({ open, onClose }) => {
             <StatusBlock
               icon={AlertCircle}
               tone="danger"
-              title={lang === "tr" ? "Güncelleme kontrolü başarısız" : "Update check failed"}
-              subtitle={error || (lang === "tr" ? "Bağlantı veya sunucu hatası." : "Connection or server error.")}
+              title={t("mu_check_failed_title")}
+              subtitle={error || t("mu_check_failed_msg")}
             />
           )}
         </div>

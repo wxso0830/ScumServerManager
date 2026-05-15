@@ -67,7 +67,7 @@ export const InstallProgressModal = ({ open, server, onClose, onDone, mode = "in
             disabled={!finished}
             style={!finished ? { opacity: 0.3, cursor: "not-allowed" } : undefined}
             data-testid="install-modal-close-btn"
-            title={finished ? "Kapat" : "Kurulum devam ederken kapatılamaz"}
+            title={finished ? t("ip_close") : t("ip_close_disabled")}
           >
             <X size={16} />
           </button>

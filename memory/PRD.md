@@ -46,6 +46,18 @@ Electron-based desktop server manager for SCUM game. On first launch: ask user t
 - Schema cleanup: removed `client` section + client_mouse/video/graphics/sound; moved `client_game` under `gameplay`
 
 ## Recent Changes
+- **2026-02 (v1.0.12 — 8 truly distinct themes)**:
+  1. **Removed 5 lookalike themes** per user request: `blacksite`, `ghost`, `wastelander`, `blood-moon`, `arctic`.
+  2. **Kept 3 themes**: `bunker` (default), `neon-grid`, `carbon`.
+  3. **Added 5 new visually distinctive themes**:
+     - `toxic` — radioactive lime green on swamp / Chernobyl
+     - `inferno` — pure fire red on charcoal
+     - `arctic-storm` — ice white + glacier blue on deep navy
+     - `royal` — black + gold + crimson (luxury)
+     - `synthwave` — magenta + purple sunset (80s retrowave)
+  4. **Default theme is now `bunker`** (was `blacksite`).
+  5. **Legacy theme auto-migration**: users on a removed theme are remapped to the closest match in `localStorage` (`blacksite`→`carbon`, `ghost`→`arctic-storm`, `wastelander`→`bunker`, `blood-moon`→`inferno`, `arctic`→`arctic-storm`) — no jarring jump to default.
+  6. Updated `TopBar.jsx` `themeLabels` + `themeSwatches`, `ThemeProvider.jsx` (THEMES array, default, migration map), `I18nProvider.jsx` (TR + EN labels for the 5 new themes), `index.css` (replaced 8 `[data-theme=...]` blocks).
 - **2026-02 (v1.0.11 — TopBar polish)**:
   1. **Theme picker is now a centered modal**: Matches the language picker UX (full-screen overlay with backdrop, sticky header, close X, color-swatch preview next to each name). Previous popover-dropdown was clipped near the viewport edge and could only fit ~3 items visibly.
   2. **All 8 themes now show with proper names**: `themeLabels` in `TopBar.jsx` was missing entries for `neon-grid`, `blood-moon`, `arctic`, `carbon` — they rendered as empty rows. Added full mapping plus a `themeSwatches` palette so each theme shows a 3-color preview chip (accent/surface/text) before selection.

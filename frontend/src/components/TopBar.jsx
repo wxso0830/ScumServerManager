@@ -10,27 +10,26 @@ import { endpoints } from "../lib/api";
 import { ConfirmModal } from "./ConfirmModal";
 
 const themeLabels = {
-  blacksite: "theme_blacksite",
   bunker: "theme_bunker",
-  ghost: "theme_ghost",
-  wastelander: "theme_wastelander",
   "neon-grid": "theme_neon-grid",
-  "blood-moon": "theme_blood-moon",
-  arctic: "theme_arctic",
   carbon: "theme_carbon",
+  toxic: "theme_toxic",
+  inferno: "theme_inferno",
+  "arctic-storm": "theme_arctic-storm",
+  royal: "theme_royal",
+  synthwave: "theme_synthwave",
 };
 
-// Small color swatches so users can preview a theme before applying it.
-// Keys match THEMES in ThemeProvider. Each entry is [accent, surface, text].
+// 3-color swatches: [accent, surface, text] — quick visual preview.
 const themeSwatches = {
-  blacksite:    ["#ff8a2b", "#1a1410", "#f4e9d8"],
-  bunker:       ["#e85d2f", "#161210", "#f0dec7"],
-  ghost:        ["#60a5fa", "#0e131a", "#dde7f2"],
-  wastelander:  ["#d4a23d", "#1c1815", "#ecdcc1"],
-  "neon-grid":  ["#00ffd5", "#0a0f1a", "#c9faff"],
-  "blood-moon": ["#dc2626", "#120808", "#f4d6d6"],
-  arctic:       ["#7dd3fc", "#0d1b22", "#dff3fb"],
-  carbon:       ["#a3a3a3", "#0b0b0d", "#e5e5e5"],
+  bunker:         ["#E65100", "#1E1E1E", "#F5F5F5"],
+  "neon-grid":    ["#FF2DD1", "#14072A", "#F5E9FF"],
+  carbon:         ["#FFB627", "#161618", "#ECECEE"],
+  toxic:          ["#B6FF00", "#0B1A0E", "#E8FFD4"],
+  inferno:        ["#FF3B1F", "#1B0908", "#FFE5DD"],
+  "arctic-storm": ["#7DD3FC", "#0B1626", "#F0F8FF"],
+  royal:          ["#D4AF37", "#141414", "#F5ECCC"],
+  synthwave:      ["#FF4FB8", "#1B073D", "#FBE5FF"],
 };
 
 const Popover = ({ open, onClose, children }) => {

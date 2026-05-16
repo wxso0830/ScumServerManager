@@ -570,11 +570,30 @@ export const ServerDashboard = ({
                     })()}
                     <h3 className="heading-stencil text-base">{t(activeCat.labelKey)}</h3>
                   </div>
-                  {activeCat.exportKey && (
-                    <span className="font-mono text-[10px] text-dim uppercase tracking-widest">
-                      {activeCat.exportKey}.{activeCat.exportKey.toLowerCase().includes("json") ? "" : "ini"}
-                    </span>
-                  )}
+                  {activeCat.exportKey && (() => {
+                    // Map our internal exportKey back to the real SCUM filename
+                    // so the badge in the top-right shows "AdminUsers.ini" /
+                    // "EconomyOverride.json" instead of the raw key.
+                    const FILENAMES = {
+                      admins: "AdminUsers.ini",
+                      banned: "BannedUsers.ini",
+                      exclusive: "ExclusiveUsers.ini",
+                      silenced: "SilencedUsers.ini",
+                      whitelisted: "WhitelistedUsers.ini",
+                      server_admins: "ServerSettingsAdminUsers.ini",
+                      economy: "EconomyOverride.json",
+                      raid_times: "RaidTimes.json",
+                      notifications: "Notifications.json",
+                      server_settings: "ServerSettings.ini",
+                      gameusersettings: "GameUserSettings.ini",
+                      input: "Input.ini",
+                    };
+                    return (
+                      <span className="font-mono text-[10px] text-dim uppercase tracking-widest">
+                        {FILENAMES[activeCat.exportKey] || activeCat.exportKey}
+                      </span>
+                    );
+                  })()}
                 </div>
                 {renderCategoryBody(activeCat)}
                 {/* Injected: SCUM CLI network port editor + launch args, only

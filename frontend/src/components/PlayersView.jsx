@@ -159,24 +159,83 @@ export const PlayersView = ({ servers = [] }) => {
         </button>
       </div>
 
-      {/* Tabs */}
-      <div className="bg-surface border-b border-brand px-6 flex items-stretch">
-        <button
-          onClick={() => setTab("online")}
-          data-testid="players-tab-online"
-          className={`nav-tab flex items-center gap-2 ${tab === "online" ? "active" : ""}`}
-        >
-          <span className="status-led running" /> {t("players_online_tab")}
-          <span className="ml-1 text-dim">· {data.online_count}</span>
-        </button>
-        <button
-          onClick={() => setTab("all")}
-          data-testid="players-tab-all"
-          className={`nav-tab flex items-center gap-2 ${tab === "all" ? "active" : ""}`}
-        >
-          <UserCircle2 size={13} /> {t("players_all_tab")}
-          <span className="ml-1 text-dim">· {data.count}</span>
-        </button>
+      {/* Quick stats strip — compact KPI tiles so admins see the high-level
+          picture (online/total/admins/avg fame) before scrolling the table. */}
+      <div className="bg-bg-deep border-b border-brand px-6 py-3 grid grid-cols-2 md:grid-cols-4 gap-3">
+        {[
+          { key: "online", label: t("players_online_tab"), value: data.online_count, color: "var(--success)", icon: Activity },
+          { key: "total", label: t("col_player") || "Total", value: data.count, color: "var(--accent)", icon: Users },
+          { key: "admins", label: t("admin_player") || "Admins", value: (data.players || []).filter((p) => p.is_admin_invoker).length, color: "var(--warning)", icon: Shield },
+          { key: "fame", label: t("col_fame") || "Avg Fame", value: (() => {
+            const list = (data.players || []).filter((p) => p.fame != null);
+            if (!list.length) return "—";
+            const sum = list.reduce((a, p) => a + Number(p.fame || 0), 0);
+            return Math.round(sum / list.length).toLocaleString();
+          })(), color: "var(--info)", icon: Trophy },
+        ].map(({ key, label, value, color, icon: Ico }) => (
+          <div
+            key={key}
+            data-testid={`players-kpi-${key}`}
+            className="bg-surface border border-brand px-3 py-2.5 flex items-center gap-3 relative overflow-hidden"
+            style={{ boxShadow: "0 0 0 1px transparent inset" }}
+          >
+            <span
+              className="absolute left-0 top-0 bottom-0 w-[3px]"
+              style={{ background: color }}
+            />
+            <div
+              className="flex items-center justify-center w-9 h-9 shrink-0"
+              style={{ background: `color-mix(in srgb, ${color} 14%, transparent)`, color }}
+            >
+              <Ico size={16} />
+            </div>
+            <div className="min-w-0">
+              <div className="font-mono text-[9px] text-dim uppercase tracking-widest truncate">{label}</div>
+              <div className="font-display text-lg leading-tight" style={{ color }}>{value}</div>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Tabs — pill-style segmented control, much more modern than the old
+          plain nav-tab links. Animated slider underneath the active tab. */}
+      <div className="bg-bg-deep border-b border-brand px-6 py-3">
+        <div className="inline-flex p-1 bg-surface border border-brand rounded-md gap-1">
+          {[
+            { key: "online", label: t("players_online_tab"), count: data.online_count, dot: "var(--success)" },
+            { key: "all", label: t("players_all_tab"), count: data.count, dot: "var(--accent)" },
+          ].map(({ key, label, count, dot }) => {
+            const active = tab === key;
+            return (
+              <button
+                key={key}
+                onClick={() => setTab(key)}
+                data-testid={`players-tab-${key}`}
+                className={`relative px-4 py-1.5 text-[11px] font-display uppercase tracking-wider transition-all flex items-center gap-2 rounded ${
+                  active
+                    ? "text-brand bg-bg shadow-[0_0_0_1px_var(--accent-brand)_inset]"
+                    : "text-dim hover:text-brand hover:bg-bg/40"
+                }`}
+              >
+                <span
+                  style={{
+                    width: 6, height: 6, borderRadius: "50%",
+                    background: dot,
+                    boxShadow: active ? `0 0 6px ${dot}` : "none",
+                  }}
+                />
+                <span>{label}</span>
+                <span
+                  className={`ml-1 px-1.5 py-0.5 text-[9px] rounded ${
+                    active ? "bg-accent-brand text-bg" : "bg-bg-deep text-dim"
+                  }`}
+                >
+                  {count}
+                </span>
+              </button>
+            );
+          })}
+        </div>
       </div>
 
       {/* Table */}
@@ -205,12 +264,12 @@ export const PlayersView = ({ servers = [] }) => {
               </tr>
             </thead>
             <tbody>
-              {visiblePlayers.map((p) => (
+              {visiblePlayers.map((p, idx) => (
                 <tr
                   key={p.steam_id}
                   onClick={() => openDetail(p)}
                   data-testid={`player-row-${p.steam_id}`}
-                  className="border-b border-brand hover:bg-surface-2 cursor-pointer transition-colors"
+                  className={`border-b border-brand/40 hover:bg-accent-soft cursor-pointer transition-colors ${idx % 2 === 0 ? "bg-bg-deep" : "bg-surface/30"}`}
                 >
                   <td className="px-4 py-3">
                     {p.is_online ? (

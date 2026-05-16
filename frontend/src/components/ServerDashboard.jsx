@@ -544,11 +544,6 @@ export const ServerDashboard = ({
                   >
                     <Icon size={13} className={active ? "text-accent-brand" : "opacity-70"} />
                     <span>{t(cat.labelKey)}</span>
-                    {cat.exportKey && (
-                      <span className={`hidden md:inline ml-1 text-[9px] opacity-50 ${active ? "text-accent-brand" : ""}`}>
-                        {cat.exportKey.toUpperCase()}
-                      </span>
-                    )}
                   </button>
                 );
               })}

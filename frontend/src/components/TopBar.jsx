@@ -250,11 +250,11 @@ export const TopBar = ({
             )}
           </div>
 
-          {/* Discord invite — opens our community server in the default browser.
-              Uses the official Discord brand icon image (square PNG with the
-              Discord clyde face) instead of a generic chat bubble. */}
+          {/* Discord — uses the official brand mark from /public/discord.png.
+              Sized to match the surrounding icon-btn so it sits visually
+              level with the theme/lang/reset buttons next to it. */}
           <button
-            className="icon-btn p-0 overflow-hidden flex items-center justify-center"
+            className="icon-btn flex items-center justify-center"
             title={t("open_discord")}
             onClick={() => window.open("https://discord.gg/ZBzTRNbTy3", "_blank", "noopener,noreferrer")}
             data-testid="topbar-discord-btn"
@@ -263,15 +263,14 @@ export const TopBar = ({
               src={`${process.env.PUBLIC_URL || ""}/discord.png`}
               onError={(e) => { if (!e.currentTarget.dataset.fb) { e.currentTarget.dataset.fb = "1"; e.currentTarget.src = "./discord.png"; } }}
               alt="Discord"
-              className="w-5 h-5 object-contain"
+              style={{ width: 17, height: 17, objectFit: "contain" }}
               draggable="false"
             />
           </button>
 
-          {/* Feedback link — Legendary Hub portal. Custom globe icon to make
-              it visually distinct from the Discord button next to it. */}
+          {/* Feedback — Legendary Hub portal globe icon */}
           <button
-            className="icon-btn p-0 overflow-hidden flex items-center justify-center"
+            className="icon-btn flex items-center justify-center"
             title={t("feedback")}
             onClick={() => window.open("https://legendaryhub.vip/", "_blank", "noopener,noreferrer")}
             data-testid="topbar-feedback-btn"
@@ -280,7 +279,7 @@ export const TopBar = ({
               src={`${process.env.PUBLIC_URL || ""}/feedback.png`}
               onError={(e) => { if (!e.currentTarget.dataset.fb) { e.currentTarget.dataset.fb = "1"; e.currentTarget.src = "./feedback.png"; } }}
               alt="Feedback"
-              className="w-5 h-5 object-contain"
+              style={{ width: 17, height: 17, objectFit: "contain" }}
               draggable="false"
             />
           </button>

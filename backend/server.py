@@ -1638,13 +1638,30 @@ async def list_players(server_id: str, online: Optional[bool] = None, search: Op
     # SCUM.db enrichment — pull current fame / vehicle / flag / squad counts
     # directly from the live game DB (SCUM.db). Log files only contain deltas,
     # never current totals, so this is the only way to show real numbers.
-    srv_full = await db.servers.find_one({"id": server_id}, {"_id": 0, "folder_path": 1}) or {}
+    srv_full = await db.servers.find_one({"id": server_id}, {"_id": 0, "folder_path": 1, "settings": 1}) or {}
     db_stats: Dict[str, Dict[str, Any]] = {}
     if srv_full.get("folder_path"):
         try:
             db_stats = await asyncio.to_thread(scum_db.read_player_stats, srv_full["folder_path"])
         except Exception as e:
             logger.info("list_players: SCUM.db read failed (non-fatal): %s", e)
+
+    # Build a quick lookup of banned SteamIDs so the UI can flag rows and the
+    # KPI tile in PlayersView can show a real count. SCUM stores BannedUsers.ini
+    # as a flat list of SteamID entries (one per line, optional flags). Anything
+    # in users_banned matches by 17-digit SteamID.
+    banned_set: set = set()
+    try:
+        banned_list = (srv_full.get("settings") or {}).get("users_banned") or []
+        for entry in banned_list:
+            if isinstance(entry, dict):
+                sid_v = str(entry.get("steam_id") or entry.get("sid") or "").strip()
+            else:
+                sid_v = str(entry).strip().split()[0] if entry else ""
+            if sid_v.isdigit() and len(sid_v) == 17:
+                banned_set.add(sid_v)
+    except Exception:
+        pass
 
     # Latest wallet state per player. Every economy source that knows a fresh
     # balance contributes here:
@@ -1727,6 +1744,7 @@ async def list_players(server_id: str, online: Optional[bool] = None, search: Op
             "fame_delta": int(r.get("fame_delta") or 0),
             "trade_amount": int(r.get("trade_amount") or 0),
             "is_admin_invoker": bool(r.get("is_admin_invoker")),
+            "is_banned": sid in banned_set,
             "kills": int(kills_map.get(sid, 0)),
             "deaths": int(deaths_map.get(sid, 0)),
             "by_type": by_type,

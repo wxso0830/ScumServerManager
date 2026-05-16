@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import {
   Users, Search, RefreshCw, UserCircle2, Shield, Clock, Swords, Coins, Trophy,
-  Flag, Car, X, Info, Activity, Wallet, Gem, Timer,
+  Flag, Car, X, Info, Activity, Wallet, Gem, Timer, UserX,
 } from "lucide-react";
 import { useI18n } from "../providers/I18nProvider";
 import { endpoints } from "../lib/api";
@@ -67,7 +67,7 @@ const relative = (iso) => {
 export const PlayersView = ({ servers = [] }) => {
   const { t } = useI18n();
   const [serverId, setServerId] = useState(servers[0]?.id || "");
-  const [tab, setTab] = useState("online"); // online | all — default to online so admins see who's live first
+  const [tab, setTab] = useState("online"); // online | all | admins | banned
   const [search, setSearch] = useState("");
   const [data, setData] = useState({ players: [], count: 0, online_count: 0 });
   const [loading, setLoading] = useState(false);
@@ -101,11 +101,25 @@ export const PlayersView = ({ servers = [] }) => {
 
   const activeServer = useMemo(() => servers.find((s) => s.id === serverId), [servers, serverId]);
 
-  // Client-side tab filter — keeps `data.count` and `data.online_count` stable across tab switches.
-  const visiblePlayers = useMemo(
-    () => (tab === "online" ? (data.players || []).filter((p) => p.is_online) : (data.players || [])),
-    [data.players, tab],
-  );
+  // Client-side tab filter — keeps `data.count` etc. stable across tab switches.
+  const visiblePlayers = useMemo(() => {
+    const all = data.players || [];
+    if (tab === "online") return all.filter((p) => p.is_online);
+    if (tab === "admins") return all.filter((p) => p.is_admin_invoker);
+    if (tab === "banned") return all.filter((p) => p.is_banned);
+    return all;
+  }, [data.players, tab]);
+
+  // KPI counts (computed once, reused for tile values and filter feedback)
+  const counts = useMemo(() => {
+    const all = data.players || [];
+    return {
+      online: data.online_count ?? all.filter((p) => p.is_online).length,
+      total: data.count ?? all.length,
+      admins: all.filter((p) => p.is_admin_invoker).length,
+      banned: all.filter((p) => p.is_banned).length,
+    };
+  }, [data]);
 
   const openDetail = async (player) => {
     try {
@@ -159,83 +173,55 @@ export const PlayersView = ({ servers = [] }) => {
         </button>
       </div>
 
-      {/* Quick stats strip — compact KPI tiles so admins see the high-level
-          picture (online/total/admins/avg fame) before scrolling the table. */}
+      {/* KPI tiles double as filter buttons — click any tile to filter the
+          table below by that category. Active tile gets a brighter accent
+          ring + glow. Replaces the old separate "Online / All Players"
+          segmented control (which was redundant with the tiles). */}
       <div className="bg-bg-deep border-b border-brand px-6 py-3 grid grid-cols-2 md:grid-cols-4 gap-3">
         {[
-          { key: "online", label: t("players_online_tab"), value: data.online_count, color: "var(--success)", icon: Activity },
-          { key: "total", label: t("col_player") || "Total", value: data.count, color: "var(--accent)", icon: Users },
-          { key: "admins", label: t("admin_player") || "Admins", value: (data.players || []).filter((p) => p.is_admin_invoker).length, color: "var(--warning)", icon: Shield },
-          { key: "fame", label: t("col_fame") || "Avg Fame", value: (() => {
-            const list = (data.players || []).filter((p) => p.fame != null);
-            if (!list.length) return "—";
-            const sum = list.reduce((a, p) => a + Number(p.fame || 0), 0);
-            return Math.round(sum / list.length).toLocaleString();
-          })(), color: "var(--info)", icon: Trophy },
-        ].map(({ key, label, value, color, icon: Ico }) => (
-          <div
-            key={key}
-            data-testid={`players-kpi-${key}`}
-            className="bg-surface border border-brand px-3 py-2.5 flex items-center gap-3 relative overflow-hidden"
-            style={{ boxShadow: "0 0 0 1px transparent inset" }}
-          >
-            <span
-              className="absolute left-0 top-0 bottom-0 w-[3px]"
-              style={{ background: color }}
-            />
-            <div
-              className="flex items-center justify-center w-9 h-9 shrink-0"
-              style={{ background: `color-mix(in srgb, ${color} 14%, transparent)`, color }}
+          { key: "online", label: t("players_online_tab"), value: counts.online, color: "var(--success)", icon: Activity },
+          { key: "all", label: t("players_all_tab"), value: counts.total, color: "var(--accent)", icon: Users },
+          { key: "admins", label: t("admin_player") || "Admins", value: counts.admins, color: "var(--warning)", icon: Shield },
+          { key: "banned", label: t("cat_users_banned") || "Banned", value: counts.banned, color: "var(--danger)", icon: UserX },
+        ].map(({ key, label, value, color, icon: Ico }) => {
+          const active = tab === key;
+          return (
+            <button
+              key={key}
+              type="button"
+              onClick={() => setTab(key)}
+              data-testid={`players-kpi-${key}`}
+              className="bg-surface border px-3 py-2.5 flex items-center gap-3 relative overflow-hidden text-left transition-all hover:bg-surface-2"
+              style={{
+                borderColor: active ? color : "var(--border)",
+                boxShadow: active ? `inset 0 0 0 1px ${color}, 0 0 16px -4px ${color}` : "none",
+              }}
             >
-              <Ico size={16} />
-            </div>
-            <div className="min-w-0">
-              <div className="font-mono text-[9px] text-dim uppercase tracking-widest truncate">{label}</div>
-              <div className="font-display text-lg leading-tight" style={{ color }}>{value}</div>
-            </div>
-          </div>
-        ))}
-      </div>
-
-      {/* Tabs — pill-style segmented control, much more modern than the old
-          plain nav-tab links. Animated slider underneath the active tab. */}
-      <div className="bg-bg-deep border-b border-brand px-6 py-3">
-        <div className="inline-flex p-1 bg-surface border border-brand rounded-md gap-1">
-          {[
-            { key: "online", label: t("players_online_tab"), count: data.online_count, dot: "var(--success)" },
-            { key: "all", label: t("players_all_tab"), count: data.count, dot: "var(--accent)" },
-          ].map(({ key, label, count, dot }) => {
-            const active = tab === key;
-            return (
-              <button
-                key={key}
-                onClick={() => setTab(key)}
-                data-testid={`players-tab-${key}`}
-                className={`relative px-4 py-1.5 text-[11px] font-display uppercase tracking-wider transition-all flex items-center gap-2 rounded ${
-                  active
-                    ? "text-brand bg-bg shadow-[0_0_0_1px_var(--accent-brand)_inset]"
-                    : "text-dim hover:text-brand hover:bg-bg/40"
-                }`}
+              <span
+                className="absolute left-0 top-0 bottom-0 w-[3px]"
+                style={{ background: color, boxShadow: active ? `0 0 8px ${color}` : "none" }}
+              />
+              <div
+                className="flex items-center justify-center w-9 h-9 shrink-0"
+                style={{ background: `color-mix(in srgb, ${color} ${active ? 22 : 12}%, transparent)`, color }}
               >
+                <Ico size={16} />
+              </div>
+              <div className="min-w-0 flex-1">
+                <div className="font-mono text-[9px] text-dim uppercase tracking-widest truncate">{label}</div>
+                <div className="font-display text-lg leading-tight" style={{ color }}>{value}</div>
+              </div>
+              {active && (
                 <span
-                  style={{
-                    width: 6, height: 6, borderRadius: "50%",
-                    background: dot,
-                    boxShadow: active ? `0 0 6px ${dot}` : "none",
-                  }}
-                />
-                <span>{label}</span>
-                <span
-                  className={`ml-1 px-1.5 py-0.5 text-[9px] rounded ${
-                    active ? "bg-accent-brand text-bg" : "bg-bg-deep text-dim"
-                  }`}
+                  className="absolute right-2 top-2 text-[9px] font-mono uppercase tracking-widest"
+                  style={{ color }}
                 >
-                  {count}
+                  ●
                 </span>
-              </button>
-            );
-          })}
-        </div>
+              )}
+            </button>
+          );
+        })}
       </div>
 
       {/* Table */}
@@ -290,6 +276,13 @@ export const PlayersView = ({ servers = [] }) => {
                       {p.is_admin_invoker && (
                         <span className="flex items-center gap-1 px-1.5 py-0.5 border border-accent-brand text-accent-brand text-[9px] uppercase tracking-widest">
                           <Shield size={8} /> {t("admin_player")}
+                        </span>
+                      )}
+                      {p.is_banned && (
+                        <span className="flex items-center gap-1 px-1.5 py-0.5 border text-[9px] uppercase tracking-widest"
+                          style={{ color: "var(--danger)", borderColor: "var(--danger)", background: "color-mix(in srgb, var(--danger) 10%, transparent)" }}
+                        >
+                          <UserX size={8} /> {t("cat_users_banned") || "BANNED"}
                         </span>
                       )}
                     </div>

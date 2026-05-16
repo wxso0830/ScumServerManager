@@ -385,6 +385,34 @@ function createWindow() {
   });
   mainWindow.setMenuBarVisibility(false);
 
+  // ---- External link handler ---------------------------------------------
+  // Any `window.open(url, '_blank')` from React (Discord invite, feedback
+  // portal, GitHub releases, etc.) should open in the user's DEFAULT system
+  // browser — Chrome / Edge / Opera / whatever they have set, not a new
+  // Electron BrowserWindow rendering the site inside our shell. The default
+  // Electron behavior is to spawn an in-app window which strips cookies/auth
+  // and confuses users (see admin's screenshot — Discord invite rendered
+  // inside Electron instead of launching the Discord desktop client / browser).
+  // setWindowOpenHandler({ action: 'deny' }) cancels the new BrowserWindow,
+  // and shell.openExternal hands the URL to the OS to open with the
+  // registered http/https protocol handler.
+  mainWindow.webContents.setWindowOpenHandler(({ url }) => {
+    if (/^https?:\/\//i.test(url)) {
+      shell.openExternal(url).catch((err) => {
+        console.warn('[external-link] shell.openExternal failed:', err.message);
+      });
+    }
+    return { action: 'deny' };
+  });
+  // Also catch direct top-level navigations (e.g. <a href="..." target="_self">)
+  // — same logic: hand off http/https to the OS, keep file:// internal.
+  mainWindow.webContents.on('will-navigate', (e, navUrl) => {
+    if (/^https?:\/\//i.test(navUrl) && navUrl !== mainWindow.webContents.getURL()) {
+      e.preventDefault();
+      shell.openExternal(navUrl).catch(() => {});
+    }
+  });
+
   const startUrl = process.env.ELECTRON_START_URL
     || `file://${path.join(getResourcesBase(), 'frontend', 'build', 'index.html')}`;
 

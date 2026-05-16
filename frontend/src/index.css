@@ -668,6 +668,10 @@ body::before {
    glows rhythmically so the admin can't miss it. Uses a 2s ease so it's
    noticeable but not distracting. Glow-only (no background override) so it
    stacks cleanly on .btn-primary (solid accent) AND outlined .nav buttons. */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(2px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
 @keyframes update-btn-pulse-glow {
   0%, 100% {
     box-shadow: 0 0 0 0 var(--accent-soft), 0 0 0 0 var(--accent-soft);

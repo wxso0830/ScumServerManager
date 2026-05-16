@@ -98,8 +98,30 @@ export const ServerCard = ({ server, onOpen, onStart, onStop, onUpdate, onInstal
             <h3 className="heading-stencil text-base mt-1 truncate" data-testid={`server-card-name-${server.folder_name}`}>
               {server.name}
             </h3>
-            <div className="font-mono text-[10px] text-muted uppercase tracking-widest mt-0.5">
-              {server.folder_name} · APPID 3792580
+            <div className="font-mono text-[10px] text-muted uppercase tracking-widest mt-0.5 flex items-center gap-2 flex-wrap">
+              <span>{server.folder_name} · APPID 3792580</span>
+              {server.installed_build_id && (
+                <span
+                  className="inline-flex items-center gap-1 px-1.5 py-0.5 text-[9px] font-mono uppercase tracking-widest border"
+                  style={{
+                    color: server.update_available ? "var(--danger)" : "var(--success)",
+                    borderColor: server.update_available ? "var(--danger)" : "var(--success)",
+                    background: server.update_available
+                      ? "color-mix(in srgb, var(--danger) 12%, transparent)"
+                      : "color-mix(in srgb, var(--success) 12%, transparent)",
+                  }}
+                  title={server.update_available
+                    ? `${t("update_available") || "Update available"} · ${server.installed_build_id}`
+                    : `${t("up_to_date") || "Up to date"} · ${server.installed_build_id}`}
+                  data-testid={`scum-version-pill-${server.folder_name}`}
+                >
+                  <span style={{
+                    width: 6, height: 6, borderRadius: "50%",
+                    background: "currentColor", boxShadow: "0 0 6px currentColor",
+                  }} />
+                  <span>SCUM {String(server.installed_build_id).replace(/^build-/i, "")}</span>
+                </span>
+              )}
             </div>
           </div>
         </div>

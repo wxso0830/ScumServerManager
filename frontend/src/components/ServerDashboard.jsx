@@ -1,7 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import * as Icons from "lucide-react";
 import { toast } from "sonner";
-import { Collapsible } from "./Collapsible";
 import { DynamicFields } from "./DynamicFields";
 import { UserList } from "./UserList";
 import { RaidTimesEditor } from "./RaidTimesEditor";
@@ -58,7 +57,12 @@ export const ServerDashboard = ({
 }) => {
   const { t } = useI18n();
   const [activeSection, setActiveSection] = useState(schema?.sections?.[0]?.key || "essentials");
-  const [openMap, setOpenMap] = useState({});
+  // Active CATEGORY within the current section (the second-level "tab strip"
+  // the user requested, Chrome-style: clicking a category tab expands its
+  // editor below; the editor panel visually merges with the active tab.
+  // Previously every category in the section rendered as a vertical
+  // collapsible list — bulky and hard to scan.
+  const [activeCategory, setActiveCategory] = useState(null);
   const [draft, setDraft] = useState(server.settings || {});
   const [dirty, setDirty] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -242,6 +246,18 @@ export const ServerDashboard = ({
 
   const sections = schema?.sections || [];
   const visibleCategories = (schema?.categories || []).filter((c) => c.section === activeSection);
+
+  // When section changes (or first load) snap activeCategory to the first
+  // available one so the panel below always has content.
+  useEffect(() => {
+    if (visibleCategories.length === 0) return;
+    if (!activeCategory || !visibleCategories.some((c) => c.key === activeCategory)) {
+      setActiveCategory(visibleCategories[0].key);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeSection, schema]);
+
+  const activeCat = visibleCategories.find((c) => c.key === activeCategory) || visibleCategories[0];
 
   const renderCategoryBody = (cat) => {
     const sourceKey = cat.sourceKey || cat.key;
@@ -508,36 +524,81 @@ export const ServerDashboard = ({
         })}
       </div>
 
-      <div className="flex-1 overflow-y-auto scrollbar-thin p-6 bg-bg">
-        {visibleCategories.map((cat) => {
-          const Icon = Icons[cat.icon] || Icons.Settings;
-          const badge = cat.exportKey ? cat.exportKey.toUpperCase() : null;
-          return (
-            <Collapsible
-              key={cat.key}
-              testId={`panel-${cat.key}`}
-              title={t(cat.labelKey)}
-              icon={<Icon size={15} className="text-accent-brand" />}
-              open={!!openMap[cat.key]}
-              onToggle={() => setOpenMap((m) => ({ ...m, [cat.key]: !m[cat.key] }))}
-              badge={badge}
-            >
-              {renderCategoryBody(cat)}
-              {/* Injected: show SCUM CLI network port editor at the bottom of
-                  the Performance category (section=essentials). */}
-              {cat.key === "essentials_performance" && (
-                <>
-                  <NetworkPortsPanel server={server} onSaved={(updated) => onChange(updated)} />
-                  <div className="mt-6">
-                    <LaunchArgsPanel server={server} onSaved={(updated) => onChange(updated)} />
-                  </div>
-                </>
-              )}
-            </Collapsible>
-          );
-        })}
+      <div className="flex-1 overflow-y-auto scrollbar-thin bg-bg">
         {visibleCategories.length === 0 && (
           <div className="text-center text-dim text-sm py-12 font-mono uppercase tracking-widest">{t("loading")}</div>
+        )}
+
+        {visibleCategories.length > 0 && (
+          <div className="px-6 pt-6">
+            {/* Category tabs — Chrome-style: each tab is a rounded-top button
+                that visually merges into the content panel below when active.
+                Inactive tabs sit on a thin baseline; the active one has no
+                bottom border so it "flows" into the panel. */}
+            <div className="flex items-end gap-1 flex-wrap relative" style={{ marginBottom: "-1px", zIndex: 2 }}>
+              {visibleCategories.map((cat) => {
+                const Icon = Icons[cat.icon] || Icons.Settings;
+                const active = activeCat?.key === cat.key;
+                return (
+                  <button
+                    key={cat.key}
+                    onClick={() => setActiveCategory(cat.key)}
+                    data-testid={`category-tab-${cat.key}`}
+                    className={`group flex items-center gap-2 px-4 py-2.5 text-[11px] font-display uppercase tracking-wider transition-all border ${
+                      active
+                        ? "bg-surface text-brand border-brand border-b-transparent rounded-t-md relative shadow-[0_-2px_0_var(--accent)_inset]"
+                        : "bg-bg/50 text-dim border-transparent hover:text-brand hover:bg-surface/40"
+                    }`}
+                    style={active ? { borderBottom: "1px solid var(--surface)" } : {}}
+                  >
+                    <Icon size={13} className={active ? "text-accent-brand" : "opacity-70"} />
+                    <span>{t(cat.labelKey)}</span>
+                    {cat.exportKey && (
+                      <span className={`hidden md:inline ml-1 text-[9px] opacity-50 ${active ? "text-accent-brand" : ""}`}>
+                        {cat.exportKey.toUpperCase()}
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Active category content panel — merges visually with tab */}
+            {activeCat && (
+              <div
+                key={activeCat.key}
+                className="bg-surface border border-brand rounded-md rounded-tl-none p-6 relative"
+                data-testid={`panel-${activeCat.key}`}
+                style={{ animation: "fadeIn 180ms ease-out" }}
+              >
+                <div className="flex items-center justify-between mb-4 pb-3 border-b border-brand">
+                  <div className="flex items-center gap-2">
+                    {(() => {
+                      const I = Icons[activeCat.icon] || Icons.Settings;
+                      return <I size={16} className="text-accent-brand" />;
+                    })()}
+                    <h3 className="heading-stencil text-base">{t(activeCat.labelKey)}</h3>
+                  </div>
+                  {activeCat.exportKey && (
+                    <span className="font-mono text-[10px] text-dim uppercase tracking-widest">
+                      {activeCat.exportKey}.{activeCat.exportKey.toLowerCase().includes("json") ? "" : "ini"}
+                    </span>
+                  )}
+                </div>
+                {renderCategoryBody(activeCat)}
+                {/* Injected: SCUM CLI network port editor + launch args, only
+                    on the Performance category. */}
+                {activeCat.key === "essentials_performance" && (
+                  <>
+                    <NetworkPortsPanel server={server} onSaved={(updated) => onChange(updated)} />
+                    <div className="mt-6">
+                      <LaunchArgsPanel server={server} onSaved={(updated) => onChange(updated)} />
+                    </div>
+                  </>
+                )}
+              </div>
+            )}
+          </div>
         )}
       </div>
       </>

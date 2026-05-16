@@ -48,7 +48,10 @@ export const DynamicFields = ({ values = {}, fieldKeys, onFieldChange, testIdPre
           <div className="label-overline mt-1">{t("showing")} {filtered.length} {t("of")} {entries.length}</div>
         </div>
       )}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6">
+      {/* 2-column layout by default; bump to 3 on wide screens for dense
+          categories like Gameplay/World that have 30+ fields, so the user
+          doesn't have to scroll for ages. */}
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-x-6 gap-y-1">
         {filtered.map(([k, v]) => {
           const meta = getFieldMeta(k, lang);
           const typeMeta = detectFieldType(v, k);

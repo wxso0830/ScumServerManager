@@ -111,18 +111,9 @@ export const ServerDashboard = ({
     localStorage.setItem("lgss.autosave_sec", String(autosaveSec));
   }, [autosaveSec]);
 
-  useEffect(() => {
-    if (!schema?.categories) return;
-    const map = {};
-    const seenSections = new Set();
-    for (const cat of schema.categories) {
-      if (!seenSections.has(cat.section)) {
-        map[cat.key] = true;
-        seenSections.add(cat.section);
-      }
-    }
-    setOpenMap(map);
-  }, [schema]);
+  // (Removed in v1.0.19) The old layout pre-opened the first Collapsible of
+  // each section on schema load. We now use a single active-category tab
+  // per section, which the activeSection effect below selects automatically.
 
   const statusMeta = STATUS_META[server.status] || STATUS_META.Stopped;
   const isRunning = server.status === "Running";

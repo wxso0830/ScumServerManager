@@ -163,7 +163,7 @@ def default_scum_settings() -> Dict[str, Any]:
 # ---------- ENDPOINTS ----------
 @api_router.get("/")
 async def root():
-    return {"service": "LGSS SCUM Server Manager", "version": "1.0.12"}
+    return {"service": "LGSS SCUM Server Manager", "version": "1.0.18"}
 
 
 _PUBLIC_IP_CACHE = {"ts": 0, "ip": None}
@@ -359,13 +359,17 @@ async def update_server_ports(server_id: str, payload: ServerPortsUpdate):
     """Update game port / query port / max players. Takes effect on next START."""
     update: Dict[str, Any] = {}
     if payload.game_port is not None:
-        if not (1024 <= payload.game_port <= 65535):
-            raise HTTPException(status_code=400, detail="game_port must be 1024-65535")
+        if not (1024 <= payload.game_port <= 65534):
+            raise HTTPException(status_code=400, detail="game_port must be 1024-65534")
         update["game_port"] = payload.game_port
-    if payload.query_port is not None:
-        if not (1024 <= payload.query_port <= 65535):
-            raise HTTPException(status_code=400, detail="query_port must be 1024-65535")
-        update["query_port"] = payload.query_port
+        # Query port is ALWAYS game_port + 1 (SCUM convention). The UI hides
+        # the query field, but if a script-driven caller still sends one we
+        # silently override it so DB stays consistent.
+        update["query_port"] = payload.game_port + 1
+    elif payload.query_port is not None:
+        # No game_port change but caller wants to set query_port standalone.
+        # Reject — query is derived, not editable.
+        raise HTTPException(status_code=400, detail="query_port is auto-derived from game_port (game_port+1)")
     if payload.max_players is not None:
         if not (1 <= payload.max_players <= 128):
             raise HTTPException(status_code=400, detail="max_players must be 1-128")
@@ -2027,7 +2031,7 @@ async def first_boot_result(server_id: str):
 
 
 # ---------- MANAGER VERSION / SELF-UPDATE ----------
-CURRENT_MANAGER_VERSION = "1.0.12"
+CURRENT_MANAGER_VERSION = "1.0.18"
 LATEST_MANAGER_VERSION_KEY = "manager-latest-version"
 
 
@@ -2532,8 +2536,10 @@ async def get_settings_schema():
                            "scum.SquadMemberCountAtIntLevel5", "scum.SquadMemberCountLimitForPunishment",
                            "scum.RTSquadProbationDuration", "scum.SquadMoneyPenaltyPerPrevSquadMember",
                            "scum.SquadFamePointsPenaltyPerPrevSquadMember", "scum.EnableSquadMemberNameWidget"]},
-            {"key": "advanced_input", "labelKey": "cat_advanced_input", "icon": "Keyboard", "section": "advanced",
-             "renderer": "input", "exportKey": "input"},
+            # Input keys category was removed by user request (2026-02 v1.0.13):
+            # SCUM dedicated server doesn't actually consume Input.ini, those
+            # are client-side keybinds the player configures on their own
+            # machine. The category was confusing admins.
             {"key": "advanced_custom_ini", "labelKey": "cat_advanced_custom_ini", "icon": "FileCode", "section": "advanced",
              "renderer": "dynamic", "sourceKey": "custom_ini", "exportKey": None},
 
@@ -2644,8 +2650,16 @@ async def _tick_scheduler():
     while True:
         try:
             now = datetime.now(timezone.utc)
-            hhmm = now.strftime("%H:%M")
-            day_tag = now.strftime("%Y-%m-%dT%H:%M")
+            # Auto-restart times are specified by the admin in LOCAL TIME via
+            # the UI. The scheduler used to compare against UTC ("%H:%M" on a
+            # tz-aware UTC datetime), which silently skipped restart windows
+            # for everyone outside UTC. Reported by admin in Turkey (UTC+3):
+            # 22:00 restart was being evaluated as 19:00 UTC → never matched.
+            # We compute both: HH:MM in local time (the source of truth for
+            # admin-entered times) and keep the UTC stamp for activity samples.
+            local_now = now.astimezone()
+            hhmm = local_now.strftime("%H:%M")
+            day_tag = local_now.strftime("%Y-%m-%dT%H:%M")
             servers = await db.servers.find({}, {"_id": 0}).to_list(500)
 
             # Refresh the Discord state cache so the bot's presence/command
@@ -2752,11 +2766,33 @@ async def _tick_scheduler():
                 # written with day="Everyday" — SCUM can't express "one-shot").
                 # Reported by user 2026-02: chat was spammed with stale update
                 # countdowns every day even though no update was happening.
+                # User request 2026-02 (v1.0.13): also strip ANY auto-generated
+                # restart/update kind notifications even WITHOUT the transient
+                # flag — they're leftovers from servers installed by manager
+                # version <= 1.0.8 which used to seed default English warnings
+                # ("The server will restart in 5 minutes." etc.). On those
+                # older servers SCUM keeps broadcasting them at every restart
+                # window. We delete them now and let admins re-add custom
+                # messages manually if they want.
                 if not pending:
                     cur_notifs = (s.get("settings") or {}).get("notifications") or []
-                    stale = [n for n in cur_notifs if isinstance(n, dict) and n.get("_transient_update")]
+                    auto_msg_patterns = [
+                        "the server will restart in",
+                        "a new version of the game is available",
+                        "sunucu yeniden başlayacak",
+                        "sunucu yeniden başlatılacak",
+                        "oyunun yeni sürümü mevcut",
+                    ]
+                    def _is_auto_legacy(n: Dict[str, Any]) -> bool:
+                        if not isinstance(n, dict):
+                            return False
+                        if n.get("_transient_update") or n.get("_lgss_auto"):
+                            return True
+                        msg = (n.get("message") or "").lower()
+                        return any(p in msg for p in auto_msg_patterns)
+                    stale = [n for n in cur_notifs if _is_auto_legacy(n)]
                     if stale:
-                        clean_notifs = [n for n in cur_notifs if not (isinstance(n, dict) and n.get("_transient_update"))]
+                        clean_notifs = [n for n in cur_notifs if not _is_auto_legacy(n)]
                         clean_settings = {**(s.get("settings") or {}), "notifications": clean_notifs}
                         await db.servers.update_one(
                             {"id": sid}, {"$set": {"settings": clean_settings}},
@@ -2765,8 +2801,8 @@ async def _tick_scheduler():
                             if s.get("folder_path"):
                                 save_notifications_to_disk(s["folder_path"], clean_notifs)
                         except Exception as e:
-                            logger.info("stale update-notification cleanup write failed: %s", e)
-                        logger.warning("Removed %d stale _transient_update notifications from %s", len(stale), s.get("name"))
+                            logger.info("stale notification cleanup write failed: %s", e)
+                        logger.warning("Removed %d stale auto notifications from %s", len(stale), s.get("name"))
                 if pending:
                     try:
                         target = datetime.fromisoformat(pending)

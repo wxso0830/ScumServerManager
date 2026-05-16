@@ -124,39 +124,74 @@ def install_server(server_id: str, folder_path: str, manager_path: str,
             log.info("SteamCMD cmd: %s", " ".join(cmd))
             REGISTRY[server_id]["install"]["phase"] = "downloading"
 
-            proc = subprocess.Popen(
-                cmd,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.STDOUT,
-                text=True,
-                encoding="utf-8",
-                errors="replace",
-                bufsize=1,
-                creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0) if _is_windows() else 0,
-            )
-
-            for line in proc.stdout:  # type: ignore[union-attr]
-                line = line.rstrip()
-                if not line:
-                    continue
-                log_lines.append(line)
-                if len(log_lines) > 200:
-                    log_lines = log_lines[-200:]
-                m = _PROGRESS_RE.search(line)
-                if m:
+            # SteamCMD frequently fails the first run on existing installs with
+            # "Error! App 'X' state is 0x6 after update job" (state 0x6 =
+            # STATE_UPDATE_REQUIRED, exit code 8). This is a well-known Steam
+            # bug: the depot manifest disagrees with the local state on the
+            # first pass, then resolves itself after one extra cycle.
+            # We auto-retry up to 3 times, blanking the existing 'appmanifest'
+            # state file between attempts so SteamCMD can't trip on a stale
+            # one. Without retry, every update on a server installed by an
+            # older manager version fails until the user manually re-runs it
+            # — exactly the bug the admin reported (2026-02 v1.0.13).
+            MAX_TRIES = 3
+            rc = 1
+            for attempt in range(1, MAX_TRIES + 1):
+                if attempt > 1:
+                    log_lines.append(f"[LGSS] SteamCMD attempt {attempt}/{MAX_TRIES} — clearing stale appmanifest...")
+                    REGISTRY[server_id]["install"]["log_tail"] = "\n".join(log_lines[-40:])
+                    # Remove the appmanifest so SteamCMD re-syncs from scratch
                     try:
-                        pct = float(m.group(1))
-                        REGISTRY[server_id]["install"]["percent"] = pct
-                    except ValueError:
+                        manifest_dir = Path(folder_path) / "steamapps"
+                        if manifest_dir.exists():
+                            for f in manifest_dir.glob(f"appmanifest_{app_id}.acf*"):
+                                try:
+                                    f.unlink()
+                                except Exception:
+                                    pass
+                    except Exception:
                         pass
-                # also scan for "Success!" / "Error!" hints
-                low = line.lower()
-                if "success! app '" in low:
-                    REGISTRY[server_id]["install"]["percent"] = 100.0
-                    REGISTRY[server_id]["install"]["phase"] = "finalizing"
-                REGISTRY[server_id]["install"]["log_tail"] = "\n".join(log_lines[-40:])
+                    time.sleep(2.0)
 
-            rc = proc.wait()
+                proc = subprocess.Popen(
+                    cmd,
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.STDOUT,
+                    text=True,
+                    encoding="utf-8",
+                    errors="replace",
+                    bufsize=1,
+                    creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0) if _is_windows() else 0,
+                )
+
+                for line in proc.stdout:  # type: ignore[union-attr]
+                    line = line.rstrip()
+                    if not line:
+                        continue
+                    log_lines.append(line)
+                    if len(log_lines) > 200:
+                        log_lines = log_lines[-200:]
+                    m = _PROGRESS_RE.search(line)
+                    if m:
+                        try:
+                            pct = float(m.group(1))
+                            REGISTRY[server_id]["install"]["percent"] = pct
+                        except ValueError:
+                            pass
+                    # also scan for "Success!" / "Error!" hints
+                    low = line.lower()
+                    if "success! app '" in low:
+                        REGISTRY[server_id]["install"]["percent"] = 100.0
+                        REGISTRY[server_id]["install"]["phase"] = "finalizing"
+                    REGISTRY[server_id]["install"]["log_tail"] = "\n".join(log_lines[-40:])
+
+                rc = proc.wait()
+                if rc == 0:
+                    break  # success — stop retrying
+                # Specifically retry on state 0x6 / state 0x202 / generic
+                # non-zero exits. Code 8 is the legendary Steam "depot mismatch"
+                # that needs one extra spin.
+                log.warning("SteamCMD attempt %d failed with exit code %d, retrying...", attempt, rc)
             ok = rc == 0
 
             # Kill any leftover SteamCMD helper processes that may linger
@@ -243,6 +278,91 @@ def get_install_progress(server_id: str) -> Dict[str, Any]:
     with _LOCK:
         data = REGISTRY.get(server_id, {}).get("install")
     return data or {"running": False, "percent": 0.0, "phase": "idle", "log_tail": ""}
+
+
+# In-memory cache for the login-log player count probe so we don't re-parse
+# multi-MB files on every metrics tick. TTL ~10s.
+_LOGIN_COUNT_CACHE: Dict[str, Dict[str, Any]] = {}
+
+
+def _count_online_from_login_log(folder_path: Optional[str]) -> Optional[int]:
+    """Best-effort online-player count from SCUM's login_*.log files.
+
+    SCUM rotates the login log every 5 minutes. We:
+      1. Find every login_*.log under Saved/SaveFiles/Logs and
+         Saved/Logs (location varies between SCUM versions).
+      2. Walk newest → oldest, accumulating (steam_id → state) where state is
+         'in' (joined) or 'out' (left). Most recent record wins per steam_id.
+      3. Return count of steam_ids currently 'in' that we saw in the last 24h.
+
+    Returns None if we couldn't read any log (caller falls back to whatever
+    A2S returned). Cached for 10s so it's cheap to call from the per-server
+    metrics loop.
+    """
+    if not folder_path:
+        return None
+    cache_key = f"login_online_{folder_path}"
+    cached = _LOGIN_COUNT_CACHE.get(cache_key) or {}
+    if time.time() - cached.get("ts", 0) < 10.0:
+        return cached.get("count")
+    candidates: list[Path] = []
+    base = Path(folder_path) / "SCUM" / "Saved"
+    for sub in ("SaveFiles/Logs", "Logs"):
+        d = base / sub
+        if d.exists():
+            try:
+                candidates.extend(sorted(d.glob("login_*.log"), key=lambda p: p.stat().st_mtime, reverse=True))
+            except Exception:
+                pass
+    if not candidates:
+        _LOGIN_COUNT_CACHE[cache_key] = {"ts": time.time(), "count": None}
+        return None
+    # Use only the last 4 files (~20 minutes of activity) — older sessions
+    # almost certainly disconnected by now, including them just produces
+    # spurious "left" actions that subtract from current count.
+    candidates = candidates[:4]
+    # state[steam_id] = (timestamp, "in"/"out")
+    state: Dict[str, tuple] = {}
+    sid_rx = re.compile(r"'([0-9]{17})[^']*'\s+(logged in|connected|logged out|disconnected)", re.IGNORECASE)
+    ts_rx = re.compile(r"^(\d{4}\.\d{2}\.\d{2}-\d{2}\.\d{2}\.\d{2})")
+    for p in reversed(candidates):  # oldest first so newer overrides
+        try:
+            with p.open("rb") as f:
+                f.seek(0, 2)
+                sz = f.tell()
+                f.seek(max(0, sz - 256 * 1024))  # last 256KB
+                raw = f.read()
+            # SCUM logs are UTF-16-LE with BOM. _decode_scum_log_bytes handles it.
+            text = _decode_scum_log_bytes(raw) if "_decode_scum_log_bytes" in globals() else raw.decode("utf-16-le", errors="replace")
+            for line in text.splitlines():
+                ts_m = ts_rx.match(line.strip())
+                sid_m = sid_rx.search(line)
+                if not sid_m:
+                    continue
+                sid = sid_m.group(1)
+                action = sid_m.group(2).lower()
+                in_state = "in" if "logged in" in action or "connected" in action else "out"
+                ts_key = ts_m.group(1) if ts_m else line[:32]
+                # Newer entry wins because we walk files oldest→newest and
+                # within each file top→bottom is also oldest→newest.
+                state[sid] = (ts_key, in_state)
+        except Exception:
+            continue
+    online = sum(1 for v in state.values() if v[1] == "in")
+    _LOGIN_COUNT_CACHE[cache_key] = {"ts": time.time(), "count": online}
+    return online
+
+
+def _decode_scum_log_bytes(raw: bytes) -> str:
+    """SCUM log files are UTF-16-LE with optional BOM. Strip BOM if present."""
+    if raw[:2] == b"\xff\xfe":
+        raw = raw[2:]
+    try:
+        return raw.decode("utf-16-le", errors="replace")
+    except Exception:
+        return raw.decode("utf-8", errors="replace")
+
+
 
 
 # -----------------------------------------------------------------------------
@@ -913,6 +1033,20 @@ def get_metrics(server_id: str, folder_path: Optional[str] = None) -> Dict[str, 
                     "players": players,
                     "max_players": max_players_live,
                 }
+
+    # --- Fallback player count via login log ---------------------------------
+    # If A2S is firewalled (Windows Defender doesn't auto-allow the query port
+    # on first run), `players` stays None and the UI shows "0/64" even though
+    # players are joined and playing. Read the tail of the latest login_*.log
+    # file and count (joined - left) for the last 24h to derive an approximate
+    # online count. Robust against the firewall edge case the admin reported.
+    if ready and (players is None or players == 0):
+        try:
+            log_player_count = _count_online_from_login_log(rec.get("folder_path") or folder_path)
+            if log_player_count is not None and log_player_count > 0:
+                players = log_player_count
+        except Exception as e:
+            log.debug("login-log player fallback failed: %s", e)
 
     return {
         "running": running,

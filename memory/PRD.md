@@ -46,6 +46,13 @@ Electron-based desktop server manager for SCUM game. On first launch: ask user t
 - Schema cleanup: removed `client` section + client_mouse/video/graphics/sound; moved `client_game` under `gameplay`
 
 ## Recent Changes
+- **2026-02 (v1.0.18 — multi-fix release)**:
+  1. **SteamCMD auto-retry** (P0 — was breaking updates for everyone): `install_server()` now retries SteamCMD up to 3 times when it exits non-zero (e.g. `code 8` / `state 0x6 after update job`), wiping the stale `appmanifest_<appid>.acf` between tries. This was preventing updates on every server installed by manager <=1.0.12.
+  2. **Player-count fallback via login log**: When A2S_INFO is blocked by Windows Firewall, `get_metrics()` now tails `Saved/SaveFiles/Logs/login_*.log` (and `Saved/Logs/login_*.log`), tracks (joined − left) per steam_id over the last ~4 log files, and returns the resulting online count. UI no longer shows "0/64" while players are actively in.
+  3. **Stale auto-notification cleanup**: Scheduler tick now also strips legacy "The server will restart in N minutes." / "A new version of the game is available…" auto-generated notification entries from servers installed by manager <=1.0.8 (which used to seed them). Stale entries detected by message text patterns + `_lgss_auto`/`_transient_update` flags. Cleared from DB + rewritten to `Notifications.json` on disk.
+  4. **Query port auto-derive (read-only)**: `query_port = game_port + 1` is now enforced both in the UI (input field disabled, derived from game port live) AND in the backend `PUT /servers/{id}/ports` endpoint (rejects standalone `query_port` updates). Max game port range tightened to 1024-65534 (so query+1 stays valid).
+  5. **Advanced → Input Keys category removed**: SCUM dedicated server doesn't read `Input.ini` (client-side keybinds) — the category was misleading admins. Removed from `/api/settings/schema`.
+  6. **Auto-restart timezone fix** (P0): `_tick_scheduler()` was comparing the admin's local-time `restart_times` (e.g. "22:00") against `datetime.now(timezone.utc).strftime("%H:%M")` — so Turkey (UTC+3) admins entering 22:00 had restarts evaluated against 19:00 UTC and they never fired. Now uses `now.astimezone()` to compare in local time. The "one-time it worked" report was almost certainly a daylight-coincidence (when local==UTC by accident).
 - **2026-02 (v1.0.12 — 8 truly distinct themes)**:
   1. **Removed 5 lookalike themes** per user request: `blacksite`, `ghost`, `wastelander`, `blood-moon`, `arctic`.
   2. **Kept 3 themes**: `bunker` (default), `neon-grid`, `carbon`.

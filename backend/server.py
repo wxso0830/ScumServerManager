@@ -170,7 +170,7 @@ def default_scum_settings() -> Dict[str, Any]:
 # ---------- ENDPOINTS ----------
 @api_router.get("/")
 async def root():
-    return {"service": "LGSS SCUM Server Manager", "version": "1.0.26"}
+    return {"service": "LGSS SCUM Server Manager", "version": "1.0.27"}
 
 
 _PUBLIC_IP_CACHE = {"ts": 0, "ip": None}
@@ -2642,6 +2642,12 @@ async def get_settings_schema():
             # machine. The category was confusing admins.
             {"key": "advanced_custom_ini", "labelKey": "cat_advanced_custom_ini", "icon": "FileCode", "section": "advanced",
              "renderer": "dynamic", "sourceKey": "custom_ini", "exportKey": None},
+            # BETA · Community / undocumented settings — written into
+            # ExtraServerSettings so they end up in ServerSettings.ini under
+            # [Scum.Beta] section. Marked as experimental; LGSS will validate
+            # these on real servers and prune any that don't actually work.
+            {"key": "advanced_beta_settings", "labelKey": "cat_advanced_beta_settings", "icon": "FlaskConical",
+             "section": "advanced", "renderer": "beta_settings", "sourceKey": "beta_settings", "exportKey": None},
 
             # ------ AUTOMATION ------
             # Two categories: restart and update. Each category shows both
@@ -3229,7 +3235,7 @@ async def _start_scheduler():
         _scheduler_task = asyncio.create_task(_tick_scheduler())
         logger.info("LGSS automation scheduler started (tick=10s)")
 
-    # v1.0.26 migration: earlier versions stamped installed_build_id with a
+    # v1.0.27 migration: earlier versions stamped installed_build_id with a
     # timestamp-style token (`build-1779386976`) instead of the actual SCUM
     # in-game version (`1.2.3.2.115523`). That made the dashboard show a
     # meaningless number AND the auto-update check ALWAYS reported "update
@@ -3250,9 +3256,9 @@ async def _start_scheduler():
                         {"id": s["id"]},
                         {"$set": {"installed_build_id": ver, "update_available": False}},
                     )
-                logger.info("v1.0.26 build-id migration: rewrote %d legacy build-<ts> tokens → %s", len(legacy), ver)
+                logger.info("v1.0.27 build-id migration: rewrote %d legacy build-<ts> tokens → %s", len(legacy), ver)
     except Exception as e:
-        logger.info("v1.0.26 build-id migration skipped: %s", e)
+        logger.info("v1.0.27 build-id migration skipped: %s", e)
     # TTL index on activity samples — auto-delete rows older than 30 days.
     # If an older version created the index with a different TTL, drop and
     # recreate so the new retention takes effect.

@@ -13,6 +13,7 @@ import { ConfirmModal } from "./ConfirmModal";
 import { ImportExportModal } from "./ImportExportModal";
 import { NetworkPortsPanel } from "./NetworkPortsPanel";
 import { LaunchArgsPanel } from "./LaunchArgsPanel";
+import { BetaSettingsPanel } from "./BetaSettingsPanel";
 import { useI18n } from "../providers/I18nProvider";
 import { endpoints, api } from "../lib/api";
 
@@ -325,6 +326,13 @@ export const ServerDashboard = ({
         return <DiscordSettings server={server} />;
       case "launch_args":
         return <LaunchArgsPanel server={server} onSaved={(updated) => onChange(updated)} />;
+      case "beta_settings":
+        return (
+          <BetaSettingsPanel
+            value={value || {}}
+            onChange={(next) => setCategory(sourceKey, next)}
+          />
+        );
       case "dynamic":
       default:
         return (

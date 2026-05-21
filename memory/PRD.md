@@ -46,6 +46,13 @@ Electron-based desktop server manager for SCUM game. On first launch: ask user t
 - Schema cleanup: removed `client` section + client_mouse/video/graphics/sound; moved `client_game` under `gameplay`
 
 ## Recent Changes
+- **2026-02 (v1.0.27 — BETA / Community Settings tab)**:
+  1. New **"BETA · Community"** sub-tab under the Advanced section. Hosts community-reported / undocumented SCUM keys (vehicle parts damage, engine damage, collision damage, loot respawn time, animal respawn time, item durability, god-mode-for-admins, allow-flying-for-admins) as toggleable rows with descriptions.
+  2. Big red **"⚠ BETA / UNVERIFIED SETTINGS"** warning banner explicitly states: *not in official docs, LGSS will validate on real servers, invalid ones will be removed in a future release.*
+  3. Admins can also add their own ad-hoc `scum.YourCustomKey` rows in the **Custom Keys** panel below the catalog.
+  4. **`render_server_settings_ini()`** now appends a `[ScumBeta]` section (with a `# === BETA / community settings ===` comment header) for any *enabled* beta keys. Disabled keys are dropped so admins can stage values without committing.
+  5. Backend test verified: `enabled=true` → written; `enabled=false` → skipped.
+
 - **2026-02 (v1.0.26 — Player modal: Copy SteamID + 5/page pagination + Quick Actions)**:
   1. **Copy Steam ID button** next to the player's ID in the detail modal (clipboard write + Copied feedback).
   2. **Recent Events pagination**: 5 events per page with `< 1/N >` controls so long histories no longer require scrolling the whole modal.

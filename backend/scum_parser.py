@@ -191,7 +191,13 @@ def _fmt_value(v: Any) -> str:
 
 
 def render_server_settings_ini(settings: Dict[str, Any]) -> str:
-    """Render the 6 server sections back into ServerSettings.ini."""
+    """Render the 6 server sections back into ServerSettings.ini.
+
+    A 7th section `[ScumBeta]` is appended when `beta_settings` is non-empty.
+    These are community/undocumented keys that LGSS hasn't verified yet — they
+    live in their own section so admins (and SCUM's parser) can clearly see
+    they're separate from the documented config.
+    """
     sections = [
         ("General", settings.get("srv_general", {})),
         ("World", settings.get("srv_world", {})),
@@ -205,6 +211,23 @@ def render_server_settings_ini(settings: Dict[str, Any]) -> str:
         lines.append(f"[{name}]")
         for k, v in kv.items():
             lines.append(f"{k}={_fmt_value(v)}")
+        lines.append("")
+    beta = settings.get("beta_settings") or {}
+    # `beta_settings` is a dict {key: {enabled: bool, value: any}} from the UI.
+    # Only enabled rows are emitted so admins can stage them without committing.
+    beta_lines: List[str] = []
+    for k, entry in beta.items():
+        if not isinstance(entry, dict):
+            continue
+        if not entry.get("enabled"):
+            continue
+        if entry.get("value") in (None, ""):
+            continue
+        beta_lines.append(f"{k}={_fmt_value(entry.get('value'))}")
+    if beta_lines:
+        lines.append("# === BETA / community settings (unofficial, LGSS-pending verification) ===")
+        lines.append("[ScumBeta]")
+        lines.extend(beta_lines)
         lines.append("")
     return "\n".join(lines)
 

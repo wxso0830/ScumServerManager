@@ -46,6 +46,16 @@ Electron-based desktop server manager for SCUM game. On first launch: ask user t
 - Schema cleanup: removed `client` section + client_mouse/video/graphics/sound; moved `client_game` under `gameplay`
 
 ## Recent Changes
+- **2026-02 (v1.0.23 — correct 3-port SCUM model)**:
+  1. **Reversal of v1.0.22's wrong "4-port" thinking**: SCUM actually uses **3 consecutive ports**: `game/query/steam = port/+1/+2`. Players connect on the **Steam port** (game_port + 2), NOT on game_port itself. v1.0.22 mistakenly tried to push query OUTSIDE the range thinking 4 ports were involved — that was incorrect.
+  2. **NetworkPortsPanel redesigned again**: now shows the proper 3-row layout:
+     - **GAME PORT** (editable, MAIN badge) — `-port` flag
+     - **QUERY PORT** (editable, auto-follows game+1, green "auto: GAME +1" badge) — `-QueryPort` flag, Steam A2S
+     - **STEAM PORT** (read-only computed game+2, accent border + pulsing ★ CONNECT badge) — the actual port players paste in Direct Connect
+  3. **Backend defaults reverted**: `query_port = game_port + 1` (back to SCUM standard). Pydantic default `query_port: int = 7778`.
+  4. **Migration on startup**: reverses any v1.0.22 `+3` shift by finding not-yet-installed servers with `query_port == game_port + 3` and moving them back to `game_port + 1`. Logged: `v1.0.23 query-port reversal: shifted N`.
+  5. **Player connect IP hint updated**: now says `PUBLIC_IP:{game_port+2}` (Steam port), explicitly calling out "game_port değil!" so admins don't share the wrong port.
+  6. **Multi-server convention reminder** in the UI: bump game_port by 3 each (S1 7777-7779, S2 7780-7782, S3 7783-7785).
 - **2026-02 (v1.0.22 — 4-port layout (1 query + 3 game) + always-on custom args)**:
   1. **Network Ports panel redesigned**: PingPerfect-style stacked rows showing the full 4-port layout per server:
      - **Row 1 — QUERY PORT** (editable, 1 port, isolated for Steam A2S_INFO; green badge "Steam Browser")

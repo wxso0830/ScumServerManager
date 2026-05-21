@@ -312,6 +312,8 @@ export const ServerDashboard = ({
         return <AutomationEditor server={server} onChange={onChange} mode="update" />;
       case "discord":
         return <DiscordSettings server={server} />;
+      case "launch_args":
+        return <LaunchArgsPanel server={server} onSaved={(updated) => onChange(updated)} />;
       case "dynamic":
       default:
         return (
@@ -591,15 +593,12 @@ export const ServerDashboard = ({
                   })()}
                 </div>
                 {renderCategoryBody(activeCat)}
-                {/* Injected: SCUM CLI network port editor + launch args, only
-                    on the Performance category. */}
+                {/* NetworkPorts UI stays on the Performance category since it
+                    governs the CLI -port/-QueryPort flags. The "Launch
+                    Arguments" category is now its own first-class category
+                    (between Performance and Wipe) — see /api/settings/schema. */}
                 {activeCat.key === "essentials_performance" && (
-                  <>
-                    <NetworkPortsPanel server={server} onSaved={(updated) => onChange(updated)} />
-                    <div className="mt-6">
-                      <LaunchArgsPanel server={server} onSaved={(updated) => onChange(updated)} />
-                    </div>
-                  </>
+                  <NetworkPortsPanel server={server} onSaved={(updated) => onChange(updated)} />
                 )}
               </div>
             )}

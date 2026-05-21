@@ -12,26 +12,45 @@ import { useI18n } from "../providers/I18nProvider";
  */
 export const NetworkPortsPanel = ({ server, onSaved }) => {
   const { t } = useI18n();
-  const [gamePort, setGamePort] = useState(server.game_port ?? 7779);
-  // Query port is ALWAYS game_port + 1. SCUM convention + saves admins from
-  // accidentally desyncing the two values. Field is rendered read-only.
-  const queryPort = Number(gamePort) + 1;
+  const [gamePort, setGamePort] = useState(server.game_port ?? 7777);
+  // Query port is editable but defaults to game_port + 1 (SCUM convention).
+  // Most admins should leave it alone, but PingPerfect-style hosts give a
+  // standalone query port (e.g. 11442 with game 11582) so we no longer lock it.
+  const [queryPort, setQueryPort] = useState(server.query_port ?? (server.game_port ?? 7777) + 1);
   const [saving, setSaving] = useState(false);
   const [dirty, setDirty] = useState(false);
 
   useEffect(() => {
-    setGamePort(server.game_port ?? 7779);
+    setGamePort(server.game_port ?? 7777);
+    setQueryPort(server.query_port ?? (server.game_port ?? 7777) + 1);
     setDirty(false);
-  }, [server.id, server.game_port]);
+  }, [server.id, server.game_port, server.query_port]);
 
-  const change = (setter) => (e) => { setter(e.target.value); setDirty(true); };
+  // Convenience: when the admin types a new game port, auto-shift the query
+  // port unless they've already customized it (i.e. it was game_port+1).
+  const handleGamePortChange = (e) => {
+    const v = e.target.value;
+    setGamePort(v);
+    const oldGP = Number(gamePort);
+    const oldQP = Number(queryPort);
+    // Only auto-track when query was the standard "+1" of the previous game port.
+    if (oldQP === oldGP + 1) {
+      setQueryPort(Number(v) + 1);
+    }
+    setDirty(true);
+  };
+
+  const handleQueryPortChange = (e) => {
+    setQueryPort(e.target.value);
+    setDirty(true);
+  };
 
   const handleSave = async () => {
     setSaving(true);
     try {
       const updated = await endpoints.updateServerPorts(server.id, {
         game_port: Number(gamePort),
-        query_port: Number(gamePort) + 1,
+        query_port: Number(queryPort),
       });
       onSaved?.(updated);
       setDirty(false);
@@ -65,7 +84,7 @@ export const NetworkPortsPanel = ({ server, onSaved }) => {
           <input
             type="number" min="1024" max="65532"
             value={gamePort}
-            onChange={change(setGamePort)}
+            onChange={handleGamePortChange}
             className="w-full bg-bg border border-brand px-3 py-2 font-mono text-sm text-brand focus:outline-none focus:border-accent-brand"
             data-testid="input-game-port"
           />
@@ -77,23 +96,19 @@ export const NetworkPortsPanel = ({ server, onSaved }) => {
         <div>
           <label className="label-overline block mb-1.5">{t("ports_query_label")}</label>
           <input
-            type="number"
+            type="number" min="1024" max="65535"
             value={queryPort}
-            readOnly
-            disabled
-            title={t("ports_query_locked_hint") || "Query port auto-derives from game port (+1)"}
-            className="w-full bg-bg border border-strong px-3 py-2 font-mono text-sm text-dim cursor-not-allowed opacity-70"
+            onChange={handleQueryPortChange}
+            className="w-full bg-bg border border-brand px-3 py-2 font-mono text-sm text-brand focus:outline-none focus:border-accent-brand"
             data-testid="input-query-port"
           />
           <p className="font-mono text-[10px] text-dim mt-1">
-            {t("ports_query_locked_hint") || `Otomatik: oyun portu + 1 (${queryPort})`}
+            {t("ports_query_hint") || `Steam server browser query port (default: game_port + 1)`}
           </p>
         </div>
       </div>
 
-      {/* Connect port hint — players in SCUM's Direct Connect prompt use
-          game_port + 2, NOT game_port. This is a SCUM convention, not ours.
-          Showing it explicitly so admins know which port to forward / share. */}
+      {/* Connect port hint — players use game_port + 2 in SCUM's Direct Connect. */}
       <div className="border border-dashed border-accent-brand/40 bg-accent-soft/20 px-3 py-2 flex items-start gap-2">
         <Network size={13} className="text-accent-brand shrink-0 mt-0.5" />
         <div className="font-mono text-[10px] text-dim leading-relaxed">
@@ -104,7 +119,7 @@ export const NetworkPortsPanel = ({ server, onSaved }) => {
           </div>
           <div className="mt-0.5 opacity-80">
             Players paste <span className="text-accent-brand">PUBLIC_IP:{Number(gamePort) + 2}</span> in SCUM's Direct Connect.
-            Forward UDP <span className="text-accent-brand">{gamePort}-{Number(gamePort) + 2}</span> on your router.
+            Manager auto-opens UDP <span className="text-accent-brand">{gamePort}-{Number(gamePort) + 2}</span> + query <span className="text-accent-brand">{queryPort}</span> in Windows Firewall on start.
           </div>
         </div>
       </div>

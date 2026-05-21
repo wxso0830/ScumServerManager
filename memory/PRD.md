@@ -46,6 +46,21 @@ Electron-based desktop server manager for SCUM game. On first launch: ask user t
 - Schema cleanup: removed `client` section + client_mouse/video/graphics/sound; moved `client_game` under `gameplay`
 
 ## Recent Changes
+- **2026-02 (v1.0.21 — Query port editable + new Launch Options category)**:
+  1. **Query port is now editable** (NetworkPortsPanel + backend): previously locked to `game_port + 1`. Admins can now set independent values (e.g. PingPerfect-style `game_port=11582, query_port=11442`). Convenience: when admin changes game_port AND query is still at the old "+1", query auto-shifts so casual users don't break the convention.
+  2. **Auto-firewall now opens all ports on save/start** (already in v1.0.20): UDP `game_port..game_port+2` + UDP/TCP `query_port` + EXE-wide allow. Idempotent.
+  3. **New "Launch Options" category** (`essentials_launch_args`) inserted between Performance and Wipe — replaces the inline textarea on Performance. ARK Server Manager-style **grouped checkboxes** for SCUM/Unreal flags:
+     - **Performance**: `-USEALLAVAILABLECORES`, `-norhithread`, `-nosteam`, `-NoVerifyGC`, `-nocrashreports`, `-nosound`
+     - **Logging**: `-log`, `-stdout`, `-VERBOSE`, `-FORCELOGFLUSH`
+     - **Anti-Cheat**: `-NOBATTLEYE`, `-noeac`, `-Insecure`
+     - **Network**: `-MULTIHOME=0.0.0.0`, `-NetServerMaxTickRate=30`
+     - **Memory**: `-ONETHREAD`, `-AllowSoftwareRendering`
+     - Each row: friendly label, technical description, raw flag preview.
+     - "Default" badge on safe-by-default flags (recommended).
+     - Collapsible "Advanced (Manual Extra Flags)" textarea for power users / mod IDs.
+     - Live command-line preview: `SCUMServer.exe -port=X -QueryPort=Y -MaxPlayers=Z <selected flags>`.
+     - Serialization: parses existing `launch_args` string into preset checkboxes + leftover extras; saves back as a single CLI string (no schema change needed).
+  4. Translations for `cat_essentials_launch_args` added in all 8 languages (TR, EN, RU, DE, FR, IT, AR, AZ).
 - **2026-02 (v1.0.20 — SCUM 3-port range + auto-firewall)**:
   1. **Server invisible in Steam browser** (P0 - reported by admin): SCUM dedicated server actually listens on **THREE consecutive UDP ports** starting at `game_port` (game_port, +1, +2), and players connect via `game_port + 2`. The manager was only opening Windows Firewall rules for `game_port` and `query_port`, so `game_port+1` and `game_port+2` were silently dropped by Windows Defender → server didn't appear in the in-game browser even though it was running and responding to A2S query.
   2. **`_ensure_firewall_rules()` helper** added to `scum_process.py`. Runs on every `start_server()` (idempotent — deletes by name first, then re-adds). Creates 5 rules per server:

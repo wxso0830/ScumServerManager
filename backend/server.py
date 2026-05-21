@@ -163,7 +163,7 @@ def default_scum_settings() -> Dict[str, Any]:
 # ---------- ENDPOINTS ----------
 @api_router.get("/")
 async def root():
-    return {"service": "LGSS SCUM Server Manager", "version": "1.0.20"}
+    return {"service": "LGSS SCUM Server Manager", "version": "1.0.21"}
 
 
 _PUBLIC_IP_CACHE = {"ts": 0, "ip": None}
@@ -362,14 +362,15 @@ async def update_server_ports(server_id: str, payload: ServerPortsUpdate):
         if not (1024 <= payload.game_port <= 65532):
             raise HTTPException(status_code=400, detail="game_port must be 1024-65532 (SCUM uses 3 consecutive ports)")
         update["game_port"] = payload.game_port
-        # Query port is ALWAYS game_port + 1 (SCUM convention). The UI hides
-        # the query field, but if a script-driven caller still sends one we
-        # silently override it so DB stays consistent.
-        update["query_port"] = payload.game_port + 1
-    elif payload.query_port is not None:
-        # No game_port change but caller wants to set query_port standalone.
-        # Reject — query is derived, not editable.
-        raise HTTPException(status_code=400, detail="query_port is auto-derived from game_port (game_port+1)")
+        # If caller doesn't supply query_port, default to game_port+1 (the
+        # SCUM convention most home admins use). PingPerfect-style hosts
+        # supply a custom query_port; respect it when present.
+        if payload.query_port is None:
+            update["query_port"] = payload.game_port + 1
+    if payload.query_port is not None:
+        if not (1024 <= payload.query_port <= 65535):
+            raise HTTPException(status_code=400, detail="query_port must be 1024-65535")
+        update["query_port"] = payload.query_port
     if payload.max_players is not None:
         if not (1 <= payload.max_players <= 128):
             raise HTTPException(status_code=400, detail="max_players must be 1-128")
@@ -2049,7 +2050,7 @@ async def first_boot_result(server_id: str):
 
 
 # ---------- MANAGER VERSION / SELF-UPDATE ----------
-CURRENT_MANAGER_VERSION = "1.0.20"
+CURRENT_MANAGER_VERSION = "1.0.21"
 LATEST_MANAGER_VERSION_KEY = "manager-latest-version"
 
 
@@ -2378,6 +2379,8 @@ async def get_settings_schema():
              "renderer": "dynamic", "sourceKey": "srv_general", "exportKey": "server_settings",
              "fieldKeys": ["scum.MinServerTickRate", "scum.MaxServerTickRate", "scum.MaxPingCheckEnabled", "scum.MaxPing",
                            "scum.MasterServerUpdateSendInterval"]},
+            {"key": "essentials_launch_args", "labelKey": "cat_essentials_launch_args", "icon": "Terminal", "section": "essentials",
+             "renderer": "launch_args"},
             {"key": "essentials_wipe", "labelKey": "cat_essentials_wipe", "icon": "Eraser", "section": "essentials",
              "renderer": "dynamic", "sourceKey": "srv_general", "exportKey": "server_settings",
              "fieldKeys": ["scum.PartialWipe", "scum.GoldWipe", "scum.FullWipe"]},

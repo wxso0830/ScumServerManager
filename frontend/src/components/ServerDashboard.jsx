@@ -254,17 +254,28 @@ export const ServerDashboard = ({
     const sourceKey = cat.sourceKey || cat.key;
     const value = draft[sourceKey];
     switch (cat.renderer) {
-      case "user_list":
+      case "user_list": {
+        // v1.0.25: Per-category hints help admins understand which file
+        // does what (and why admins can sometimes bypass bans).
+        const hintMap = {
+          users_admins: t("user_list_hint_admins"),
+          users_server_admins: t("user_list_hint_server_admins"),
+          users_banned: t("user_list_hint_banned"),
+          users_whitelisted: t("user_list_hint_whitelisted"),
+          users_exclusive: t("user_list_hint_exclusive"),
+          users_silenced: t("user_list_hint_silenced"),
+        };
         return (
           <UserList
             users={value || []}
             onChange={(list) => setCategory(sourceKey, list)}
-            commonFlags={cat.commonFlags || []}
             exportKey={cat.exportKey}
             serverId={server.id}
             testIdPrefix={cat.key}
+            hint={hintMap[cat.key]}
           />
         );
+      }
       case "raid_times":
         return <RaidTimesEditor entries={value || []} onChange={(list) => setCategory(sourceKey, list)} testId={`editor-${cat.key}`} />;
       case "notifications":

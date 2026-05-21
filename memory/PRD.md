@@ -46,6 +46,14 @@ Electron-based desktop server manager for SCUM game. On first launch: ask user t
 - Schema cleanup: removed `client` section + client_mouse/video/graphics/sound; moved `client_game` under `gameplay`
 
 ## Recent Changes
+- **2026-02 (v1.0.25 — Users tab simplified, AdminUsers.ini auto [godmode])**:
+  1. **FLAGS column REMOVED** from all User-list editors (Administrators, Server Admins, Whitelist, Exclusive, Banned, Silenced). Admins now enter ONLY Steam ID + optional note.
+  2. **`render_user_list(entries, force_flag=None)`** centralises flag policy. Backend wiring:
+     * `AdminUsers.ini` → `force_flag="godmode"` — every line written as `<sid>[godmode]` so SCUM grants admin privileges automatically (admins can't forget the flag).
+     * `ServerSettingsAdminUsers.ini`, `BannedUsers.ini`, `WhitelistedUsers.ini`, `ExclusiveUsers.ini`, `SilencedUsers.ini` → `force_flag=""` — bracket stripped; bare 17-digit ID per line (SCUM rejects flags on these files).
+  3. **Inline hints** added to every user tab explaining the file's purpose. The Banned hint explicitly warns: *"admins / server-admins usually bypass bans"* so admins know to remove a steam_id from admin lists too if a ban isn't taking effect.
+  4. Bump → v1.0.25.
+
 - **2026-02 (v1.0.24 — build version fix + Update-Notifications removed + graceful shutdown)**:
   1. **Build version parsing FIXED**: `installed_build_id` and `latest_build_id` now use the real SCUM in-game version (e.g. `1.2.3.2.115523`) extracted from Steam patchnote RSS titles, not the meaningless `build-<epoch>` timestamp that used to make every server look "out of date" forever.
   2. **Startup migration**: any legacy `build-<digits>` token in `installed_build_id` is rewritten to the latest known SCUM version on backend boot.

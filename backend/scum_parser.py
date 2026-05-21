@@ -3,7 +3,7 @@ from __future__ import annotations
 import json
 import re
 from pathlib import Path
-from typing import Any, Dict, List, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 DEFAULTS_DIR = Path(__file__).parent / "scum_defaults"
 
@@ -281,17 +281,35 @@ def render_economy_json(settings: Dict[str, Any]) -> str:
     return json.dumps({"economy-override": data}, indent=2)
 
 
-def render_user_list(entries: List[Dict[str, Any]]) -> str:
+def render_user_list(entries: List[Dict[str, Any]], force_flag: Optional[str] = None) -> str:
+    """Render a SCUM user-list file (AdminUsers / BannedUsers / WhitelistedUsers / etc.).
+
+    `force_flag` overrides every entry's flag bracket:
+      * None  → legacy behaviour, each entry writes its own `flags=[...]`.
+      * ""    → strip ALL brackets, write only the bare steam_id per line
+                (used for files where SCUM doesn't accept flags:
+                BannedUsers.ini, WhitelistedUsers.ini, ExclusiveUsers.ini,
+                SilencedUsers.ini, ServerSettingsAdminUsers.ini).
+      * "x"   → write `steam_id[x]` for every entry (used for AdminUsers.ini
+                where SCUM requires the `[godmode]` flag for permissions to
+                take effect — without it the user is recognised but has no
+                privileges).
+    """
     lines: List[str] = []
     for e in entries:
         sid = str(e.get("steam_id", "")).strip()
         if not sid:
             continue
-        flags = [f for f in e.get("flags", []) if f]
-        if flags:
-            lines.append(f"{sid}[{','.join(flags)}]")
-        else:
+        if force_flag is None:
+            flags = [f for f in e.get("flags", []) if f]
+            if flags:
+                lines.append(f"{sid}[{','.join(flags)}]")
+            else:
+                lines.append(sid)
+        elif force_flag == "":
             lines.append(sid)
+        else:
+            lines.append(f"{sid}[{force_flag}]")
     return "\n".join(lines) + ("\n" if lines else "")
 
 

@@ -170,7 +170,7 @@ def default_scum_settings() -> Dict[str, Any]:
 # ---------- ENDPOINTS ----------
 @api_router.get("/")
 async def root():
-    return {"service": "LGSS SCUM Server Manager", "version": "1.0.24"}
+    return {"service": "LGSS SCUM Server Manager", "version": "1.0.25"}
 
 
 _PUBLIC_IP_CACHE = {"ts": 0, "ip": None}
@@ -1951,12 +1951,19 @@ def _plan_config_files(settings: Dict[str, Any], folder_path: str) -> tuple[str,
     config_dir = f"{folder_path}{sep}SCUM{sep}Saved{sep}Config{sep}WindowsServer"
     files = [
         {"path": f"{config_dir}{sep}ServerSettings.ini", "content": render_server_settings_ini(settings)},
-        {"path": f"{config_dir}{sep}AdminUsers.ini", "content": render_user_list(settings.get("users_admins", []))},
-        {"path": f"{config_dir}{sep}ServerSettingsAdminUsers.ini", "content": render_user_list(settings.get("users_server_admins", []))},
-        {"path": f"{config_dir}{sep}BannedUsers.ini", "content": render_user_list(settings.get("users_banned", []))},
-        {"path": f"{config_dir}{sep}WhitelistedUsers.ini", "content": render_user_list(settings.get("users_whitelisted", []))},
-        {"path": f"{config_dir}{sep}ExclusiveUsers.ini", "content": render_user_list(settings.get("users_exclusive", []))},
-        {"path": f"{config_dir}{sep}SilencedUsers.ini", "content": render_user_list(settings.get("users_silenced", []))},
+        # AdminUsers.ini: SCUM requires the [godmode] flag to grant in-game
+        # admin privileges. Manager always appends it so admins can't forget
+        # and end up with toothless entries.
+        {"path": f"{config_dir}{sep}AdminUsers.ini", "content": render_user_list(settings.get("users_admins", []), force_flag="godmode")},
+        # All other SCUM user files take ONLY a bare 17-digit steam_id per
+        # line; any `[flag]` bracket will make SCUM skip the entry on parse.
+        # Force-strip flags so an old DB row with leftover brackets doesn't
+        # leak into the file.
+        {"path": f"{config_dir}{sep}ServerSettingsAdminUsers.ini", "content": render_user_list(settings.get("users_server_admins", []), force_flag="")},
+        {"path": f"{config_dir}{sep}BannedUsers.ini", "content": render_user_list(settings.get("users_banned", []), force_flag="")},
+        {"path": f"{config_dir}{sep}WhitelistedUsers.ini", "content": render_user_list(settings.get("users_whitelisted", []), force_flag="")},
+        {"path": f"{config_dir}{sep}ExclusiveUsers.ini", "content": render_user_list(settings.get("users_exclusive", []), force_flag="")},
+        {"path": f"{config_dir}{sep}SilencedUsers.ini", "content": render_user_list(settings.get("users_silenced", []), force_flag="")},
         {"path": f"{config_dir}{sep}EconomyOverride.json", "content": render_economy_json(settings)},
         {"path": f"{config_dir}{sep}RaidTimes.json", "content": render_raid_times_json(settings)},
         {"path": f"{config_dir}{sep}Notifications.json", "content": render_notifications_json(settings)},
@@ -2161,12 +2168,15 @@ async def apply_manager_update():
 
 # ---------- SCUM FILE EXPORT / IMPORT ----------
 EXPORT_MAP = {
-    "admins": ("AdminUsers.ini", lambda s: render_user_list(s.get("users_admins", []))),
-    "server_admins": ("ServerSettingsAdminUsers.ini", lambda s: render_user_list(s.get("users_server_admins", []))),
-    "banned": ("BannedUsers.ini", lambda s: render_user_list(s.get("users_banned", []))),
-    "exclusive": ("ExclusiveUsers.ini", lambda s: render_user_list(s.get("users_exclusive", []))),
-    "whitelisted": ("WhitelistedUsers.ini", lambda s: render_user_list(s.get("users_whitelisted", []))),
-    "silenced": ("SilencedUsers.ini", lambda s: render_user_list(s.get("users_silenced", []))),
+    # AdminUsers.ini always carries the `[godmode]` bracket so SCUM grants
+    # admin privileges; all other user files are stripped to bare steam_id
+    # per line (SCUM rejects flags on those files).
+    "admins": ("AdminUsers.ini", lambda s: render_user_list(s.get("users_admins", []), force_flag="godmode")),
+    "server_admins": ("ServerSettingsAdminUsers.ini", lambda s: render_user_list(s.get("users_server_admins", []), force_flag="")),
+    "banned": ("BannedUsers.ini", lambda s: render_user_list(s.get("users_banned", []), force_flag="")),
+    "exclusive": ("ExclusiveUsers.ini", lambda s: render_user_list(s.get("users_exclusive", []), force_flag="")),
+    "whitelisted": ("WhitelistedUsers.ini", lambda s: render_user_list(s.get("users_whitelisted", []), force_flag="")),
+    "silenced": ("SilencedUsers.ini", lambda s: render_user_list(s.get("users_silenced", []), force_flag="")),
     "economy": ("EconomyOverride.json", lambda s: render_economy_json(s)),
     "gameusersettings": ("GameUserSettings.ini", lambda s: render_gameusersettings_ini(s)),
     "server_settings": ("ServerSettings.ini", lambda s: render_server_settings_ini(s)),
@@ -3219,7 +3229,7 @@ async def _start_scheduler():
         _scheduler_task = asyncio.create_task(_tick_scheduler())
         logger.info("LGSS automation scheduler started (tick=10s)")
 
-    # v1.0.24 migration: earlier versions stamped installed_build_id with a
+    # v1.0.25 migration: earlier versions stamped installed_build_id with a
     # timestamp-style token (`build-1779386976`) instead of the actual SCUM
     # in-game version (`1.2.3.2.115523`). That made the dashboard show a
     # meaningless number AND the auto-update check ALWAYS reported "update
@@ -3240,9 +3250,9 @@ async def _start_scheduler():
                         {"id": s["id"]},
                         {"$set": {"installed_build_id": ver, "update_available": False}},
                     )
-                logger.info("v1.0.24 build-id migration: rewrote %d legacy build-<ts> tokens → %s", len(legacy), ver)
+                logger.info("v1.0.25 build-id migration: rewrote %d legacy build-<ts> tokens → %s", len(legacy), ver)
     except Exception as e:
-        logger.info("v1.0.24 build-id migration skipped: %s", e)
+        logger.info("v1.0.25 build-id migration skipped: %s", e)
     # TTL index on activity samples — auto-delete rows older than 30 days.
     # If an older version created the index with a different TTL, drop and
     # recreate so the new retention takes effect.

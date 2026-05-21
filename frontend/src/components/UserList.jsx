@@ -1,13 +1,22 @@
 import React, { useState } from "react";
-import { Trash2, UserPlus, Download, Upload, Copy, Check } from "lucide-react";
+import { Trash2, UserPlus, Download, Upload, Copy, Check, ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
 import { useI18n } from "../providers/I18nProvider";
 import { endpoints, api } from "../lib/api";
 
-export const UserList = ({ users = [], onChange, commonFlags = [], exportKey, serverId, testIdPrefix }) => {
+/**
+ * UserList — manages a SCUM user-list file (AdminUsers, BannedUsers, etc).
+ *
+ * v1.0.25: flags column completely removed from UI per admin request.
+ * The bracket suffix is now handled SERVER-SIDE on save:
+ *   * AdminUsers.ini → backend appends `[godmode]` to every entry
+ *     (SCUM requires this flag to actually grant admin privileges)
+ *   * All other user files → bare 17-digit steam_id per line, no brackets.
+ * Admins no longer have to remember the format — they just paste the id.
+ */
+export const UserList = ({ users = [], onChange, exportKey, serverId, testIdPrefix, hint }) => {
   const { t } = useI18n();
   const [newId, setNewId] = useState("");
-  const [newFlags, setNewFlags] = useState("");
   const [importOpen, setImportOpen] = useState(false);
   const [importText, setImportText] = useState("");
   const [copied, setCopied] = useState(false);
@@ -15,10 +24,8 @@ export const UserList = ({ users = [], onChange, commonFlags = [], exportKey, se
   const addUser = () => {
     const sid = newId.trim();
     if (!sid) return;
-    const flags = newFlags.split(",").map((f) => f.trim()).filter(Boolean);
-    onChange([...users, { steam_id: sid, flags, note: "" }]);
+    onChange([...users, { steam_id: sid, flags: [], note: "" }]);
     setNewId("");
-    setNewFlags("");
   };
 
   const updateUser = (idx, patch) => {
@@ -53,7 +60,14 @@ export const UserList = ({ users = [], onChange, commonFlags = [], exportKey, se
     if (!serverId || !exportKey) return;
     await api.post(`/servers/${serverId}/import/${exportKey}`, { content: importText });
     const fresh = await endpoints.getServer(serverId);
-    const keyMap = { admins: "users_admins", banned: "users_banned", exclusive: "users_exclusive" };
+    const keyMap = {
+      admins: "users_admins",
+      server_admins: "users_server_admins",
+      banned: "users_banned",
+      exclusive: "users_exclusive",
+      whitelisted: "users_whitelisted",
+      silenced: "users_silenced",
+    };
     onChange(fresh.settings[keyMap[exportKey]] || []);
     setImportOpen(false);
     setImportText("");
@@ -62,14 +76,24 @@ export const UserList = ({ users = [], onChange, commonFlags = [], exportKey, se
 
   return (
     <div className="space-y-3" data-testid={`${testIdPrefix}-userlist`}>
-      <div className="flex flex-wrap items-end gap-2 panel p-3">
-        <div className="flex-1 min-w-[180px]">
-          <label className="label-overline block mb-1">{t("steam_id")}</label>
-          <input className="input-field font-mono" value={newId} onChange={(e) => setNewId(e.target.value)} placeholder="7656119XXXXXXXXXX" data-testid={`${testIdPrefix}-new-steamid`} />
+      {hint && (
+        <div className="flex items-start gap-2 px-3 py-2 border border-brand bg-bg-deep text-xs text-dim">
+          <ShieldCheck size={14} className="mt-0.5 shrink-0 text-accent-brand" />
+          <span>{hint}</span>
         </div>
-        <div className="flex-1 min-w-[180px]">
-          <label className="label-overline block mb-1">{t("flags")}</label>
-          <input className="input-field font-mono text-xs" value={newFlags} onChange={(e) => setNewFlags(e.target.value)} placeholder={commonFlags.join(", ")} data-testid={`${testIdPrefix}-new-flags`} />
+      )}
+
+      <div className="flex flex-wrap items-end gap-2 panel p-3">
+        <div className="flex-1 min-w-[260px]">
+          <label className="label-overline block mb-1">{t("steam_id")}</label>
+          <input
+            className="input-field font-mono"
+            value={newId}
+            onChange={(e) => setNewId(e.target.value)}
+            onKeyDown={(e) => { if (e.key === "Enter") addUser(); }}
+            placeholder="7656119XXXXXXXXXX"
+            data-testid={`${testIdPrefix}-new-steamid`}
+          />
         </div>
         <button className="tactical-btn flex items-center gap-2 shrink-0" onClick={addUser} data-testid={`${testIdPrefix}-add-btn`}>
           <UserPlus size={14} /> {t("add_user")}
@@ -108,14 +132,13 @@ export const UserList = ({ users = [], onChange, commonFlags = [], exportKey, se
         <div className="panel p-6 text-center text-sm text-dim">{t("no_users")}</div>
       ) : (
         <div className="panel overflow-hidden">
-          <div className="grid grid-cols-[1.4fr_1.2fr_1fr_auto] gap-0 text-xs font-mono uppercase tracking-wider text-dim border-b border-brand bg-surface-2">
+          <div className="grid grid-cols-[1.6fr_1fr_auto] gap-0 text-xs font-mono uppercase tracking-wider text-dim border-b border-brand bg-surface-2">
             <div className="px-3 py-2">{t("steam_id")}</div>
-            <div className="px-3 py-2">{t("flags")}</div>
             <div className="px-3 py-2">{t("note")}</div>
             <div className="px-3 py-2 w-10" />
           </div>
           {users.map((u, idx) => (
-            <div key={idx} className="grid grid-cols-[1.4fr_1.2fr_1fr_auto] gap-0 border-b border-brand hover:bg-surface-2/50">
+            <div key={idx} className="grid grid-cols-[1.6fr_1fr_auto] gap-0 border-b border-brand hover:bg-surface-2/50">
               <input
                 className="bg-transparent px-3 py-2 font-mono text-sm border-r border-brand outline-none focus:bg-primary-soft"
                 value={u.steam_id}
@@ -123,16 +146,10 @@ export const UserList = ({ users = [], onChange, commonFlags = [], exportKey, se
                 data-testid={`${testIdPrefix}-row-${idx}-steamid`}
               />
               <input
-                className="bg-transparent px-3 py-2 font-mono text-xs border-r border-brand outline-none focus:bg-primary-soft"
-                value={(u.flags || []).join(",")}
-                onChange={(e) => updateUser(idx, { flags: e.target.value.split(",").map((s) => s.trim()).filter(Boolean) })}
-                placeholder={commonFlags.join(",")}
-                data-testid={`${testIdPrefix}-row-${idx}-flags`}
-              />
-              <input
                 className="bg-transparent px-3 py-2 text-sm border-r border-brand outline-none focus:bg-primary-soft"
                 value={u.note || ""}
                 onChange={(e) => updateUser(idx, { note: e.target.value })}
+                placeholder={t("note")}
               />
               <button className="px-3 text-danger hover:bg-surface-2" onClick={() => removeUser(idx)} data-testid={`${testIdPrefix}-row-${idx}-remove`}>
                 <Trash2 size={14} />

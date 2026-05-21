@@ -46,6 +46,14 @@ Electron-based desktop server manager for SCUM game. On first launch: ask user t
 - Schema cleanup: removed `client` section + client_mouse/video/graphics/sound; moved `client_game` under `gameplay`
 
 ## Recent Changes
+- **2026-02 (v1.0.22 — 4-port layout (1 query + 3 game) + always-on custom args)**:
+  1. **Network Ports panel redesigned**: PingPerfect-style stacked rows showing the full 4-port layout per server:
+     - **Row 1 — QUERY PORT** (editable, 1 port, isolated for Steam A2S_INFO; green badge "Steam Browser")
+     - **Row 2 — GAME PORT** (editable start of range + 2 read-only `+1` and `+2` badges; the `+2` is highlighted in accent color as the actual CONNECT port; orange badge "CONNECT → {port+2}")
+  2. **Defaults shifted**: new servers get `game_port = 7777` (range 7777-7779), `query_port = 7780` (game_port + 3, OUTSIDE the range). Previous default `query = game + 1` placed query inside the 3-port game range — a known PingPerfect anti-pattern. Backend pydantic default + ports endpoint auto-derive updated.
+  3. **Migration on startup**: every NOT-YET-INSTALLED server whose `query_port == game_port + 1` is shifted to `game_port + 3` automatically. Installed/configured servers are left alone (admin already committed to a layout). Logged: `v1.0.22 query-port migration: shifted N`.
+  4. **Overlap warning**: if admin manually sets `query_port` inside the `game_port..game_port+2` range, the UI shows an orange warning chip with the suggested fix (e.g. `7780` or `27015`).
+  5. **"Custom Launch Options" textarea is now always visible** at the bottom of the Launch Options category (was hidden in a collapsible). Highlighted with accent border + accent label so admins immediately see where to add mod IDs / custom Unreal flags.
 - **2026-02 (v1.0.21 — Query port editable + new Launch Options category)**:
   1. **Query port is now editable** (NetworkPortsPanel + backend): previously locked to `game_port + 1`. Admins can now set independent values (e.g. PingPerfect-style `game_port=11582, query_port=11442`). Convenience: when admin changes game_port AND query is still at the old "+1", query auto-shifts so casual users don't break the convention.
   2. **Auto-firewall now opens all ports on save/start** (already in v1.0.20): UDP `game_port..game_port+2` + UDP/TCP `query_port` + EXE-wide allow. Idempotent.

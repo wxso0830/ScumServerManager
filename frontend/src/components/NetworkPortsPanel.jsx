@@ -1,41 +1,48 @@
 import React, { useEffect, useState } from "react";
-import { Network, Save, AlertTriangle } from "lucide-react";
+import { Save, AlertTriangle, Network } from "lucide-react";
 import { endpoints } from "../lib/api";
 import { toast } from "sonner";
 import { useI18n } from "../providers/I18nProvider";
 
 /**
- * NetworkPortsPanel — inline editor for SCUMServer.exe CLI args:
- *   - Game Port (-port, default 7779)
- *   - Query Port (-QueryPort, default 7780)
- * Max Players lives in Essentials > Access & Capacity (scum.MaxPlayers).
+ * NetworkPortsPanel — explicit 4-port view modelled after PingPerfect's panel.
+ *
+ * SCUM dedicated server uses FOUR ports total:
+ *  - 1 QUERY port (isolated, for Steam A2S_INFO — kept OUTSIDE the game range)
+ *  - 3 GAME ports (consecutive: port, port+1, port+2; players connect to port+2)
+ *
+ * Default scheme: game_port = 7777 → game range 7777/7778/7779, query_port = 7780.
+ * (Old manager default put query inside the game range which technically
+ * conflicts on the wire; v1.0.22 moves it to game_port + 3 outside the range.)
+ *
+ * Both inputs are editable. The 3 game ports are shown as a single editable
+ * "start of range" field + two read-only +1 / +2 badges so the admin sees the
+ * full picture without typing them individually.
  */
 export const NetworkPortsPanel = ({ server, onSaved }) => {
   const { t } = useI18n();
   const [gamePort, setGamePort] = useState(server.game_port ?? 7777);
-  // Query port is editable but defaults to game_port + 1 (SCUM convention).
-  // Most admins should leave it alone, but PingPerfect-style hosts give a
-  // standalone query port (e.g. 11442 with game 11582) so we no longer lock it.
-  const [queryPort, setQueryPort] = useState(server.query_port ?? (server.game_port ?? 7777) + 1);
+  const [queryPort, setQueryPort] = useState(
+    server.query_port ?? (server.game_port ?? 7777) + 3,
+  );
   const [saving, setSaving] = useState(false);
   const [dirty, setDirty] = useState(false);
 
   useEffect(() => {
     setGamePort(server.game_port ?? 7777);
-    setQueryPort(server.query_port ?? (server.game_port ?? 7777) + 1);
+    setQueryPort(server.query_port ?? (server.game_port ?? 7777) + 3);
     setDirty(false);
   }, [server.id, server.game_port, server.query_port]);
 
-  // Convenience: when the admin types a new game port, auto-shift the query
-  // port unless they've already customized it (i.e. it was game_port+1).
   const handleGamePortChange = (e) => {
     const v = e.target.value;
     setGamePort(v);
+    // Auto-follow query port ONLY when it was at the "standard" offset
+    // (game_port + 3, outside the 3-port range). Once admin customizes
+    // query manually, leave it alone.
     const oldGP = Number(gamePort);
-    const oldQP = Number(queryPort);
-    // Only auto-track when query was the standard "+1" of the previous game port.
-    if (oldQP === oldGP + 1) {
-      setQueryPort(Number(v) + 1);
+    if (Number(queryPort) === oldGP + 3) {
+      setQueryPort(Number(v) + 3);
     }
     setDirty(true);
   };
@@ -63,6 +70,10 @@ export const NetworkPortsPanel = ({ server, onSaved }) => {
   };
 
   const isRunning = server.status === "Running";
+  const gp = Number(gamePort) || 0;
+  const qp = Number(queryPort) || 0;
+  // Detect overlap between query and game range — flag it but don't block save
+  const overlap = qp >= gp && qp <= gp + 2;
 
   return (
     <div className="space-y-4 pt-2" data-testid="network-ports-panel">
@@ -78,48 +89,88 @@ export const NetworkPortsPanel = ({ server, onSaved }) => {
         </div>
       )}
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div>
-          <label className="label-overline block mb-1.5">{t("ports_game_label")}</label>
-          <input
-            type="number" min="1024" max="65532"
-            value={gamePort}
-            onChange={handleGamePortChange}
-            className="w-full bg-bg border border-brand px-3 py-2 font-mono text-sm text-brand focus:outline-none focus:border-accent-brand"
-            data-testid="input-game-port"
-          />
-          <p className="font-mono text-[10px] text-dim mt-1">
-            {t("ports_game_hint")} · SCUM uses 3 ports: {gamePort}, {Number(gamePort) + 1}, {Number(gamePort) + 2}
-          </p>
+      {/* 4-port summary — stacked rows (PingPerfect-style). Query first since
+          it's the one that gets queried by Steam to even list the server. */}
+      <div className="border border-brand">
+        {/* ----- Row 1: Query Port (single, isolated) ----- */}
+        <div className="grid grid-cols-12 gap-3 items-center px-4 py-3 border-b border-brand bg-bg-deep">
+          <div className="col-span-12 md:col-span-3">
+            <div className="label-overline text-brand">QUERY PORT</div>
+            <div className="font-mono text-[10px] text-dim mt-0.5">1 port · UDP · A2S_INFO</div>
+          </div>
+          <div className="col-span-12 md:col-span-5">
+            <input
+              type="number" min="1024" max="65535"
+              value={queryPort}
+              onChange={handleQueryPortChange}
+              className="w-full bg-bg border border-brand px-3 py-2 font-display text-lg text-brand focus:outline-none focus:border-accent-brand"
+              data-testid="input-query-port"
+            />
+          </div>
+          <div className="col-span-12 md:col-span-4 flex md:justify-end">
+            <span className="px-2 py-1 text-[10px] font-mono uppercase tracking-widest" style={{ color: "var(--success)", border: "1px solid var(--success)", background: "color-mix(in srgb, var(--success) 12%, transparent)" }}>
+              {t("ports_query_label") || "Steam Browser"}
+            </span>
+          </div>
         </div>
 
-        <div>
-          <label className="label-overline block mb-1.5">{t("ports_query_label")}</label>
-          <input
-            type="number" min="1024" max="65535"
-            value={queryPort}
-            onChange={handleQueryPortChange}
-            className="w-full bg-bg border border-brand px-3 py-2 font-mono text-sm text-brand focus:outline-none focus:border-accent-brand"
-            data-testid="input-query-port"
-          />
-          <p className="font-mono text-[10px] text-dim mt-1">
-            {t("ports_query_hint") || `Steam server browser query port (default: game_port + 1)`}
-          </p>
+        {/* ----- Row 2: Game Port (3 consecutive) ----- */}
+        <div className="grid grid-cols-12 gap-3 items-center px-4 py-3">
+          <div className="col-span-12 md:col-span-3">
+            <div className="label-overline text-brand">GAME PORT</div>
+            <div className="font-mono text-[10px] text-dim mt-0.5">3 ports · UDP · ardışık</div>
+          </div>
+          <div className="col-span-12 md:col-span-5 flex items-center gap-2">
+            <input
+              type="number" min="1024" max="65532"
+              value={gamePort}
+              onChange={handleGamePortChange}
+              className="w-32 bg-bg border border-brand px-3 py-2 font-display text-lg text-brand focus:outline-none focus:border-accent-brand"
+              data-testid="input-game-port"
+            />
+            <span className="text-dim font-mono">·</span>
+            <span className="px-2 py-1.5 bg-bg border border-strong font-display text-base text-dim cursor-not-allowed" title="game_port + 1">
+              {gp + 1}
+            </span>
+            <span className="text-dim font-mono">·</span>
+            <span
+              className="px-2 py-1.5 border font-display text-base"
+              style={{ borderColor: "var(--accent)", color: "var(--accent)", background: "color-mix(in srgb, var(--accent) 10%, transparent)" }}
+              title="game_port + 2 — bağlantı portu"
+            >
+              {gp + 2}
+            </span>
+          </div>
+          <div className="col-span-12 md:col-span-4 flex md:justify-end">
+            <span className="px-2 py-1 text-[10px] font-mono uppercase tracking-widest" style={{ color: "var(--accent)", border: "1px solid var(--accent)", background: "color-mix(in srgb, var(--accent) 12%, transparent)" }}>
+              CONNECT → {gp + 2}
+            </span>
+          </div>
         </div>
       </div>
 
-      {/* Connect port hint — players use game_port + 2 in SCUM's Direct Connect. */}
+      {overlap && (
+        <div className="flex items-center gap-2 text-[11px] font-mono border border-warning/50 bg-warning/10 px-3 py-2" style={{ color: "var(--warning)" }}>
+          <AlertTriangle size={13} />
+          <span>
+            Query port ({qp}) game range ({gp}-{gp + 2}) içinde — çakışabilir. Önerilen: {gp + 3} veya tamamen ayrı (örn. 27015).
+          </span>
+        </div>
+      )}
+
+      {/* Player connect hint */}
       <div className="border border-dashed border-accent-brand/40 bg-accent-soft/20 px-3 py-2 flex items-start gap-2">
         <Network size={13} className="text-accent-brand shrink-0 mt-0.5" />
         <div className="font-mono text-[10px] text-dim leading-relaxed">
           <div>
-            <span className="text-muted uppercase tracking-widest">CONNECT PORT: </span>
-            <span className="text-brand font-display text-sm">{Number(gamePort) + 2}</span>
-            <span className="opacity-60"> (game_port + 2)</span>
+            <span className="text-muted uppercase tracking-widest">CONNECT IP: </span>
+            <span className="text-accent-brand font-display text-sm">PUBLIC_IP:{gp + 2}</span>
+            <span className="opacity-60"> · oyuncular SCUM Direct Connect bölümüne yapıştırır</span>
           </div>
-          <div className="mt-0.5 opacity-80">
-            Players paste <span className="text-accent-brand">PUBLIC_IP:{Number(gamePort) + 2}</span> in SCUM's Direct Connect.
-            Manager auto-opens UDP <span className="text-accent-brand">{gamePort}-{Number(gamePort) + 2}</span> + query <span className="text-accent-brand">{queryPort}</span> in Windows Firewall on start.
+          <div className="mt-1 opacity-80">
+            Manager başlatırken Windows Firewall'da otomatik açar:{" "}
+            <span className="text-accent-brand">UDP {gp}-{gp + 2}</span> + <span className="text-accent-brand">UDP/TCP {qp}</span>.
+            Ev kullanıcısıysan router'da da bu portları forward etmen gerekir.
           </div>
         </div>
       </div>
@@ -127,7 +178,7 @@ export const NetworkPortsPanel = ({ server, onSaved }) => {
       <div className="flex items-center justify-between border-t border-brand pt-3">
         <div className="font-mono text-[10px] text-dim truncate pr-3">
           <span className="text-muted">CLI: </span>
-          <span className="text-brand">-port={gamePort} -QueryPort={queryPort}</span>
+          <span className="text-brand">-port={gp} -QueryPort={qp}</span>
         </div>
         <button
           onClick={handleSave}

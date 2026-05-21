@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { Terminal, Save, AlertTriangle, Info, Cpu, ChevronDown, ChevronRight } from "lucide-react";
+import { Terminal, Save, AlertTriangle, Info, Cpu } from "lucide-react";
 import { endpoints } from "../lib/api";
 import { toast } from "sonner";
 import { useI18n } from "../providers/I18nProvider";
@@ -141,7 +141,6 @@ export const LaunchArgsPanel = ({ server, onSaved }) => {
   const [extra, setExtra] = useState(initial.extra);
   const [saving, setSaving] = useState(false);
   const [dirty, setDirty] = useState(false);
-  const [advancedOpen, setAdvancedOpen] = useState(false);
 
   useEffect(() => {
     setEnabled(initial.enabled);
@@ -254,37 +253,35 @@ export const LaunchArgsPanel = ({ server, onSaved }) => {
         );
       })}
 
-      {/* Advanced: raw extra flags */}
-      <div className="border border-strong">
-        <button
-          type="button"
-          onClick={() => setAdvancedOpen((v) => !v)}
-          className="w-full px-3 py-2 bg-bg-deep border-b border-strong flex items-center gap-2 hover:bg-surface-2 transition-colors"
-          data-testid="launch-advanced-toggle"
-        >
-          {advancedOpen ? <ChevronDown size={13} /> : <ChevronRight size={13} />}
+      {/* Custom user-supplied launch flags — ALWAYS visible at the bottom
+          per admin request. Mod IDs, custom Unreal flags, anything not in the
+          checkbox presets above goes here. Space-separated, no validation. */}
+      <div className="border border-accent-brand/40 bg-accent-soft/10">
+        <div className="px-3 py-2 bg-bg-deep border-b border-accent-brand/40 flex items-center gap-2">
           <Cpu size={13} className="text-accent-brand" />
-          <span className="label-overline">{t("launch_options_advanced") || "Ek Bayraklar (Manuel)"}</span>
+          <span className="label-overline text-accent-brand">{t("launch_options_custom") || "Özel Başlatma Seçenekleri"}</span>
           {extra && extra.trim() && (
-            <span className="ml-auto font-mono text-[9px] text-accent-brand">{extra.trim().split(/\s+/).length} flag</span>
+            <span className="ml-auto font-mono text-[9px] text-accent-brand">
+              {extra.trim().split(/\s+/).length} flag
+            </span>
           )}
-        </button>
-        {advancedOpen && (
-          <div className="p-3">
-            <textarea
-              value={extra}
-              onChange={(e) => { setExtra(e.target.value); setDirty(true); }}
-              rows={3}
-              maxLength={1500}
-              placeholder="-mod=workshopId -CustomFlag=value"
-              className="w-full bg-bg border border-brand px-3 py-2 font-mono text-sm text-brand focus:outline-none focus:border-accent-brand resize-y"
-              data-testid="input-launch-args-extra"
-            />
-            <p className="font-mono text-[10px] text-dim mt-1">
-              {t("launch_options_extra_hint") || "Yukarıdaki ön-tanımlı olmayan herhangi bir -bayrak. Boşlukla ayrılır."}
-            </p>
-          </div>
-        )}
+        </div>
+        <div className="p-3">
+          <textarea
+            value={extra}
+            onChange={(e) => { setExtra(e.target.value); setDirty(true); }}
+            rows={3}
+            maxLength={1500}
+            placeholder="-mod=workshopId -ServerAdminPassword=xxx -CustomFlag=value"
+            className="w-full bg-bg border border-brand px-3 py-2 font-mono text-sm text-brand focus:outline-none focus:border-accent-brand resize-y"
+            data-testid="input-launch-args-extra"
+          />
+          <p className="font-mono text-[10px] text-dim mt-1 leading-relaxed">
+            {t("launch_options_extra_hint") || "Yukarıdaki checkbox'larda olmayan herhangi bir bayrak. Boşlukla ayrılır."}
+            {" · "}
+            <span className="text-muted">Örn: <code className="text-accent-brand">-NetworkVersionOverride=1</code></span>
+          </p>
+        </div>
       </div>
 
       {/* Live preview of the full command line */}

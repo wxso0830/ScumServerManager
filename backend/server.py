@@ -94,7 +94,7 @@ class ServerProfile(BaseModel):
     steam_app_id: str = "3792580"
     public_ip: Optional[str] = None
     game_port: int = 7777
-    query_port: int = 7778
+    query_port: int = 7780
     max_players: int = 64
     launch_args: str = ""  # admin-supplied SCUMServer.exe extra command-line args
     installed_build_id: Optional[str] = None
@@ -163,7 +163,7 @@ def default_scum_settings() -> Dict[str, Any]:
 # ---------- ENDPOINTS ----------
 @api_router.get("/")
 async def root():
-    return {"service": "LGSS SCUM Server Manager", "version": "1.0.21"}
+    return {"service": "LGSS SCUM Server Manager", "version": "1.0.22"}
 
 
 _PUBLIC_IP_CACHE = {"ts": 0, "ip": None}
@@ -362,11 +362,12 @@ async def update_server_ports(server_id: str, payload: ServerPortsUpdate):
         if not (1024 <= payload.game_port <= 65532):
             raise HTTPException(status_code=400, detail="game_port must be 1024-65532 (SCUM uses 3 consecutive ports)")
         update["game_port"] = payload.game_port
-        # If caller doesn't supply query_port, default to game_port+1 (the
-        # SCUM convention most home admins use). PingPerfect-style hosts
-        # supply a custom query_port; respect it when present.
+        # If caller doesn't supply query_port, default to game_port+3 (outside
+        # the 3-port game range so it doesn't collide with the connect port).
+        # The previous default of game_port+1 placed query INSIDE the range
+        # which is a known PingPerfect anti-pattern — moved out per v1.0.22.
         if payload.query_port is None:
-            update["query_port"] = payload.game_port + 1
+            update["query_port"] = payload.game_port + 3
     if payload.query_port is not None:
         if not (1024 <= payload.query_port <= 65535):
             raise HTTPException(status_code=400, detail="query_port must be 1024-65535")
@@ -2050,7 +2051,7 @@ async def first_boot_result(server_id: str):
 
 
 # ---------- MANAGER VERSION / SELF-UPDATE ----------
-CURRENT_MANAGER_VERSION = "1.0.21"
+CURRENT_MANAGER_VERSION = "1.0.22"
 LATEST_MANAGER_VERSION_KEY = "manager-latest-version"
 
 
@@ -3089,6 +3090,30 @@ async def _tick_scheduler():
 @app.on_event("startup")
 async def _start_scheduler():
     global _scheduler_task
+    # One-time migration v1.0.22: query_port=game_port+1 placed query INSIDE
+    # the 3-port game range. Move every server whose query_port is exactly
+    # game_port+1 out to game_port+3 (outside the range). Skip servers where
+    # the admin has clearly customized query (e.g. PingPerfect 11442/11582).
+    try:
+        affected = await db.servers.find(
+            {"installed": False},
+            {"_id": 0, "id": 1, "game_port": 1, "query_port": 1},
+        ).to_list(500)
+        bulk_ops = []
+        for s in affected:
+            gp = s.get("game_port") or 7777
+            qp = s.get("query_port") or 0
+            if qp == gp + 1:  # in-range, needs migration
+                bulk_ops.append({
+                    "filter": {"id": s["id"]},
+                    "update": {"$set": {"query_port": gp + 3}},
+                })
+        if bulk_ops:
+            for op in bulk_ops:
+                await db.servers.update_one(op["filter"], op["update"])
+            logger.info("v1.0.22 query-port migration: shifted %d in-range query ports out of game range", len(bulk_ops))
+    except Exception as e:
+        logger.info("v1.0.22 query-port migration skipped: %s", e)
     # One-time migration: earlier versions defaulted to game=7779 / query=7780.
     # For any server that has NEVER been installed (admin hasn't configured it
     # on disk yet), silently shift those defaults to the new values (7777/7778)

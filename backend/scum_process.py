@@ -564,6 +564,24 @@ def start_server(server_id: str, folder_path: str, port: int = 7779,
     # -NoVerifyGC     : skip Unreal's garbage-collector sanity pass on boot (~5-15s saving)
     # -nocrashreports : skip CrashReportClient warm-up (~3-8s saving on first boot)
     # -nosound        : dedicated server has no audio device; skip SoundCue warmup
+    #
+    # NETWORK / VISIBILITY flags — these are why the server actually shows up
+    # in Steam's "Internet" server browser. Without them admins saw an empty
+    # listing even though their firewall rules were correct:
+    #
+    # -port=N          : Game port (UDP). SCUM also auto-binds N+1 (Query) and
+    #                    N+2 (Steam) on top of this.
+    # -QueryPort=N     : Steam A2S_INFO + master-server query port. MUST be set
+    #                    explicitly; SCUM does NOT default to game_port + 1 on
+    #                    all builds and silently registers with the master at
+    #                    port 0 when this is missing → server is "invisible".
+    # -SteamServerPort=N: The port Steam's lobby/connect peer uses. Belt-and-
+    #                    -braces — some Unreal builds key off this instead of
+    #                    -QueryPort when registering with steamcommunity.com.
+    # -MULTIHOME=0.0.0.0: Bind on ALL local interfaces. Defaults to 0.0.0.0
+    #                    already but many home Windows boxes with multiple NICs
+    #                    (VPN/Hyper-V virtual adapters) silently bind to only
+    #                    the first one which is then unreachable from the WAN.
     # NOTE: -FORCELOGFLUSH is REMOVED because it forces fsync on every single log
     #       line — on SCUM's very chatty LogQuadTree/LogStreaming output that costs
     #       10-40 seconds of pure I/O during boot. We rely on Unreal's default
@@ -577,6 +595,8 @@ def start_server(server_id: str, folder_path: str, port: int = 7779,
         "-nosound",
         f"-port={port}",
         f"-QueryPort={query_port}",
+        f"-SteamServerPort={query_port}",
+        "-MULTIHOME=0.0.0.0",
         f"-MaxPlayers={max_players}",
     ]
     # Append admin-supplied custom flags last so they take precedence when
@@ -741,51 +761,121 @@ def _spawn_ready_watcher(server_id: str, query_port: int) -> None:
     th.start()
 
 
-def _send_ctrl_break(pid: int) -> bool:
-    """Send a real Windows console CTRL_BREAK_EVENT to a process group.
+def _send_real_ctrl_c(pid: int) -> bool:
+    """Send a TRUE Windows console CTRL_C_EVENT to SCUM so it performs a
+    proper world-save shutdown.
 
-    SCUM's dedicated server installs a console-control handler that, on
-    CTRL+C or CTRL+BREAK, flushes the world to SaveFiles and shuts down
-    cleanly (takes 5-30s depending on player count). TerminateProcess
-    skips that handler entirely.
+    Why not CTRL_BREAK?
+        SCUM's console handler treats CTRL_BREAK as "force exit, NO-SAVE"
+        (the cyan banner in the console literally says "NO-SAVE") and
+        treats CTRL_C as "save world to SaveFiles, then exit cleanly".
+        We MUST send CTRL_C, not CTRL_BREAK, or every restart rolls the
+        world back to the last autosave.
 
-    We send CTRL_BREAK (not CTRL_C) because:
-      - CTRL_C_EVENT can only be sent to the SAME console group as the caller;
-        our backend EXE doesn't share a console with SCUMServer.exe.
-      - CTRL_BREAK_EVENT can be sent across process groups when the target
-        was started with CREATE_NEW_PROCESS_GROUP — exactly what we now do
-        in start_server().
+    Why is this tricky?
+        GenerateConsoleCtrlEvent(CTRL_C_EVENT, pid) ONLY works when caller
+        and target share the same console. Our backend process doesn't —
+        SCUM is on its own console window (CREATE_NEW_CONSOLE).
 
-    Returns True on success, False on failure.
+        The proven Windows technique (used by ARK Server Manager, RuntPM,
+        etc.) is:
+          1. SetConsoleCtrlHandler(NULL, TRUE)   — disable our own CTRL+C
+                                                    handler so we don't die
+          2. FreeConsole()                       — detach from our console
+                                                    (no-op if PyInstaller
+                                                    windowed bundle)
+          3. AttachConsole(scum_pid)             — attach to SCUM's console
+          4. GenerateConsoleCtrlEvent(0, 0)      — 0=CTRL_C, 0=broadcast to
+                                                    all processes attached
+                                                    to current console = SCUM
+          5. FreeConsole()                       — detach from SCUM
+          6. SetConsoleCtrlHandler(NULL, FALSE)  — re-enable our handler
+
+    Returns True if the CTRL+C was successfully posted (SCUM may still
+    take 10-30s to flush SaveFiles and exit afterwards).
     """
     if not _is_windows():
         return False
     try:
         import ctypes
         kernel32 = ctypes.windll.kernel32
-        # GenerateConsoleCtrlEvent(CTRL_BREAK_EVENT=1, dwProcessGroupId=pid)
-        ok = kernel32.GenerateConsoleCtrlEvent(1, pid)
-        if ok:
-            log.info("Sent CTRL_BREAK to SCUM pid=%s for graceful save", pid)
-            return True
-        err = ctypes.get_last_error()
-        log.warning("GenerateConsoleCtrlEvent failed pid=%s err=%s", pid, err)
-        return False
+        ATTACH_PARENT_PROCESS = -1
+        CTRL_C_EVENT = 0
+
+        # Step 1: disable our own CTRL+C handler so the broadcast in step 4
+        # doesn't kill the manager backend itself.
+        kernel32.SetConsoleCtrlHandler(None, True)
+
+        attached = False
+        sent = False
+        try:
+            # Step 2: detach from current console (manager's own).
+            # Ignored if we don't have one (PyInstaller windowed bundle).
+            kernel32.FreeConsole()
+
+            # Step 3: attach to SCUM's console (the visible server window).
+            # AttachConsole returns 0 on failure; common failure is "already
+            # attached" which we can ignore for the purposes of step 4.
+            if kernel32.AttachConsole(pid):
+                attached = True
+            else:
+                err = ctypes.get_last_error()
+                log.warning("AttachConsole(pid=%s) failed, err=%s — falling back to broadcast", pid, err)
+                # Even if AttachConsole fails, GenerateConsoleCtrlEvent with
+                # dwProcessGroupId=pid will try to deliver across groups.
+                ok = kernel32.GenerateConsoleCtrlEvent(CTRL_C_EVENT, pid)
+                sent = bool(ok)
+                if not sent:
+                    log.warning("Cross-group CTRL_C broadcast also failed pid=%s", pid)
+
+            if attached:
+                # Step 4: broadcast CTRL+C to every process on SCUM's console
+                # (which is just SCUM itself). dwProcessGroupId=0 = broadcast.
+                ok = kernel32.GenerateConsoleCtrlEvent(CTRL_C_EVENT, 0)
+                sent = bool(ok)
+                if sent:
+                    log.info("Sent REAL CTRL_C to SCUM pid=%s — world save in progress", pid)
+                else:
+                    err = ctypes.get_last_error()
+                    log.warning("GenerateConsoleCtrlEvent(CTRL_C) failed err=%s", err)
+        finally:
+            # Step 5: detach from SCUM's console
+            if attached:
+                try:
+                    kernel32.FreeConsole()
+                except Exception:
+                    pass
+            # Try to re-attach to our original console if we had one
+            try:
+                kernel32.AttachConsole(ATTACH_PARENT_PROCESS)
+            except Exception:
+                pass
+            # Step 6: re-enable our own CTRL+C handler
+            kernel32.SetConsoleCtrlHandler(None, False)
+
+        return sent
     except Exception as e:
-        log.warning("CTRL_BREAK send failed: %s", e)
+        log.warning("CTRL_C send failed: %s", e)
         return False
+
+
+# Legacy alias — some older call sites in stop_server() still reference this.
+# Routes through the real CTRL_C implementation for the proper world-save.
+def _send_ctrl_break(pid: int) -> bool:
+    return _send_real_ctrl_c(pid)
 
 
 def stop_server(server_id: str, graceful_timeout: float = 30.0) -> bool:
     """Stop SCUMServer.exe gracefully so the world is saved.
 
     Sequence:
-      1. Send CTRL_BREAK_EVENT to the SCUM process group → SCUM's console
-         handler kicks in, flushes SaveFiles, prints "Saving world..." in
-         the console window (admin sees it just like a manual CTRL+C).
+      1. Send a REAL CTRL_C_EVENT (via AttachConsole) to SCUM's console →
+         SCUM's console handler flushes SaveFiles and shuts down cleanly.
+         (CTRL_BREAK is NOT used — SCUM treats it as "NO-SAVE force exit".)
       2. Wait up to `graceful_timeout` seconds for the EXE to exit on its own.
-      3. If still alive after the deadline (rare — usually SCUM saves in
-         5-15s), fall back to TerminateProcess on the whole tree.
+      3. If still alive after the deadline (rare — SCUM typically saves in
+         5-15s on small servers, up to 30s on busy ones), fall back to
+         TerminateProcess on the whole tree.
 
     Pass `graceful_timeout=0` to skip the graceful save entirely and go
     straight to TerminateProcess (used for "instant kill" on crashed/hung
@@ -804,22 +894,22 @@ def stop_server(server_id: str, graceful_timeout: float = 30.0) -> bool:
     graceful_ok = False
     if graceful_timeout > 0:
         try:
-            # Step 1: graceful save via console CTRL+BREAK
-            if _send_ctrl_break(pid):
+            # Step 1: graceful save via REAL CTRL_C (not CTRL_BREAK!)
+            if _send_real_ctrl_c(pid):
                 # Step 2: wait for SCUM to finish saving
                 t_start = time.time()
                 while time.time() - t_start < graceful_timeout:
                     if not _pid_alive(pid):
                         graceful_ok = True
                         log.info(
-                            "SCUM %s exited gracefully in %.1fs (save complete)",
+                            "SCUM %s exited gracefully in %.1fs (world saved)",
                             server_id, time.time() - t_start,
                         )
                         break
                     time.sleep(0.5)
                 if not graceful_ok:
                     log.warning(
-                        "SCUM %s did not exit within %.0fs after CTRL_BREAK — forcing kill",
+                        "SCUM %s did not exit within %.0fs after CTRL_C — forcing kill",
                         server_id, graceful_timeout,
                     )
         except Exception as e:

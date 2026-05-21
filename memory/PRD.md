@@ -46,6 +46,15 @@ Electron-based desktop server manager for SCUM game. On first launch: ask user t
 - Schema cleanup: removed `client` section + client_mouse/video/graphics/sound; moved `client_game` under `gameplay`
 
 ## Recent Changes
+- **2026-02 (v1.0.34 — CRITICAL: real CTRL_C save + Steam server visibility fixes)**:
+  1. **CTRL_BREAK → CTRL_C switch**: User reported world rollbacks after restart. Root cause: SCUM's console handler treats `CTRL_BREAK_EVENT` as **"NO-SAVE force exit"** (literally prints "NO-SAVE" in cyan in the console) and reserves `CTRL_C_EVENT` for the proper save-and-exit path. v1.0.33 was sending CTRL_BREAK — every restart was effectively a kill.
+  2. **`_send_real_ctrl_c(pid)`**: New helper uses the canonical Windows technique — `SetConsoleCtrlHandler(None, True)` → `FreeConsole()` → `AttachConsole(scum_pid)` → `GenerateConsoleCtrlEvent(CTRL_C_EVENT, 0)` → `FreeConsole()` → `AttachConsole(ATTACH_PARENT_PROCESS)` → `SetConsoleCtrlHandler(None, False)`. Identical to what ARK Server Manager / RuntPM use for cross-console CTRL+C delivery. Falls back to cross-group broadcast if AttachConsole fails.
+  3. `_send_ctrl_break` retained as a thin alias for legacy call sites.
+  4. **Server visibility in Steam browser**: Added 3 critical launch args that were missing:
+     - `-SteamServerPort={query_port}` — some Unreal builds register with steamcommunity.com via this port (not -QueryPort) so server appeared at port 0 in master.
+     - `-MULTIHOME=0.0.0.0` — bind on ALL interfaces. Multiple-NIC Windows hosts (VPN/Hyper-V virtual adapters) were silently binding to the wrong interface and being unreachable from WAN.
+     - Reaffirmed `-QueryPort={query_port}` is explicitly set (not relied on as default).
+
 - **2026-02 (v1.0.33 — Globalization drop-in folder for live language testing)**:
   1. New endpoint `GET /api/i18n/custom` scans `<manager_path>/Globalization/*.xaml`, parses each file (regex-based, BOM-tolerant), and returns `{ lang: { meta, strings } }`. Auto-strips `Generic_*` meta keys and surfaces translator + date in the meta block.
   2. Setup endpoint auto-creates the `Globalization/` folder + a README.txt explaining the workflow when the admin sets `manager_path`.

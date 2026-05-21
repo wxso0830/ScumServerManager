@@ -46,6 +46,13 @@ Electron-based desktop server manager for SCUM game. On first launch: ask user t
 - Schema cleanup: removed `client` section + client_mouse/video/graphics/sound; moved `client_game` under `gameplay`
 
 ## Recent Changes
+- **2026-02 (v1.0.36 — CRITICAL: backend never blocks on MongoDB startup)**:
+  1. User report: Electron stuck on "Loading…" forever on Windows because uvicorn's startup hook ran 3 sequential MongoDB migrations × 30s default timeout = 90+s of blocking, during which port 8001 didn't accept any HTTP connection → frontend got `ERR_CONNECTION_REFUSED`.
+  2. **MongoDB timeout**: `AsyncIOMotorClient(..., serverSelectionTimeoutMS=3000)` — every DB call now errors out in 3s instead of 30s.
+  3. **Startup is now non-blocking**: All migrations moved into a fire-and-forget `_run_startup_migrations()` background task. Uvicorn reaches "Application startup complete" instantly; HTTP server accepts requests on tick 0.
+  4. **MongoDB-down resilience verified**: Backend started with bogus `MONGO_URL=mongodb://192.0.2.1` → `GET /api/` still returned 200 OK in 0.00s.
+  5. **Fixed `\L` SyntaxWarning** in `open_server_folder` docstring (used `r"""..."""` raw string).
+
 - **2026-02 (v1.0.35 — Globalization folder relocated to Manager install dir)**:
   1. User pointed out: `Globalization/` belongs **next to the Manager .exe** (e.g. `C:\Program Files\LGSS\LGSS Manager\Globalization\`), NOT inside the SCUM-server workspace (`C:\LGSSManagers\Servers\`). The workspace is for game-server files only.
   2. **Electron** now creates `<install_dir>/Globalization/` on first boot (via `process.resourcesPath`'s parent), drops a README.txt explaining the workflow, and exports `LGSS_GLOBALIZATION_DIR` to the spawned backend.

@@ -40,7 +40,12 @@ ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
 
 mongo_url = os.environ['MONGO_URL']
-client = AsyncIOMotorClient(mongo_url)
+# Short server-selection timeout (3s vs the default 30s) so a missing/down
+# local MongoDB doesn't keep uvicorn stuck in "Waiting for application
+# startup" for over a minute. With this setting, requests hit a fast
+# `ServerSelectionTimeoutError` and we can surface a clean error in the UI
+# instead of looking hung.
+client = AsyncIOMotorClient(mongo_url, serverSelectionTimeoutMS=3000)
 db = client[os.environ['DB_NAME']]
 
 app = FastAPI(title="LGSS SCUM Server Manager")
@@ -170,7 +175,7 @@ def default_scum_settings() -> Dict[str, Any]:
 # ---------- ENDPOINTS ----------
 @api_router.get("/")
 async def root():
-    return {"service": "LGSS SCUM Server Manager", "version": "1.0.35"}
+    return {"service": "LGSS SCUM Server Manager", "version": "1.0.36"}
 
 
 _PUBLIC_IP_CACHE = {"ts": 0, "ip": None}
@@ -506,10 +511,10 @@ async def update_server_ports(server_id: str, payload: ServerPortsUpdate):
 
 @api_router.post("/servers/{server_id}/open-folder")
 async def open_server_folder(server_id: str):
-    """Open the server's installation folder in the OS file explorer.
+    r"""Open the server's installation folder in the OS file explorer.
 
-    On Windows this is `explorer.exe "<folder_path>"` — that's what admins
-    actually want when troubleshooting (browse Saved\Logs, edit ini, etc).
+    On Windows this is ``explorer.exe "<folder_path>"`` — that's what admins
+    actually want when troubleshooting (browse ``Saved\Logs``, edit ini, etc).
     No-op on Linux preview since the manager UI is server-side only.
     """
     doc = await db.servers.find_one({"id": server_id}, {"_id": 0, "folder_path": 1})
@@ -3393,6 +3398,17 @@ async def _tick_scheduler():
 
 @app.on_event("startup")
 async def _start_scheduler():
+    # Run all DB migrations + scheduler bootstrap as a background task so:
+    #   * uvicorn reaches "Application startup complete" immediately,
+    #   * port 8001 starts accepting requests right away,
+    #   * a missing/down MongoDB doesn't trap the server in
+    #     "Waiting for application startup" for 90+ seconds (3 migrations
+    #     × 30s default timeout).
+    # MongoDB outages now surface as fast HTTP errors instead of a hung process.
+    asyncio.create_task(_run_startup_migrations())
+
+
+async def _run_startup_migrations():
     global _scheduler_task
     # v1.0.23 reversal: v1.0.23 mistakenly shifted query_port from game+1 to
     # game+3 thinking SCUM needed query OUTSIDE the 3-port range. That was
@@ -3434,7 +3450,7 @@ async def _start_scheduler():
         _scheduler_task = asyncio.create_task(_tick_scheduler())
         logger.info("LGSS automation scheduler started (tick=10s)")
 
-    # v1.0.35 migration: earlier versions stamped installed_build_id with a
+    # v1.0.36 migration: earlier versions stamped installed_build_id with a
     # timestamp-style token (`build-1779386976`) instead of the actual SCUM
     # in-game version (`1.2.3.2.115523`). That made the dashboard show a
     # meaningless number AND the auto-update check ALWAYS reported "update
@@ -3455,9 +3471,9 @@ async def _start_scheduler():
                         {"id": s["id"]},
                         {"$set": {"installed_build_id": ver, "update_available": False}},
                     )
-                logger.info("v1.0.35 build-id migration: rewrote %d legacy build-<ts> tokens → %s", len(legacy), ver)
+                logger.info("v1.0.36 build-id migration: rewrote %d legacy build-<ts> tokens → %s", len(legacy), ver)
     except Exception as e:
-        logger.info("v1.0.35 build-id migration skipped: %s", e)
+        logger.info("v1.0.36 build-id migration skipped: %s", e)
     # TTL index on activity samples — auto-delete rows older than 30 days.
     # If an older version created the index with a different TTL, drop and
     # recreate so the new retention takes effect.

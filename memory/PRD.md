@@ -46,6 +46,12 @@ Electron-based desktop server manager for SCUM game. On first launch: ask user t
 - Schema cleanup: removed `client` section + client_mouse/video/graphics/sound; moved `client_game` under `gameplay`
 
 ## Recent Changes
+- **2026-02 (v1.0.31 — XAML now includes ALL text sources: UI + 215 SCUM settings)**:
+  1. Discovered that `en.xaml` v1.0.30 was missing ~430 strings from `/app/frontend/src/lib/fieldMeta.js` (215 SCUM settings × {label, desc}).
+  2. New helper `flattenFieldMeta(FIELD_META, lang)` in `utils/xamlExporter.js` flattens the nested per-field meta into `field.<scum.Key>.label` / `field.<scum.Key>.desc` rows.
+  3. TopBar merges `translations[lang]` ∪ `flattenFieldMeta(FIELD_META, lang)` before download. The contributor now sees every SCUM tooltip alongside every UI string in a single file.
+  4. Verified browser-side: real downloaded `en.xaml` = **92 KB, 1024 `<sys:String>` entries** (591 UI + 430 SCUM field labels/descs + 3 Generic meta).
+
 - **2026-02 (v1.0.30 — Translator credits in Language modal + editable XAML metadata)**:
   1. `LANG_META` gained two new fields per language: `translator` (name/team) and `date` (YYYY-MM-DD).
   2. **Language modal widened** (320px → 460px) and now shows a small monospace subtitle under each language label: *"Gemini 2.5 · 2026-02-10"*.

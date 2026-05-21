@@ -6,7 +6,8 @@ import {
 } from "lucide-react";
 import { useTheme } from "../providers/ThemeProvider";
 import { useI18n, LANG_META, translations } from "../providers/I18nProvider";
-import { downloadXaml } from "../utils/xamlExporter";
+import { downloadXaml, flattenFieldMeta } from "../utils/xamlExporter";
+import { FIELD_META } from "../lib/fieldMeta";
 import { endpoints } from "../lib/api";
 import { ConfirmModal } from "./ConfirmModal";
 
@@ -110,7 +111,7 @@ export const TopBar = ({
               SCUM SERVER MANAGER
             </div>
             <div className="font-mono text-[9px] tracking-[0.22em] text-accent-brand mt-1">
-              v1.0.30
+              v1.0.31
             </div>
           </div>
         </div>
@@ -263,10 +264,11 @@ export const TopBar = ({
                       <button
                         type="button"
                         className="ghost-btn flex items-center gap-1.5 flex-1 justify-center text-[10px] uppercase tracking-widest"
-                        onClick={() => downloadXaml("en", translations.en, {
-                          translator: LANG_META.en.translator,
-                          date: LANG_META.en.date,
-                        })}
+                        onClick={() => downloadXaml(
+                          "en",
+                          { ...translations.en, ...flattenFieldMeta(FIELD_META, "en") },
+                          { translator: LANG_META.en.translator, date: LANG_META.en.date },
+                        )}
                         data-testid="lang-download-en-template"
                         title={t("download_en_template_hint")}
                       >
@@ -275,10 +277,14 @@ export const TopBar = ({
                       <button
                         type="button"
                         className="ghost-btn flex items-center gap-1.5 flex-1 justify-center text-[10px] uppercase tracking-widest"
-                        onClick={() => downloadXaml(lang, translations[lang] || translations.en, {
-                          translator: LANG_META[lang]?.translator || "LGSS Community",
-                          date: LANG_META[lang]?.date || new Date().toISOString().slice(0, 10),
-                        })}
+                        onClick={() => downloadXaml(
+                          lang,
+                          { ...(translations[lang] || translations.en), ...flattenFieldMeta(FIELD_META, lang) },
+                          {
+                            translator: LANG_META[lang]?.translator || "LGSS Community",
+                            date: LANG_META[lang]?.date || new Date().toISOString().slice(0, 10),
+                          },
+                        )}
                         data-testid="lang-download-current"
                         title={t("download_current_lang_hint")}
                       >

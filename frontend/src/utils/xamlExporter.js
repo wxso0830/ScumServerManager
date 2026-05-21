@@ -41,6 +41,31 @@ const xmlEscape = (s) =>
     .replaceAll("'", "&apos;");
 
 /**
+ * Flatten the FIELD_META dict (per-field SCUM setting label + tooltip) into
+ * a flat {key: string} map ready to merge into the main translations dict.
+ *
+ *   FIELD_META["scum.ServerName"][lang] = { label: "Server Name", desc: "…" }
+ *
+ * becomes:
+ *
+ *   field.scum.ServerName.label = "Server Name"
+ *   field.scum.ServerName.desc  = "…"
+ *
+ * Keeping the `field.` prefix means translators can grep the file and find
+ * every SCUM setting in one block without it colliding with UI strings.
+ */
+export const flattenFieldMeta = (fieldMeta, lang = "en") => {
+  const out = {};
+  for (const [k, byLang] of Object.entries(fieldMeta || {})) {
+    const v = byLang?.[lang] || byLang?.en;
+    if (!v) continue;
+    if (v.label) out[`field.${k}.label`] = v.label;
+    if (v.desc) out[`field.${k}.desc`] = v.desc;
+  }
+  return out;
+};
+
+/**
  * Build a XAML document for the given language dict.
  *
  * @param {string} lang        — ISO language code, used in the Name attribute & filename

@@ -338,20 +338,24 @@ export const AutomationEditor = ({ server, onChange, mode = "both" }) => {
         </button>
       </div>
 
-      {/* ===== Inline Notifications Editor (filtered by mode's kind) ===== */}
-      {mode !== "both" && (
+      {/* ===== Inline Notifications Editor — RESTART ONLY ===== */}
+      {/* v1.0.24: per user request, the Update tab no longer shows any
+         "Update Notifications" section — admins manage chat broadcasts only
+         for restarts. Update broadcasts are handled silently by the graceful
+         update scheduler (15-min lead, no chat spam). */}
+      {mode === "restart" && (
         <div className="panel corner-brackets">
           <div className="px-4 py-3 border-b border-brand flex items-center gap-3">
             <Bell size={15} className="text-accent-brand" />
             <span className="heading-stencil text-sm">
-              {mode === "update" ? t("update_notifications_inline_title") : t("restart_notifications_inline_title")}
+              {t("restart_notifications_inline_title")}
             </span>
           </div>
           <div className="p-4">
             <InlineKindNotifications
               serverId={server.id}
               all={preview}
-              kind={mode === "update" ? "update" : "restart"}
+              kind="restart"
               automation={{
                 restart_times: draft.restart_times,
                 pre_warning_minutes: draft.pre_warning_minutes,

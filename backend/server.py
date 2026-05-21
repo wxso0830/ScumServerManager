@@ -3,6 +3,7 @@ from dotenv import load_dotenv
 from starlette.middleware.cors import CORSMiddleware
 from motor.motor_asyncio import AsyncIOMotorClient
 import os
+import re
 import logging
 import platform
 import subprocess
@@ -678,13 +679,20 @@ async def update_server(server_id: str):
         return ServerProfile(**doc)
 
     # Real Windows update via SteamCMD in a background thread.
-    def _on_complete(ok: bool, build_id: Optional[str], _log_tail: str):
+    def _on_complete(ok: bool, _build_id_unused: Optional[str], _log_tail: str):
+        # Note: scum_proc reports `build-<timestamp>` which is meaningless to
+        # the admin — they expect to see the in-game version (e.g.
+        # '1.2.3.2.115523'). We pull the freshest known SCUM patchnote version
+        # from Steam RSS and persist that as installed_build_id since SteamCMD
+        # just downloaded the latest build.
         import asyncio as _asyncio
         async def _update():
             if ok:
+                info = await _fetch_latest_scum_version()
+                version = info.get("version") or doc.get("installed_build_id")
                 await db.servers.update_one({"id": server_id}, {"$set": {
                     "status": "Stopped",
-                    "installed_build_id": build_id or doc.get("installed_build_id"),
+                    "installed_build_id": version,
                     "update_available": False,
                 }})
             else:
@@ -714,9 +722,11 @@ async def complete_server_update(server_id: str):
     doc = await db.servers.find_one({"id": server_id}, {"_id": 0})
     if not doc:
         raise HTTPException(status_code=404, detail="Server not found")
-    # Pull latest known Steam build and set it as installed
+    # Pull latest known Steam build (parsed in-game version like '1.2.3.2.115523')
+    # and set it as installed. Falls back to the previous installed value or
+    # 'unknown' if Steam RSS hasn't been polled yet.
     meta = await db.app_meta.find_one({"_id": STEAM_LATEST_KEY}, {"_id": 0}) or {}
-    build_id = meta.get("build_id") or doc.get("installed_build_id") or f"build-{int(datetime.now(timezone.utc).timestamp())}"
+    build_id = meta.get("build_id") or doc.get("installed_build_id") or "unknown"
     await db.servers.update_one({"id": server_id}, {"$set": {
         "status": "Stopped",
         "installed_build_id": build_id,
@@ -742,7 +752,11 @@ async def install_server(server_id: str):
 
     # Non-Windows (dev/preview) — keep legacy simulated install so UI can be exercised.
     if platform.system() != "Windows" or not manager_path:
-        build_id = f"build-{int(datetime.now(timezone.utc).timestamp())}"
+        # Try to stamp the actual latest SCUM version so the UI shows a real
+        # in-game version token (e.g. "1.2.3.2.115523") instead of a fake
+        # build-<timestamp> string.
+        info = await _fetch_latest_scum_version()
+        build_id = info.get("version") or "unknown"
         await db.servers.update_one({"id": server_id}, {"$set": {
             "installed": True, "status": "Stopped",
             "installed_build_id": build_id, "update_available": False,
@@ -752,13 +766,18 @@ async def install_server(server_id: str):
         return ServerProfile(**doc)
 
     # Real Windows install via SteamCMD in a background thread
-    def _on_complete(ok: bool, build_id: Optional[str], _log_tail: str):
+    def _on_complete(ok: bool, _build_id_unused: Optional[str], _log_tail: str):
         import asyncio as _asyncio
         async def _update():
             if ok:
+                # Pull the real SCUM in-game version from Steam RSS — SteamCMD
+                # has just finished downloading the latest build so whatever
+                # the RSS reports IS what's now installed locally.
+                info = await _fetch_latest_scum_version()
+                version = info.get("version") or "unknown"
                 update_fields: Dict[str, Any] = {
                     "installed": True, "status": "Stopped",
-                    "installed_build_id": build_id, "update_available": False,
+                    "installed_build_id": version, "update_available": False,
                 }
                 # After install + first-boot, parse any generated config files back
                 # into the manager settings so the UI reflects REAL values and any
@@ -1017,58 +1036,87 @@ STEAM_APP_ID = "3792580"
 STEAM_LATEST_KEY = "steam-latest-manifest"
 
 
-@api_router.get("/steam/check-update")
-async def steam_check_update():
-    """Check Steam for the latest SCUM update.
+# Regex matches SCUM's in-game build version format: "1.2.3.2.115523" (preferred,
+# 5 segments) and "1.2.3.2" (4-segment fallback). These are what Steam patchnotes
+# titles look like (e.g., "Hotfix - 1.2.3.2.115523") and what's displayed in the
+# game's main menu (`Build Version: 1.2.3.2.115523`). We DO NOT use epoch
+# timestamps or Steam's internal numeric buildid because admins compare the
+# manager's "latest build" against the version they see in-game.
+_SCUM_VERSION_RE_LONG = re.compile(r"\b(\d+\.\d+\.\d+\.\d+\.\d+)\b")
+_SCUM_VERSION_RE_SHORT = re.compile(r"\b(\d+\.\d+\.\d+\.\d+)\b")
 
-    Uses Steam's PUBLIC endpoints (no API key required):
-      * store.steampowered.com/api/appdetails?appids=3792580 — release/update date
-      * steamcommunity.com/games/3792580/rss — patchnotes feed
 
-    The manager uses the most recent patchnote publication date as the "latest build"
-    token so it can detect when a game-wide update is released. On Electron desktop
-    SteamCMD's app_info_print is used for the real Steam build id.
+def _parse_scum_version(text: str) -> Optional[str]:
+    """Extract a SCUM in-game build version (e.g. '1.2.3.2.115523') from
+    arbitrary text — Steam RSS titles, patch-note descriptions, etc.
+    Returns None if no version-like token is found.
+    """
+    if not text:
+        return None
+    m = _SCUM_VERSION_RE_LONG.search(text)
+    if m:
+        return m.group(1)
+    m = _SCUM_VERSION_RE_SHORT.search(text)
+    return m.group(1) if m else None
+
+
+async def _fetch_latest_scum_version() -> Dict[str, Any]:
+    """Fetch the latest SCUM in-game build version from Steam's PUBLIC RSS feed
+    and return {version, notes, source} (or {} on failure).
+
+    Walks items newest→oldest and returns the first one whose title/description
+    contains a SCUM version token, preferring patchnote-style items over
+    generic community posts. SCUM's RSS titles look like:
+      "Hotfix - 1.2.3.2.115523"
+      "Patch notes - 1.2.3.2.115523"
+      "SCUM 1.2.3.2 update"
+    We DON'T care which appid (513710 main game / 3792580 dedicated) — the
+    server patches lockstep with the game, so either is the right token.
     """
     import httpx
-    latest_build_id = None
-    notes = ""
-    fetched_from = "mock"
-    # The dedicated server (3792580) doesn't have its own RSS, but the main game (513710)
-    # is patched in lockstep with the server, so its patchnotes feed tells us when a new
-    # build is out. We try both in order.
     CANDIDATE_APPIDS = ["513710", "3792580"]
     try:
-        async with httpx.AsyncClient(timeout=8.0, follow_redirects=True, headers={"User-Agent": "LGSSManager/1.0"}) as client:
+        async with httpx.AsyncClient(timeout=8.0, follow_redirects=True,
+                                     headers={"User-Agent": "LGSSManager/1.0"}) as client:
             for aid in CANDIDATE_APPIDS:
                 r = await client.get(f"https://steamcommunity.com/games/{aid}/rss/")
                 if r.status_code != 200 or "<item>" not in r.text:
                     continue
-                import re
-                pubs = re.findall(r"<pubDate>([^<]+)</pubDate>", r.text)
-                titles = re.findall(r"<item>.*?<title>([^<]+)</title>", r.text, flags=re.S)
-                if pubs:
-                    from email.utils import parsedate_to_datetime
-                    dt = parsedate_to_datetime(pubs[0])
-                    latest_build_id = f"build-{int(dt.timestamp())}"
-                    notes = (titles[0] if titles else "").strip()
-                    fetched_from = f"steam-rss:{aid}"
-                    break
-            if not latest_build_id:
-                r = await client.get("https://store.steampowered.com/api/appdetails", params={"appids": "513710", "filters": "basic,release_date"})
-                if r.status_code == 200:
-                    j = r.json().get("513710", {}).get("data", {})
-                    rd = (j.get("release_date") or {}).get("date", "")
-                    if rd:
-                        latest_build_id = f"build-{rd.replace(' ', '-').replace(',', '')}"
-                        notes = j.get("name", "")
-                        fetched_from = "steam-appdetails"
+                # Parse each <item> block — extract title + description so we
+                # can look at both fields for a version token.
+                item_blocks = re.findall(r"<item>(.*?)</item>", r.text, flags=re.S)
+                for block in item_blocks:
+                    title_m = re.search(r"<title>([^<]+)</title>", block)
+                    desc_m = re.search(r"<description>(.*?)</description>", block, flags=re.S)
+                    title = (title_m.group(1) if title_m else "").strip()
+                    desc = (desc_m.group(1) if desc_m else "").strip()
+                    version = _parse_scum_version(title) or _parse_scum_version(desc)
+                    if version:
+                        return {"version": version, "notes": title, "source": f"steam-rss:{aid}"}
+        return {}
     except Exception as e:
-        logger.info("Steam check failed: %s", e)
+        logger.info("Steam RSS version parse failed: %s", e)
+        return {}
+
+
+@api_router.get("/steam/check-update")
+async def steam_check_update():
+    """Check Steam for the latest SCUM update.
+
+    Parses the SCUM patchnote RSS feed and extracts the in-game version
+    token (e.g. '1.2.3.2.115523'). This is what admins see both in-game
+    (main menu "Build Version") and in Steam's update notification, so
+    they can recognize whether a new patch is out at a glance.
+    """
+    info = await _fetch_latest_scum_version()
+    latest_build_id = info.get("version")
+    notes = info.get("notes", "")
+    fetched_from = info.get("source", "mock")
 
     if not latest_build_id:
         # Final fallback: whatever the admin has simulated via /api/steam/publish-build
         doc = await db.app_meta.find_one({"_id": STEAM_LATEST_KEY}, {"_id": 0}) or {}
-        latest_build_id = doc.get("build_id") or f"build-{int(datetime.now(timezone.utc).timestamp())}"
+        latest_build_id = doc.get("build_id") or "unknown"
         notes = doc.get("notes", "")
 
     checked_at = datetime.now(timezone.utc).isoformat()
@@ -1078,12 +1126,15 @@ async def steam_check_update():
         {"$set": {"build_id": latest_build_id, "notes": notes, "checked_at": checked_at, "source": fetched_from}},
         upsert=True,
     )
-    # Mark servers whose installed build differs as update_available
-    servers = await db.servers.find({"installed": True}, {"_id": 0}).to_list(500)
-    for s in servers:
-        needs_update = bool(s.get("installed_build_id")) and s["installed_build_id"] != latest_build_id
-        if needs_update != bool(s.get("update_available")):
-            await db.servers.update_one({"id": s["id"]}, {"$set": {"update_available": needs_update}})
+    # Mark servers whose installed build differs as update_available. A version
+    # of "unknown" must never trigger an update prompt — it just means the RSS
+    # parse failed and we have nothing to compare against.
+    if latest_build_id and latest_build_id != "unknown":
+        servers = await db.servers.find({"installed": True}, {"_id": 0}).to_list(500)
+        for s in servers:
+            needs_update = bool(s.get("installed_build_id")) and s["installed_build_id"] != latest_build_id
+            if needs_update != bool(s.get("update_available")):
+                await db.servers.update_one({"id": s["id"]}, {"$set": {"update_available": needs_update}})
     return {
         "app_id": STEAM_APP_ID,
         "latest_build_id": latest_build_id,
@@ -2791,33 +2842,28 @@ async def _tick_scheduler():
                     last = _last_update_check_at.get(sid, 0)
                     if (now.timestamp() - last) >= interval * 60:
                         _last_update_check_at[sid] = now.timestamp()
-                        # Directly check steam (reuses same implementation)
+                        # Reuse the shared parser so the scheduler agrees with
+                        # /api/steam/check-update on what "latest build" means
+                        # (in-game version string like "1.2.3.2.115523", NOT a
+                        # pubDate timestamp — admins compare against the value
+                        # they see in the game's main menu).
                         try:
-                            import httpx
-                            async with httpx.AsyncClient(timeout=8.0, follow_redirects=True, headers={"User-Agent": "LGSSManager/1.0"}) as c:
-                                build_id = None
-                                for aid in ("513710", "3792580"):
-                                    r = await c.get(f"https://steamcommunity.com/games/{aid}/rss/")
-                                    if r.status_code == 200 and "<item>" in r.text:
-                                        import re as _re
-                                        pubs = _re.findall(r"<pubDate>([^<]+)</pubDate>", r.text)
-                                        if pubs:
-                                            from email.utils import parsedate_to_datetime
-                                            build_id = f"build-{int(parsedate_to_datetime(pubs[0]).timestamp())}"
-                                            break
-                                if build_id and s.get("installed_build_id") and s["installed_build_id"] != build_id:
-                                    await db.servers.update_one({"id": sid}, {"$set": {"update_available": True}})
-                                    logger.info("Scheduler: update_available=True for %s", s.get("name"))
-                                    # Kick off graceful update flow (15-min lead):
-                                    # notifications get stamped into Notifications.json
-                                    # and the update actually runs when pending_update_at
-                                    # is reached (see section below).
-                                    try:
-                                        fresh = await db.servers.find_one({"id": sid}, {"_id": 0})
-                                        if fresh and not fresh.get("pending_update_at"):
-                                            await _schedule_graceful_update(sid, fresh, lead_minutes=15)
-                                    except Exception as e:
-                                        logger.info("graceful update scheduling failed: %s", e)
+                            info = await _fetch_latest_scum_version()
+                            build_id = info.get("version")
+                            if build_id and s.get("installed_build_id") and s["installed_build_id"] != build_id:
+                                await db.servers.update_one({"id": sid}, {"$set": {"update_available": True}})
+                                logger.info("Scheduler: update_available=True for %s (latest=%s installed=%s)",
+                                            s.get("name"), build_id, s.get("installed_build_id"))
+                                # Kick off graceful update flow (15-min lead):
+                                # notifications get stamped into Notifications.json
+                                # and the update actually runs when pending_update_at
+                                # is reached (see section below).
+                                try:
+                                    fresh = await db.servers.find_one({"id": sid}, {"_id": 0})
+                                    if fresh and not fresh.get("pending_update_at"):
+                                        await _schedule_graceful_update(sid, fresh, lead_minutes=15)
+                                except Exception as e:
+                                    logger.info("graceful update scheduling failed: %s", e)
                         except Exception as e:
                             logger.info("Scheduler steam check failed: %s", e)
 
@@ -3172,6 +3218,31 @@ async def _start_scheduler():
     if _scheduler_task is None:
         _scheduler_task = asyncio.create_task(_tick_scheduler())
         logger.info("LGSS automation scheduler started (tick=10s)")
+
+    # v1.0.24 migration: earlier versions stamped installed_build_id with a
+    # timestamp-style token (`build-1779386976`) instead of the actual SCUM
+    # in-game version (`1.2.3.2.115523`). That made the dashboard show a
+    # meaningless number AND the auto-update check ALWAYS reported "update
+    # available" because no Steam-side version string ever matches that format.
+    # On startup, fetch the latest version from Steam RSS once and rewrite any
+    # server whose installed_build_id matches the legacy format.
+    try:
+        legacy = await db.servers.find(
+            {"installed": True, "installed_build_id": {"$regex": "^build-"}},
+            {"_id": 0, "id": 1},
+        ).to_list(500)
+        if legacy:
+            info = await _fetch_latest_scum_version()
+            ver = info.get("version")
+            if ver:
+                for s in legacy:
+                    await db.servers.update_one(
+                        {"id": s["id"]},
+                        {"$set": {"installed_build_id": ver, "update_available": False}},
+                    )
+                logger.info("v1.0.24 build-id migration: rewrote %d legacy build-<ts> tokens → %s", len(legacy), ver)
+    except Exception as e:
+        logger.info("v1.0.24 build-id migration skipped: %s", e)
     # TTL index on activity samples — auto-delete rows older than 30 days.
     # If an older version created the index with a different TTL, drop and
     # recreate so the new retention takes effect.

@@ -46,13 +46,13 @@ Electron-based desktop server manager for SCUM game. On first launch: ask user t
 - Schema cleanup: removed `client` section + client_mouse/video/graphics/sound; moved `client_game` under `gameplay`
 
 ## Recent Changes
-- **2026-02 (v1.0.24 — graceful shutdown w/ configurable timeout + Update-All removed)**:
-  1. **Graceful Shutdown (CTRL_BREAK_EVENT)**: `scum_proc.stop_server()` now waits for SCUM to flush its world save (default 30s) before force-killing. Applied to all stop flows: manual Stop, auto-restart scheduler, auto-update scheduler, restart endpoint.
-  2. **Configurable timeout**: New `automation.shutdown_timeout_sec` field (default 30, 0 = instant kill). Exposed in Automation > Restart Schedule UI with a dedicated "INSTANT KILL" button.
-  3. **Force stop endpoint**: `POST /api/servers/{id}/stop?force=true` skips graceful save (used by potential future Force Stop UI button).
-  4. **Update-All button REMOVED** from Dashboard hero command bar (per-server Update buttons remain).
-  5. **Update icon** changed from `ChevronsUp` → `ArrowDownToLine` (Lucide) — modern download-to-disk semantic.
-  6. External-stop detector (CTRL+C in SCUM's own console) was already in place from v1.0.23; verified working in `_tick_scheduler`.
+- **2026-02 (v1.0.24 — build version fix + Update-Notifications removed + graceful shutdown)**:
+  1. **Build version parsing FIXED**: `installed_build_id` and `latest_build_id` now use the real SCUM in-game version (e.g. `1.2.3.2.115523`) extracted from Steam patchnote RSS titles, not the meaningless `build-<epoch>` timestamp that used to make every server look "out of date" forever.
+  2. **Startup migration**: any legacy `build-<digits>` token in `installed_build_id` is rewritten to the latest known SCUM version on backend boot.
+  3. **`_fetch_latest_scum_version()` helper** centralises RSS parsing; consumed by `/api/steam/check-update`, the auto-update scheduler, and the install/update `_on_complete` callbacks.
+  4. **"Update Notifications" inline panel REMOVED** from the Update Monitor tab (per user request — admins manage chat broadcasts only for restarts; graceful update flow handles its own 15-min lead silently).
+  5. **Graceful Shutdown (CTRL_BREAK_EVENT)** with configurable `automation.shutdown_timeout_sec` (default 30, 0 = INSTANT KILL).
+  6. **Update-All button REMOVED** from Dashboard; per-server Update icon changed `ChevronsUp` → `ArrowDownToLine`.
 
 - **2026-02 (v1.0.23 — correct 3-port SCUM model)**:
   1. **Reversal of v1.0.22's wrong "4-port" thinking**: SCUM actually uses **3 consecutive ports**: `game/query/steam = port/+1/+2`. Players connect on the **Steam port** (game_port + 2), NOT on game_port itself. v1.0.22 mistakenly tried to push query OUTSIDE the range thinking 4 ports were involved — that was incorrect.

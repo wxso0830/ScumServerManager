@@ -59,6 +59,61 @@ function getUserDataDir(sub = 'logs') {
   return dir;
 }
 
+/**
+ * Locate the Manager's Globalization folder.
+ *
+ * In a packaged install the user wants this NEXT TO the .exe, e.g.
+ *   C:\Program Files\LGSS\LGSS Manager\Globalization\
+ *
+ * Electron's `process.resourcesPath` points to the `resources/` subfolder of
+ * the install dir, so the parent is the install root.
+ *
+ * In dev (`npm run dev`) we put it under the project root so contributors
+ * can iterate on translations without rebuilding the installer.
+ *
+ * The folder is created on first boot together with a README explaining the
+ * workflow, then exposed to the backend as `LGSS_GLOBALIZATION_DIR`.
+ */
+function getGlobalizationDir() {
+  let base;
+  if (app.isPackaged) {
+    // process.resourcesPath = <install_dir>/resources
+    // → parent = <install_dir> = C:\Program Files\LGSS\LGSS Manager
+    base = path.dirname(process.resourcesPath);
+  } else {
+    // Dev: <project_root>/Globalization
+    base = path.join(__dirname, '..');
+  }
+  const gdir = path.join(base, 'Globalization');
+  try {
+    fs.mkdirSync(gdir, { recursive: true });
+    const readme = path.join(gdir, 'README.txt');
+    if (!fs.existsSync(readme)) {
+      fs.writeFileSync(readme,
+        'LGSS Manager — Custom Language Drop-in Folder\r\n' +
+        '==============================================\r\n\r\n' +
+        'Drop community-translated .xaml files here. The Manager will\r\n' +
+        'scan this folder on startup and whenever you click "Reload\r\n' +
+        'Languages" in the language picker.\r\n\r\n' +
+        'Workflow:\r\n' +
+        '  1. Open the Manager and pick the language icon (top-right).\r\n' +
+        '  2. Click "EN · Template" to download `en.xaml`.\r\n' +
+        '  3. Open it in Notepad/VS Code, translate every <sys:String>\r\n' +
+        '     body into your language.\r\n' +
+        '  4. Rename to your ISO language code (e.g. `pl.xaml`, `ja.xaml`).\r\n' +
+        '  5. Drop the file in THIS folder.\r\n' +
+        '  6. Click "Reload Languages" — your language appears in the\r\n' +
+        '     picker right next to the built-ins.\r\n\r\n' +
+        'Once you are happy with the translation, send the .xaml file to\r\n' +
+        'LGSS so we can bundle it in the next release for everyone.\r\n',
+        'utf-8');
+    }
+  } catch (e) {
+    console.warn('[i18n] could not create Globalization folder:', e);
+  }
+  return gdir;
+}
+
 function logDir() { return getUserDataDir('logs'); }
 function mongoDbPath() {
   // Use ProgramData (machine-wide writable dir) — avoids per-user % APPDATA
@@ -276,6 +331,10 @@ function spawnBackend() {
       MONGO_URL: process.env.MONGO_URL || `mongodb://${MONGO_HOST}:${MONGO_PORT}`,
       DB_NAME: process.env.DB_NAME || 'lgss_manager',
       CORS_ORIGINS: process.env.CORS_ORIGINS || '*',
+      // Point the backend at the Manager-side Globalization folder so the
+      // /api/i18n/custom endpoint resolves to <install_dir>/Globalization
+      // (NOT <manager_path>/Globalization which is the server workspace).
+      LGSS_GLOBALIZATION_DIR: getGlobalizationDir(),
       PORT: String(BACKEND_PORT),
       HOST: BACKEND_HOST,
     },

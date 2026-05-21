@@ -170,7 +170,7 @@ def default_scum_settings() -> Dict[str, Any]:
 # ---------- ENDPOINTS ----------
 @api_router.get("/")
 async def root():
-    return {"service": "LGSS SCUM Server Manager", "version": "1.0.34"}
+    return {"service": "LGSS SCUM Server Manager", "version": "1.0.35"}
 
 
 _PUBLIC_IP_CACHE = {"ts": 0, "ip": None}
@@ -300,38 +300,6 @@ async def update_setup(payload: SetupUpdate):
         data[k] = v
     data["updated_at"] = datetime.now(timezone.utc).isoformat()
     await db.setup.update_one({"_id": SETUP_DOC_ID}, {"$set": data}, upsert=True)
-    # Ensure the Globalization/ folder exists as soon as the admin picks a
-    # workspace. Contributors can drop their .xaml translations there at any
-    # time and the manager will pick them up on the next /i18n/custom call.
-    mp = data.get("manager_path")
-    if mp:
-        try:
-            gdir = Path(mp) / "Globalization"
-            gdir.mkdir(parents=True, exist_ok=True)
-            # README so the first-time admin understands what the folder is
-            # for. Only written once — never overwrites an existing file.
-            readme = gdir / "README.txt"
-            if not readme.exists():
-                readme.write_text(
-                    "LGSS Manager — Custom Language Drop-in Folder\n"
-                    "==============================================\n\n"
-                    "Drop community-translated .xaml files here. The Manager\n"
-                    "will scan this folder on startup and on `Reload` and\n"
-                    "expose every parsed language in the language picker.\n\n"
-                    "Workflow:\n"
-                    "  1. Download `en.xaml` from the language picker.\n"
-                    "  2. Edit it (translate each <sys:String> body).\n"
-                    "  3. Rename to your language code (e.g. `pl.xaml`).\n"
-                    "  4. Drop it in THIS folder.\n"
-                    "  5. Click `Reload` in the language picker.\n"
-                    "  6. Your language now appears alongside the built-ins.\n\n"
-                    "Once you're happy with the translation, send the .xaml\n"
-                    "file to LGSS so it gets bundled in the next release\n"
-                    "for everyone.\n",
-                    encoding="utf-8",
-                )
-        except Exception as e:
-            logger.info("Globalization folder bootstrap failed: %s", e)
     return SetupState(**data)
 
 
@@ -405,18 +373,23 @@ def _parse_xaml_file(path: Path) -> Dict[str, str]:
 
 
 async def _get_globalization_dir() -> Optional[Path]:
-    """Locate the Globalization folder. Order of preference:
-      1. `LGSS_GLOBALIZATION_DIR` env var (testing / power-user override).
-      2. `<manager_path>/Globalization/`  (production — set by Setup wizard).
-      3. `<ROOT_DIR>/Globalization/`      (dev / preview fallback).
+    """Locate the Manager's Globalization folder.
+
+    This folder lives **alongside the Manager installation**, NOT inside the
+    SCUM-server workspace (`<manager_path>/Servers/`). On Windows production
+    builds Electron sets `LGSS_GLOBALIZATION_DIR` to e.g.
+
+        C:\\Program Files\\LGSS\\LGSS Manager\\Globalization
+
+    Order of resolution:
+      1. `LGSS_GLOBALIZATION_DIR` env var (Electron sets this in production,
+         testers can override in `backend/.env`).
+      2. `<ROOT_DIR>/Globalization/`        — dev / preview fallback
+         (i.e. `/app/Globalization`).
     """
     override = os.environ.get("LGSS_GLOBALIZATION_DIR")
     if override:
         return Path(override)
-    setup = await db.setup.find_one({"_id": SETUP_DOC_ID}, {"_id": 0}) or {}
-    manager_path = setup.get("manager_path")
-    if manager_path:
-        return Path(manager_path) / "Globalization"
     return ROOT_DIR.parent / "Globalization"  # /app/Globalization in preview
 
 
@@ -3461,7 +3434,7 @@ async def _start_scheduler():
         _scheduler_task = asyncio.create_task(_tick_scheduler())
         logger.info("LGSS automation scheduler started (tick=10s)")
 
-    # v1.0.34 migration: earlier versions stamped installed_build_id with a
+    # v1.0.35 migration: earlier versions stamped installed_build_id with a
     # timestamp-style token (`build-1779386976`) instead of the actual SCUM
     # in-game version (`1.2.3.2.115523`). That made the dashboard show a
     # meaningless number AND the auto-update check ALWAYS reported "update
@@ -3482,9 +3455,9 @@ async def _start_scheduler():
                         {"id": s["id"]},
                         {"$set": {"installed_build_id": ver, "update_available": False}},
                     )
-                logger.info("v1.0.34 build-id migration: rewrote %d legacy build-<ts> tokens → %s", len(legacy), ver)
+                logger.info("v1.0.35 build-id migration: rewrote %d legacy build-<ts> tokens → %s", len(legacy), ver)
     except Exception as e:
-        logger.info("v1.0.34 build-id migration skipped: %s", e)
+        logger.info("v1.0.35 build-id migration skipped: %s", e)
     # TTL index on activity samples — auto-delete rows older than 30 days.
     # If an older version created the index with a different TTL, drop and
     # recreate so the new retention takes effect.

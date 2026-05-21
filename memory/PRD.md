@@ -46,6 +46,13 @@ Electron-based desktop server manager for SCUM game. On first launch: ask user t
 - Schema cleanup: removed `client` section + client_mouse/video/graphics/sound; moved `client_game` under `gameplay`
 
 ## Recent Changes
+- **2026-02 (v1.0.35 — Globalization folder relocated to Manager install dir)**:
+  1. User pointed out: `Globalization/` belongs **next to the Manager .exe** (e.g. `C:\Program Files\LGSS\LGSS Manager\Globalization\`), NOT inside the SCUM-server workspace (`C:\LGSSManagers\Servers\`). The workspace is for game-server files only.
+  2. **Electron** now creates `<install_dir>/Globalization/` on first boot (via `process.resourcesPath`'s parent), drops a README.txt explaining the workflow, and exports `LGSS_GLOBALIZATION_DIR` to the spawned backend.
+  3. **Backend** `_get_globalization_dir()` simplified — only honours the env var (production) or `<ROOT_DIR>/Globalization` (dev fallback). Removed the wrong `<manager_path>/Globalization` branch.
+  4. **Setup endpoint** no longer creates a `Globalization/` folder inside the workspace. The README that was being written there (incorrectly) is no longer created.
+  5. Verified: `/api/i18n/custom` still resolves correctly, custom `pl.xaml` still discoverable.
+
 - **2026-02 (v1.0.34 — CRITICAL: real CTRL_C save + Steam server visibility fixes)**:
   1. **CTRL_BREAK → CTRL_C switch**: User reported world rollbacks after restart. Root cause: SCUM's console handler treats `CTRL_BREAK_EVENT` as **"NO-SAVE force exit"** (literally prints "NO-SAVE" in cyan in the console) and reserves `CTRL_C_EVENT` for the proper save-and-exit path. v1.0.33 was sending CTRL_BREAK — every restart was effectively a kill.
   2. **`_send_real_ctrl_c(pid)`**: New helper uses the canonical Windows technique — `SetConsoleCtrlHandler(None, True)` → `FreeConsole()` → `AttachConsole(scum_pid)` → `GenerateConsoleCtrlEvent(CTRL_C_EVENT, 0)` → `FreeConsole()` → `AttachConsole(ATTACH_PARENT_PROCESS)` → `SetConsoleCtrlHandler(None, False)`. Identical to what ARK Server Manager / RuntPM use for cross-console CTRL+C delivery. Falls back to cross-group broadcast if AttachConsole fails.

@@ -46,6 +46,16 @@ Electron-based desktop server manager for SCUM game. On first launch: ask user t
 - Schema cleanup: removed `client` section + client_mouse/video/graphics/sound; moved `client_game` under `gameplay`
 
 ## Recent Changes
+- **2026-02 (v1.0.20 — SCUM 3-port range + auto-firewall)**:
+  1. **Server invisible in Steam browser** (P0 - reported by admin): SCUM dedicated server actually listens on **THREE consecutive UDP ports** starting at `game_port` (game_port, +1, +2), and players connect via `game_port + 2`. The manager was only opening Windows Firewall rules for `game_port` and `query_port`, so `game_port+1` and `game_port+2` were silently dropped by Windows Defender → server didn't appear in the in-game browser even though it was running and responding to A2S query.
+  2. **`_ensure_firewall_rules()` helper** added to `scum_process.py`. Runs on every `start_server()` (idempotent — deletes by name first, then re-adds). Creates 5 rules per server:
+     - UDP inbound, port range `game_port..game_port+2`
+     - TCP inbound, same range (Steam P2P fallback)
+     - UDP inbound, `query_port` (single port for A2S)
+     - TCP inbound, `query_port`
+     - Program-wide allow rule for `SCUMServer.exe` (catches dynamic Steam P2P ports)
+  3. All netsh calls use `creationflags=CREATE_NO_WINDOW` so the user doesn't see cmd flashes, and errors are swallowed (a no-admin / restricted environment still boots; user will just see the standard Windows "Allow access" popup as before).
+  4. **NetworkPortsPanel UI** now shows the explicit 3-port range + the actual connect port (`game_port + 2`) so admins know exactly what to forward on their router. Backend `PUT /servers/{id}/ports` validation tightened to `game_port` ≤ 65532 (so port+2 stays ≤ 65534).
 - **2026-02 (v1.0.19 — Chrome-style settings UI + per-server version pill)**:
   1. **Settings layout completely redesigned**: Each section's categories (Server Name, Performance, Backup, etc.) used to render as a vertical stack of collapsible accordions — bulky and required lots of scrolling. Now they're rendered as a horizontal **Chrome-style tab strip** that visually merges with the active content panel below (rounded top corners, no bottom border on active tab, accent shadow). Clicking a category tab swaps the panel content with a soft fadeIn animation. Files: `ServerDashboard.jsx` (removed `Collapsible`, added `activeCategory` state + tab strip + merged content panel), `DynamicFields.jsx` (form grid bumped to `xl:grid-cols-3` for dense gameplay/world categories).
   2. **SCUM version pill on each server card** (P1): A small pill next to the server name shows the installed SCUM build (`SCUM 1778863625` etc.). Color = **green** if `update_available=false` (in sync with the latest released build), **red** if `update_available=true` (admin should hit UPDATE). Backend already had `installed_build_id` + `update_available` fields; just surfaced them visually. Files: `ServerCard.jsx`.

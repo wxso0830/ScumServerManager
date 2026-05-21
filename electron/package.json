@@ -1,6 +1,6 @@
 {
   "name": "lgss-manager-shell",
-  "version": "1.0.19",
+  "version": "1.0.20",
   "description": "LGSS Managers - SCUM Dedicated Server Manager (Electron desktop shell)",
   "main": "main.js",
   "author": {

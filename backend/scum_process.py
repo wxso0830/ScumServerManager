@@ -470,6 +470,70 @@ def a2s_player_query(host: str, port: int, timeout: float = 1.2) -> list:
 
 
 
+def _ensure_firewall_rules(server_id: str, exe: Path, game_port: int, query_port: int) -> None:
+    """Add Windows Firewall inbound rules for the SCUM 3-port range + query.
+
+    SCUM dedicated server actually listens on THREE consecutive UDP ports
+    starting at `game_port` (game_port, +1, +2). Players connect to
+    `game_port + 2`. If we only have rules for `game_port` and `query_port`,
+    Windows Firewall drops traffic on the connect port and the server is
+    invisible in the in-game browser — exactly the bug the admin hit with
+    7777 + 7778 open but 7779 blocked.
+
+    We add 5 rules per server, all idempotent (netsh silently skips duplicates
+    after we delete-by-name first):
+      - <rulename>-UDP-game        : UDP port range game_port..game_port+2
+      - <rulename>-TCP-game        : TCP same range (for Steam P2P fallback)
+      - <rulename>-UDP-query       : UDP single query_port
+      - <rulename>-TCP-query       : TCP single query_port
+      - <rulename>-EXE             : EXE-wide allow rule (covers any other
+                                     port SCUM opens dynamically for Steam P2P)
+
+    All errors are swallowed — a restricted environment (no admin, locked
+    GPO) shouldn't block server startup. The admin will just have to allow
+    the connection in the standard Windows popup that appears when the EXE
+    first binds.
+    """
+    if not _is_windows():
+        return
+    rule_base = f"LGSS-SCUM-{server_id[:8]}"
+    udp_range = f"{game_port}-{game_port + 2}"
+
+    def _netsh(args: list[str]) -> None:
+        try:
+            subprocess.run(
+                ["netsh", "advfirewall", "firewall", *args],
+                creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0),
+                capture_output=True,
+                timeout=8,
+            )
+        except Exception as e:
+            log.debug("netsh %s skipped: %s", args[:3], e)
+
+    rules = [
+        (f"{rule_base}-UDP-game",
+         ["add", "rule", f"name={rule_base}-UDP-game", "dir=in", "action=allow",
+          "protocol=UDP", f"localport={udp_range}"]),
+        (f"{rule_base}-TCP-game",
+         ["add", "rule", f"name={rule_base}-TCP-game", "dir=in", "action=allow",
+          "protocol=TCP", f"localport={udp_range}"]),
+        (f"{rule_base}-UDP-query",
+         ["add", "rule", f"name={rule_base}-UDP-query", "dir=in", "action=allow",
+          "protocol=UDP", f"localport={query_port}"]),
+        (f"{rule_base}-TCP-query",
+         ["add", "rule", f"name={rule_base}-TCP-query", "dir=in", "action=allow",
+          "protocol=TCP", f"localport={query_port}"]),
+        (f"{rule_base}-EXE",
+         ["add", "rule", f"name={rule_base}-EXE", "dir=in", "action=allow",
+          f"program={exe}", "enable=yes"]),
+    ]
+    for name, add_args in rules:
+        # Delete by name first to avoid duplicate-rule clutter on every restart
+        _netsh(["delete", "rule", f"name={name}"])
+        _netsh(add_args)
+    log.info("Firewall rules ensured for %s: UDP %s + query %d", server_id, udp_range, query_port)
+
+
 def start_server(server_id: str, folder_path: str, port: int = 7779,
                  query_port: int = 7780, max_players: int = 64,
                  extra_args: Optional[str] = None) -> int:
@@ -530,6 +594,16 @@ def start_server(server_id: str, folder_path: str, port: int = 7779,
         except Exception as e:
             log.warning("Could not parse extra_args %r (skipping): %s", extra_args, e)
     log.info("Starting SCUM: %s", " ".join(args))
+
+    # Ensure Windows Firewall has inbound UDP rules for SCUM's 3-port range
+    # (port, port+1, port+2) AND the Steam query port. Without this, Windows
+    # Defender silently drops incoming UDP and the server doesn't show up in
+    # the Steam browser (the symptom the admin reported: only 7777/7778 were
+    # being opened by Windows' first-run "Allow access" popup, NOT 7779 which
+    # is the actual connect port — game_port+2). We add the rules idempotently
+    # via `netsh advfirewall firewall add rule` and ignore errors so a
+    # restricted environment doesn't block startup.
+    _ensure_firewall_rules(server_id, exe, port, query_port)
 
     # CREATE_NEW_CONSOLE       = 0x00000010  — own visible console window
     # HIGH_PRIORITY_CLASS      = 0x00000080  — OS scheduler gives SCUM extra CPU

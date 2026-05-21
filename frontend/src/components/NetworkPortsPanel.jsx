@@ -63,13 +63,15 @@ export const NetworkPortsPanel = ({ server, onSaved }) => {
         <div>
           <label className="label-overline block mb-1.5">{t("ports_game_label")}</label>
           <input
-            type="number" min="1024" max="65534"
+            type="number" min="1024" max="65532"
             value={gamePort}
             onChange={change(setGamePort)}
             className="w-full bg-bg border border-brand px-3 py-2 font-mono text-sm text-brand focus:outline-none focus:border-accent-brand"
             data-testid="input-game-port"
           />
-          <p className="font-mono text-[10px] text-dim mt-1">{t("ports_game_hint")}</p>
+          <p className="font-mono text-[10px] text-dim mt-1">
+            {t("ports_game_hint")} · SCUM uses 3 ports: {gamePort}, {Number(gamePort) + 1}, {Number(gamePort) + 2}
+          </p>
         </div>
 
         <div>
@@ -86,6 +88,24 @@ export const NetworkPortsPanel = ({ server, onSaved }) => {
           <p className="font-mono text-[10px] text-dim mt-1">
             {t("ports_query_locked_hint") || `Otomatik: oyun portu + 1 (${queryPort})`}
           </p>
+        </div>
+      </div>
+
+      {/* Connect port hint — players in SCUM's Direct Connect prompt use
+          game_port + 2, NOT game_port. This is a SCUM convention, not ours.
+          Showing it explicitly so admins know which port to forward / share. */}
+      <div className="border border-dashed border-accent-brand/40 bg-accent-soft/20 px-3 py-2 flex items-start gap-2">
+        <Network size={13} className="text-accent-brand shrink-0 mt-0.5" />
+        <div className="font-mono text-[10px] text-dim leading-relaxed">
+          <div>
+            <span className="text-muted uppercase tracking-widest">CONNECT PORT: </span>
+            <span className="text-brand font-display text-sm">{Number(gamePort) + 2}</span>
+            <span className="opacity-60"> (game_port + 2)</span>
+          </div>
+          <div className="mt-0.5 opacity-80">
+            Players paste <span className="text-accent-brand">PUBLIC_IP:{Number(gamePort) + 2}</span> in SCUM's Direct Connect.
+            Forward UDP <span className="text-accent-brand">{gamePort}-{Number(gamePort) + 2}</span> on your router.
+          </div>
         </div>
       </div>
 

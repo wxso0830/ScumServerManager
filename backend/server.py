@@ -163,7 +163,7 @@ def default_scum_settings() -> Dict[str, Any]:
 # ---------- ENDPOINTS ----------
 @api_router.get("/")
 async def root():
-    return {"service": "LGSS SCUM Server Manager", "version": "1.0.19"}
+    return {"service": "LGSS SCUM Server Manager", "version": "1.0.20"}
 
 
 _PUBLIC_IP_CACHE = {"ts": 0, "ip": None}
@@ -359,8 +359,8 @@ async def update_server_ports(server_id: str, payload: ServerPortsUpdate):
     """Update game port / query port / max players. Takes effect on next START."""
     update: Dict[str, Any] = {}
     if payload.game_port is not None:
-        if not (1024 <= payload.game_port <= 65534):
-            raise HTTPException(status_code=400, detail="game_port must be 1024-65534")
+        if not (1024 <= payload.game_port <= 65532):
+            raise HTTPException(status_code=400, detail="game_port must be 1024-65532 (SCUM uses 3 consecutive ports)")
         update["game_port"] = payload.game_port
         # Query port is ALWAYS game_port + 1 (SCUM convention). The UI hides
         # the query field, but if a script-driven caller still sends one we
@@ -2049,7 +2049,7 @@ async def first_boot_result(server_id: str):
 
 
 # ---------- MANAGER VERSION / SELF-UPDATE ----------
-CURRENT_MANAGER_VERSION = "1.0.19"
+CURRENT_MANAGER_VERSION = "1.0.20"
 LATEST_MANAGER_VERSION_KEY = "manager-latest-version"
 
 

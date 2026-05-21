@@ -46,6 +46,14 @@ Electron-based desktop server manager for SCUM game. On first launch: ask user t
 - Schema cleanup: removed `client` section + client_mouse/video/graphics/sound; moved `client_game` under `gameplay`
 
 ## Recent Changes
+- **2026-02 (v1.0.30 — Translator credits in Language modal + editable XAML metadata)**:
+  1. `LANG_META` gained two new fields per language: `translator` (name/team) and `date` (YYYY-MM-DD).
+  2. **Language modal widened** (320px → 460px) and now shows a small monospace subtitle under each language label: *"Gemini 2.5 · 2026-02-10"*.
+  3. **XAML exporter** writes the credit fields as TWO editable `<sys:String>` keys at the top of the file:
+     - `Generic_TranslatedBy`  — translator's name / handle / team
+     - `Generic_TranslationDate` — submission date (defaults to today UTC)
+  4. A highlighted comment block above those keys instructs contributors: *"edit these two lines to take credit"*. When LGSS receives the translated `.xaml`, the new credits get baked into `LANG_META` and appear permanently in the modal as a thank-you.
+
 - **2026-02 (v1.0.29 — XAML translation export for community contributors)**:
   1. New utility `src/utils/xamlExporter.js` builds **WPF GlobalizationResourceDictionary XAML** files (same format ARK Server Manager uses) from any in-memory language dict.
   2. Output is UTF-8 BOM + alphabetically sorted `<sys:String x:Key="…">…</sys:String>` rows with full XML escaping (`& < > " '`).

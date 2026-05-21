@@ -1534,15 +1534,19 @@ export const translations = {
 };
 
 // Display metadata for the language picker. Keys must match `translations`.
+// `translator` and `date` are credits shown next to each language in the modal
+// AND embedded into the exported .xaml file as editable Generic_* meta keys.
+// When a community contributor sends in a translation, replace these two
+// values with theirs as a permanent thank-you.
 export const LANG_META = {
-  en: { label: "English",   flag: "🇬🇧", dir: "ltr" },
-  tr: { label: "Türkçe",    flag: "🇹🇷", dir: "ltr" },
-  ru: { label: "Русский",   flag: "🇷🇺", dir: "ltr" },
-  de: { label: "Deutsch",   flag: "🇩🇪", dir: "ltr" },
-  fr: { label: "Français",  flag: "🇫🇷", dir: "ltr" },
-  it: { label: "Italiano",  flag: "🇮🇹", dir: "ltr" },
-  ar: { label: "العربية",   flag: "🇸🇦", dir: "rtl" },
-  az: { label: "Azərbaycan", flag: "🇦🇿", dir: "ltr" },
+  en: { label: "English",   flag: "🇬🇧", dir: "ltr", translator: "LGSS Team",   date: "2026-01-15" },
+  tr: { label: "Türkçe",    flag: "🇹🇷", dir: "ltr", translator: "LGSS Team",   date: "2026-01-15" },
+  ru: { label: "Русский",   flag: "🇷🇺", dir: "ltr", translator: "Gemini 2.5",  date: "2026-02-10" },
+  de: { label: "Deutsch",   flag: "🇩🇪", dir: "ltr", translator: "Gemini 2.5",  date: "2026-02-10" },
+  fr: { label: "Français",  flag: "🇫🇷", dir: "ltr", translator: "Gemini 2.5",  date: "2026-02-10" },
+  it: { label: "Italiano",  flag: "🇮🇹", dir: "ltr", translator: "Gemini 2.5",  date: "2026-02-10" },
+  ar: { label: "العربية",   flag: "🇸🇦", dir: "rtl", translator: "Gemini 2.5",  date: "2026-02-10" },
+  az: { label: "Azərbaycan", flag: "🇦🇿", dir: "ltr", translator: "Gemini 2.5",  date: "2026-02-10" },
 };
 
 const I18nContext = createContext(null);

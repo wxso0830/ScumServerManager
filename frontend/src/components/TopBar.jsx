@@ -110,7 +110,7 @@ export const TopBar = ({
               SCUM SERVER MANAGER
             </div>
             <div className="font-mono text-[9px] tracking-[0.22em] text-accent-brand mt-1">
-              v1.0.29
+              v1.0.30
             </div>
           </div>
         </div>
@@ -222,7 +222,7 @@ export const TopBar = ({
             {langOpen && (
               <div className="fixed inset-0 z-[100] flex items-center justify-center" data-testid="lang-modal">
                 <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={() => setLangOpen(false)} />
-                <div className="relative bg-surface border border-accent-brand shadow-2xl w-[320px] max-w-[92vw] max-h-[80vh] overflow-y-auto scrollbar-thin corner-brackets">
+                <div className="relative bg-surface border border-accent-brand shadow-2xl w-[460px] max-w-[92vw] max-h-[80vh] overflow-y-auto scrollbar-thin corner-brackets">
                   <div className="label-accent px-4 py-3 border-b border-brand sticky top-0 bg-surface flex items-center justify-between">
                     <span>{t("language")}</span>
                     <button onClick={() => setLangOpen(false)} className="text-dim hover:text-brand" data-testid="lang-modal-close">
@@ -235,12 +235,17 @@ export const TopBar = ({
                         key={code}
                         onClick={() => { setLang(code); setLangOpen(false); }}
                         data-testid={`lang-option-${code}`}
-                        className={`w-full flex items-center justify-between px-4 py-3 text-sm hover:bg-surface-2 transition-colors font-display uppercase tracking-wider text-xs ${lang === code ? "bg-accent-soft" : ""}`}
+                        className={`w-full flex items-center justify-between px-4 py-2.5 text-sm hover:bg-surface-2 transition-colors font-display uppercase tracking-wider text-xs ${lang === code ? "bg-accent-soft" : ""}`}
                       >
-                        <span className="flex items-center gap-3">
-                          <span className="font-mono text-[11px] text-dim w-7">{code.toUpperCase()}</span>
-                          <span className="text-base leading-none">{meta.flag}</span>
-                          <span className="text-brand normal-case">{meta.label}</span>
+                        <span className="flex items-center gap-3 min-w-0 flex-1">
+                          <span className="font-mono text-[11px] text-dim w-7 shrink-0">{code.toUpperCase()}</span>
+                          <span className="text-base leading-none shrink-0">{meta.flag}</span>
+                          <span className="flex flex-col items-start min-w-0 flex-1">
+                            <span className="text-brand normal-case truncate">{meta.label}</span>
+                            <span className="text-[9px] text-muted normal-case font-mono mt-0.5 truncate">
+                              {meta.translator} · {meta.date}
+                            </span>
+                          </span>
                         </span>
                         {lang === code && <Check size={14} className="text-accent-brand flex-shrink-0" />}
                       </button>
@@ -258,7 +263,10 @@ export const TopBar = ({
                       <button
                         type="button"
                         className="ghost-btn flex items-center gap-1.5 flex-1 justify-center text-[10px] uppercase tracking-widest"
-                        onClick={() => downloadXaml("en", translations.en, "LGSS")}
+                        onClick={() => downloadXaml("en", translations.en, {
+                          translator: LANG_META.en.translator,
+                          date: LANG_META.en.date,
+                        })}
                         data-testid="lang-download-en-template"
                         title={t("download_en_template_hint")}
                       >
@@ -267,7 +275,10 @@ export const TopBar = ({
                       <button
                         type="button"
                         className="ghost-btn flex items-center gap-1.5 flex-1 justify-center text-[10px] uppercase tracking-widest"
-                        onClick={() => downloadXaml(lang, translations[lang] || translations.en, "LGSS")}
+                        onClick={() => downloadXaml(lang, translations[lang] || translations.en, {
+                          translator: LANG_META[lang]?.translator || "LGSS Community",
+                          date: LANG_META[lang]?.date || new Date().toISOString().slice(0, 10),
+                        })}
                         data-testid="lang-download-current"
                         title={t("download_current_lang_hint")}
                       >

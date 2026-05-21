@@ -45,10 +45,23 @@ const xmlEscape = (s) =>
  *
  * @param {string} lang        — ISO language code, used in the Name attribute & filename
  * @param {Object} dict        — flat {key: value} string map for that language
- * @param {string} translatedBy — credit line written into Generic_TranslatedBy
+ * @param {Object} [meta]      — optional { translator, date } credit metadata.
+ *                                Both fields are written as editable Generic_*
+ *                                keys at the top of the file so contributors
+ *                                replace them with their own name/date.
  * @returns {string} pretty-printed UTF-8 XAML
  */
-export const buildXaml = (lang, dict, translatedBy = "LGSS Community") => {
+export const buildXaml = (lang, dict, meta = {}) => {
+  // Backward compat: old call sites passed a plain string (the translator name).
+  // We coerce it into the new object shape so legacy callers still work.
+  if (typeof meta === "string") {
+    meta = { translator: meta };
+  }
+  const translator = meta.translator || "LGSS Community";
+  // Default to today's UTC date in YYYY-MM-DD when contributor hasn't set one.
+  const today = new Date().toISOString().slice(0, 10);
+  const date = meta.date || today;
+
   const header = [
     "<Globalization:GlobalizationResourceDictionary",
     '    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"',
@@ -59,7 +72,14 @@ export const buildXaml = (lang, dict, translatedBy = "LGSS Community") => {
     `    LinkedStyle="${xmlEscape(lang)}-style"`,
     "    >",
     "",
-    `    <sys:String x:Key="Generic_TranslatedBy">${xmlEscape(translatedBy)}</sys:String>`,
+    "    <!-- ════════════════════════════════════════════════════════════ -->",
+    "    <!--  CONTRIBUTOR CREDITS — edit these two lines to take credit:  -->",
+    "    <!--    Generic_TranslatedBy   = your name / handle / team       -->",
+    "    <!--    Generic_TranslationDate = YYYY-MM-DD date you submitted   -->",
+    "    <!--  Both values appear in the LGSS Manager language picker.    -->",
+    "    <!-- ════════════════════════════════════════════════════════════ -->",
+    `    <sys:String x:Key="Generic_TranslatedBy">${xmlEscape(translator)}</sys:String>`,
+    `    <sys:String x:Key="Generic_TranslationDate">${xmlEscape(date)}</sys:String>`,
     `    <sys:String x:Key="Generic_LanguageCode">${xmlEscape(lang)}</sys:String>`,
     "",
   ];
@@ -84,9 +104,13 @@ export const buildXaml = (lang, dict, translatedBy = "LGSS Community") => {
 
 /**
  * Trigger a browser download of `<lang>.xaml`.
+ *
+ * @param {string} lang  — ISO language code (used as filename)
+ * @param {Object} dict  — flat translation dict
+ * @param {Object|string} meta — { translator, date } or a plain translator string
  */
-export const downloadXaml = (lang, dict, translatedBy) => {
-  const xaml = buildXaml(lang, dict, translatedBy);
+export const downloadXaml = (lang, dict, meta) => {
+  const xaml = buildXaml(lang, dict, meta);
   const blob = new Blob([xaml], { type: "application/xml;charset=utf-8" });
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");

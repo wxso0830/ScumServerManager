@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from "react";
-import { Plus, ShieldAlert, Server, Play, Square, Activity, RefreshCw, RotateCcw, Download } from "lucide-react";
+import { Plus, ShieldAlert, Server, Play, Square, Activity, RefreshCw, RotateCcw } from "lucide-react";
 import { useI18n } from "../providers/I18nProvider";
 import { toast } from "sonner";
 import { ServerCard } from "./ServerCard";
@@ -126,16 +126,6 @@ export const DashboardView = ({ servers, managerPath, onAdd, onOpen, onChange, o
     } finally { setBusy(false); }
   };
 
-  const handleUpdateAll = async () => {
-    if (busy) return;
-    setBusy(true);
-    toast(`${t("updating_all")} · ${servers.length}`);
-    for (const s of servers) { try { await endpoints.updateServer(s.id); } catch (_) {} }
-    onRefresh?.();
-    toast.success(t("toast_update_done"));
-    setBusy(false);
-  };
-
   return (
     <div className="flex-1 overflow-y-auto scrollbar-thin bg-bg relative" data-testid="dashboard-view">
       <div className="boot-scan" />
@@ -169,9 +159,6 @@ export const DashboardView = ({ servers, managerPath, onAdd, onOpen, onChange, o
                 </button>
                 <button className="btn-danger flex items-center gap-2" onClick={handleStopAll} disabled={busy || running === 0} data-testid="stop-all-btn">
                   <Square size={13} /> {t("stop_all")}
-                </button>
-                <button className="btn-secondary flex items-center gap-2" onClick={handleUpdateAll} disabled={busy || servers.length === 0} data-testid="update-all-servers-btn">
-                  <Download size={13} /> {t("update_all_servers")}
                 </button>
                 <div className="w-px h-7 bg-brand mx-1" />
                 <button

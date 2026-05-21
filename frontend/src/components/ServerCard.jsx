@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import {
-  Play, Square, Download, RefreshCw, RotateCw, ChevronsUp, Settings, Trash2, Users, Cpu, Activity,
+  Play, Square, Download, RefreshCw, RotateCw, ArrowDownToLine, Settings, Trash2, Users, Cpu, Activity,
   Server as ServerIcon, HardDrive, Clock, Network, Copy, Link2, Check, ChevronDown, ChevronUp,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -305,7 +305,7 @@ export const ServerCard = ({ server, onOpen, onStart, onStop, onUpdate, onInstal
             title={t("card_btn_update")}
             data-testid={`card-update-${server.folder_name}`}
           >
-            <ChevronsUp size={15} strokeWidth={2.5} />
+            <ArrowDownToLine size={15} strokeWidth={2.5} />
           </button>
         )}
 

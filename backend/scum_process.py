@@ -787,6 +787,10 @@ def stop_server(server_id: str, graceful_timeout: float = 30.0) -> bool:
       3. If still alive after the deadline (rare — usually SCUM saves in
          5-15s), fall back to TerminateProcess on the whole tree.
 
+    Pass `graceful_timeout=0` to skip the graceful save entirely and go
+    straight to TerminateProcess (used for "instant kill" on crashed/hung
+    processes).
+
     Returns True if a running process was stopped.
     """
     rec = REGISTRY.get(server_id, {}).get("process")
@@ -798,27 +802,30 @@ def stop_server(server_id: str, graceful_timeout: float = 30.0) -> bool:
         return False
 
     graceful_ok = False
-    try:
-        # Step 1: graceful save via console CTRL+BREAK
-        if _send_ctrl_break(pid):
-            # Step 2: wait for SCUM to finish saving
-            t_start = time.time()
-            while time.time() - t_start < graceful_timeout:
-                if not _pid_alive(pid):
-                    graceful_ok = True
-                    log.info(
-                        "SCUM %s exited gracefully in %.1fs (save complete)",
-                        server_id, time.time() - t_start,
+    if graceful_timeout > 0:
+        try:
+            # Step 1: graceful save via console CTRL+BREAK
+            if _send_ctrl_break(pid):
+                # Step 2: wait for SCUM to finish saving
+                t_start = time.time()
+                while time.time() - t_start < graceful_timeout:
+                    if not _pid_alive(pid):
+                        graceful_ok = True
+                        log.info(
+                            "SCUM %s exited gracefully in %.1fs (save complete)",
+                            server_id, time.time() - t_start,
+                        )
+                        break
+                    time.sleep(0.5)
+                if not graceful_ok:
+                    log.warning(
+                        "SCUM %s did not exit within %.0fs after CTRL_BREAK — forcing kill",
+                        server_id, graceful_timeout,
                     )
-                    break
-                time.sleep(0.5)
-            if not graceful_ok:
-                log.warning(
-                    "SCUM %s did not exit within %.0fs after CTRL_BREAK — forcing kill",
-                    server_id, graceful_timeout,
-                )
-    except Exception as e:
-        log.warning("Graceful stop failed: %s — falling back to kill", e)
+        except Exception as e:
+            log.warning("Graceful stop failed: %s — falling back to kill", e)
+    else:
+        log.info("SCUM %s instant-kill requested (graceful_timeout=0)", server_id)
 
     # Step 3: force-kill anything that's left (children too)
     if not graceful_ok:

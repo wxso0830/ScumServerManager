@@ -36,6 +36,7 @@ export const AutomationEditor = ({ server, onChange, mode = "both" }) => {
     final_message_duration: automation.final_message_duration ?? 10,
     auto_update_enabled: !!automation.auto_update_enabled,
     update_check_interval_min: automation.update_check_interval_min ?? 360,
+    shutdown_timeout_sec: automation.shutdown_timeout_sec ?? 30,
   });
   const [preRaw, setPreRaw] = useState(draft.pre_warning_minutes.join(", "));
   const [busy, setBusy] = useState(false);
@@ -177,7 +178,7 @@ export const AutomationEditor = ({ server, onChange, mode = "both" }) => {
             )}
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
             <div>
               <label className="label-accent block mb-2">{t("pre_warning_minutes")}</label>
               <input
@@ -202,6 +203,35 @@ export const AutomationEditor = ({ server, onChange, mode = "both" }) => {
                 onChange={(e) => setField("final_message_duration", Math.max(1, parseInt(e.target.value || 10, 10)))}
                 data-testid="final-duration-input"
               />
+            </div>
+
+            <div>
+              <label className="label-accent block mb-2">{t("shutdown_timeout_sec")}</label>
+              <div className="flex items-center gap-2">
+                <input
+                  type="number"
+                  min={0}
+                  max={300}
+                  className="input-field flex-1"
+                  value={draft.shutdown_timeout_sec}
+                  onChange={(e) => setField("shutdown_timeout_sec", Math.max(0, Math.min(300, parseInt(e.target.value || 0, 10))))}
+                  data-testid="shutdown-timeout-input"
+                />
+                <button
+                  type="button"
+                  className={`btn-ghost text-[10px] whitespace-nowrap ${draft.shutdown_timeout_sec === 0 ? "text-danger" : ""}`}
+                  onClick={() => setField("shutdown_timeout_sec", 0)}
+                  data-testid="shutdown-timeout-instant-btn"
+                  title={t("shutdown_timeout_instant_hint")}
+                >
+                  {t("shutdown_timeout_instant")}
+                </button>
+              </div>
+              <p className="text-xs text-dim mt-1">
+                {draft.shutdown_timeout_sec === 0
+                  ? t("shutdown_timeout_instant_hint")
+                  : t("shutdown_timeout_hint")}
+              </p>
             </div>
           </div>
         </div>

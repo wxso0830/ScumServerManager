@@ -111,6 +111,11 @@ class ServerProfile(BaseModel):
         "backup_enabled": True,               # periodic SaveFiles snapshots
         "backup_interval_min": 10,            # every 10 min by default
         "backup_keep_count": 30,              # prune to newest N auto-backups
+        # Graceful shutdown: seconds to wait for SCUM to flush SaveFiles after
+        # CTRL_BREAK before force-killing. 0 = instant kill (skip save, useful
+        # for crashed/hung processes). Default 30s covers a typical empty
+        # server save; admins on busy servers may want 60-90s.
+        "shutdown_timeout_sec": 30,
     })
 
 
@@ -124,6 +129,7 @@ class AutomationUpdate(BaseModel):
     backup_enabled: Optional[bool] = None
     backup_interval_min: Optional[int] = None
     backup_keep_count: Optional[int] = None
+    shutdown_timeout_sec: Optional[int] = None
 
 
 class ServerCreate(BaseModel):
@@ -163,7 +169,7 @@ def default_scum_settings() -> Dict[str, Any]:
 # ---------- ENDPOINTS ----------
 @api_router.get("/")
 async def root():
-    return {"service": "LGSS SCUM Server Manager", "version": "1.0.23"}
+    return {"service": "LGSS SCUM Server Manager", "version": "1.0.24"}
 
 
 _PUBLIC_IP_CACHE = {"ts": 0, "ip": None}
@@ -517,9 +523,15 @@ async def _do_pre_stop_backup(server_id: str, doc: Dict[str, Any], backup_type: 
         logger.info("Pre-stop backup failed (non-fatal): %s", e)
 
 
-async def _do_stop_internal(server_id: str, take_backup: bool = True) -> None:
+async def _do_stop_internal(server_id: str, take_backup: bool = True,
+                            force: bool = False) -> None:
     """Stop the SCUM process for one server. Best-effort backup, mark expected
-    stop (so crash detector ignores), kill the EXE, set status=Stopped."""
+    stop (so crash detector ignores), kill the EXE, set status=Stopped.
+
+    The graceful-shutdown timeout is read from `automation.shutdown_timeout_sec`
+    (default 30s, 0 = instant kill). When `force=True` the timeout is forced
+    to 0 regardless of the setting (used by the UI "Force Stop" button).
+    """
     doc = await db.servers.find_one({"id": server_id}, {"_id": 0})
     if not doc:
         return
@@ -527,7 +539,9 @@ async def _do_stop_internal(server_id: str, take_backup: bool = True) -> None:
         await _do_pre_stop_backup(server_id, doc, backup_type="auto")
     mark_expected_stop(server_id)
     try:
-        await asyncio.to_thread(scum_proc.stop_server, server_id)
+        auto = doc.get("automation") or {}
+        timeout = 0 if force else int(auto.get("shutdown_timeout_sec", 30) or 0)
+        await asyncio.to_thread(scum_proc.stop_server, server_id, float(timeout))
     except Exception:
         logger.exception("stop failed for %s", server_id)
     await db.servers.update_one({"id": server_id}, {"$set": {"status": "Stopped"}})
@@ -611,11 +625,13 @@ async def _do_start_internal(server_id: str, doc: Dict[str, Any]) -> None:
 
 
 @api_router.post("/servers/{server_id}/stop", response_model=ServerProfile)
-async def stop_server(server_id: str):
+async def stop_server(server_id: str, force: bool = False):
+    """Stop a server. Pass `?force=true` to skip the graceful save and kill
+    the EXE immediately (used by the dashboard "Force Stop" action)."""
     doc = await db.servers.find_one({"id": server_id}, {"_id": 0})
     if not doc:
         raise HTTPException(status_code=404, detail="Server not found")
-    await _do_stop_internal(server_id, take_backup=True)
+    await _do_stop_internal(server_id, take_backup=True, force=force)
     fresh = await db.servers.find_one({"id": server_id}, {"_id": 0}) or doc
     return ServerProfile(**fresh)
 

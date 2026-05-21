@@ -46,6 +46,14 @@ Electron-based desktop server manager for SCUM game. On first launch: ask user t
 - Schema cleanup: removed `client` section + client_mouse/video/graphics/sound; moved `client_game` under `gameplay`
 
 ## Recent Changes
+- **2026-02 (v1.0.24 — graceful shutdown w/ configurable timeout + Update-All removed)**:
+  1. **Graceful Shutdown (CTRL_BREAK_EVENT)**: `scum_proc.stop_server()` now waits for SCUM to flush its world save (default 30s) before force-killing. Applied to all stop flows: manual Stop, auto-restart scheduler, auto-update scheduler, restart endpoint.
+  2. **Configurable timeout**: New `automation.shutdown_timeout_sec` field (default 30, 0 = instant kill). Exposed in Automation > Restart Schedule UI with a dedicated "INSTANT KILL" button.
+  3. **Force stop endpoint**: `POST /api/servers/{id}/stop?force=true` skips graceful save (used by potential future Force Stop UI button).
+  4. **Update-All button REMOVED** from Dashboard hero command bar (per-server Update buttons remain).
+  5. **Update icon** changed from `ChevronsUp` → `ArrowDownToLine` (Lucide) — modern download-to-disk semantic.
+  6. External-stop detector (CTRL+C in SCUM's own console) was already in place from v1.0.23; verified working in `_tick_scheduler`.
+
 - **2026-02 (v1.0.23 — correct 3-port SCUM model)**:
   1. **Reversal of v1.0.22's wrong "4-port" thinking**: SCUM actually uses **3 consecutive ports**: `game/query/steam = port/+1/+2`. Players connect on the **Steam port** (game_port + 2), NOT on game_port itself. v1.0.22 mistakenly tried to push query OUTSIDE the range thinking 4 ports were involved — that was incorrect.
   2. **NetworkPortsPanel redesigned again**: now shows the proper 3-row layout:

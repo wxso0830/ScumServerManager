@@ -1,8 +1,10 @@
 import React, { useEffect, useMemo, useState } from "react";
 import {
   Users, Search, RefreshCw, UserCircle2, Shield, Clock, Swords, Coins, Trophy,
-  Flag, Car, X, Info, Activity, Wallet, Gem, Timer, UserX,
+  Flag, Car, X, Info, Activity, Wallet, Gem, Timer, UserX, Copy, Check,
+  ShieldUser, UserCog, ListChecks, UserCheck, MicOff, ChevronLeft, ChevronRight,
 } from "lucide-react";
+import { toast } from "sonner";
 import { useI18n } from "../providers/I18nProvider";
 import { endpoints } from "../lib/api";
 
@@ -325,7 +327,7 @@ export const PlayersView = ({ servers = [] }) => {
         <span>{t("players_db_source")}</span>
       </div>
 
-      {detail && <PlayerDetailModal detail={detail} allPlayers={data.players} onClose={() => setDetail(null)} t={t} />}
+      {detail && <PlayerDetailModal detail={detail} allPlayers={data.players} serverId={serverId} onClose={() => setDetail(null)} onUserListChanged={load} t={t} />}
     </div>
   );
 };
@@ -342,9 +344,67 @@ const DetailStat = ({ icon: Icon, label, value, color }) => (
   </div>
 );
 
-const PlayerDetailModal = ({ detail, allPlayers = [], onClose, t }) => {
+const PlayerDetailModal = ({ detail, allPlayers = [], serverId, onClose, onUserListChanged, t }) => {
   const p = detail.player;
   const recent = detail.recent_events || [];
+  const [copied, setCopied] = useState(false);
+  const [eventsPage, setEventsPage] = useState(0);
+  const [confirm, setConfirm] = useState(null); // {action, label, listKey}
+  const [busy, setBusy] = useState(false);
+
+  // Events pagination — 5 per page so the modal stays compact and admins
+  // can still scrub through long histories without scrolling.
+  const EVENTS_PER_PAGE = 5;
+  const totalPages = Math.max(1, Math.ceil(recent.length / EVENTS_PER_PAGE));
+  const safePage = Math.min(eventsPage, totalPages - 1);
+  const pageEvents = recent.slice(safePage * EVENTS_PER_PAGE, (safePage + 1) * EVENTS_PER_PAGE);
+
+  const copySteamId = async () => {
+    try {
+      await navigator.clipboard.writeText(p.steam_id);
+      setCopied(true);
+      toast.success(t("copied"));
+      setTimeout(() => setCopied(false), 1500);
+    } catch (e) {
+      toast.error(String(e.message || e));
+    }
+  };
+
+  // Quick-action buttons — each one stages a confirmation in `confirm` state.
+  // The actual write happens in `runConfirmed()` so the user has one extra
+  // "Yes, do it" click protecting them from a misclick that could ban an
+  // active admin (or admin-promote a stranger).
+  const ACTIONS = [
+    { key: "users_admins",        label: t("act_make_admin"),        icon: ShieldUser,  color: "var(--accent)" },
+    { key: "users_server_admins", label: t("act_make_server_admin"), icon: UserCog,     color: "var(--accent)" },
+    { key: "users_whitelisted",   label: t("act_add_whitelist"),     icon: ListChecks,  color: "var(--success)" },
+    { key: "users_exclusive",     label: t("act_add_exclusive"),     icon: UserCheck,   color: "var(--success)" },
+    { key: "users_banned",        label: t("act_ban_user"),          icon: UserX,       color: "var(--danger)" },
+    { key: "users_silenced",      label: t("act_silence_user"),      icon: MicOff,      color: "var(--warning)" },
+  ];
+
+  const runConfirmed = async () => {
+    if (!confirm || busy) return;
+    setBusy(true);
+    try {
+      const fresh = await endpoints.getServer(serverId);
+      const current = fresh?.settings?.[confirm.key] || [];
+      if (current.some((u) => String(u.steam_id).trim() === String(p.steam_id).trim())) {
+        toast(t("user_already_in_list"));
+        setConfirm(null);
+        return;
+      }
+      const newList = [...current, { steam_id: p.steam_id, flags: [], note: `Added from Players (${p.name})` }];
+      await endpoints.updateSettings(serverId, { [confirm.key]: newList });
+      toast.success(`${confirm.label} ✓`);
+      onUserListChanged?.();
+      setConfirm(null);
+    } catch (e) {
+      toast.error(String(e.response?.data?.detail || e.message || e));
+    } finally {
+      setBusy(false);
+    }
+  };
 
   // Squad mates: all players sharing this squad_id (including the current player).
   // We use squad_id (stable) not squad_name (could collide across SCUM patches).
@@ -373,7 +433,7 @@ const PlayerDetailModal = ({ detail, allPlayers = [], onClose, t }) => {
       data-testid="player-detail-modal"
     >
       <div
-        className="panel w-full max-w-3xl corner-brackets-full"
+        className="panel w-full max-w-3xl corner-brackets-full relative"
         onClick={(e) => e.stopPropagation()}
         style={{ background: "var(--surface)", maxHeight: "90vh", display: "flex", flexDirection: "column" }}
       >
@@ -401,12 +461,41 @@ const PlayerDetailModal = ({ detail, allPlayers = [], onClose, t }) => {
                 </span>
               ) : null}
             </div>
-            <div className="font-mono text-[11px] text-dim mt-1">{p.steam_id}</div>
+            <div className="flex items-center gap-2 mt-1">
+              <span className="font-mono text-[11px] text-dim">{p.steam_id}</span>
+              <button
+                onClick={copySteamId}
+                className="flex items-center gap-1 px-1.5 py-0.5 border border-brand text-[10px] text-dim hover:text-accent-brand hover:border-accent-brand transition-colors"
+                title={t("copy")}
+                data-testid="player-detail-copy-steamid"
+              >
+                {copied ? <Check size={10} /> : <Copy size={10} />}
+                {copied ? t("copied") : t("copy")}
+              </button>
+            </div>
           </div>
           <button onClick={onClose} className="icon-btn" data-testid="player-detail-close">
             <X size={14} />
           </button>
         </div>
+
+        {/* Quick actions — add this player to any User list in one click. */}
+        {serverId && (
+          <div className="px-5 py-2 border-b border-brand bg-bg-deep flex items-center gap-2 flex-wrap" data-testid="player-quick-actions">
+            <span className="label-overline mr-1">{t("quick_actions")}</span>
+            {ACTIONS.map((a) => (
+              <button
+                key={a.key}
+                onClick={() => setConfirm(a)}
+                className="flex items-center gap-1.5 px-2.5 py-1 border border-brand bg-bg hover:bg-accent-soft hover:border-accent-brand text-[11px] font-mono uppercase tracking-wider transition-colors"
+                style={{ color: a.color }}
+                data-testid={`player-action-${a.key}`}
+              >
+                <a.icon size={11} /> {a.label}
+              </button>
+            ))}
+          </div>
+        )}
 
         <div className="px-5 py-4 grid grid-cols-2 md:grid-cols-4 gap-3">
           <DetailStat icon={Clock} label={t("col_first_seen")} value={fmtFull(p.first_seen)} />
@@ -504,13 +593,38 @@ const PlayerDetailModal = ({ detail, allPlayers = [], onClose, t }) => {
           </div>
         )}
 
-        <div className="px-5 pb-2 border-t border-brand pt-3">
-          <div className="label-accent mb-2">{t("recent_events")} · {recent.length}</div>
+        <div className="px-5 pb-2 border-t border-brand pt-3 flex items-center justify-between">
+          <div className="label-accent">{t("recent_events")} · {recent.length}</div>
+          {totalPages > 1 && (
+            <div className="flex items-center gap-2" data-testid="events-pagination">
+              <button
+                onClick={() => setEventsPage((v) => Math.max(0, v - 1))}
+                disabled={safePage === 0}
+                className="icon-btn disabled:opacity-30 disabled:cursor-not-allowed"
+                title="Previous"
+                data-testid="events-page-prev"
+              >
+                <ChevronLeft size={14} />
+              </button>
+              <span className="font-mono text-[11px] text-dim">
+                {safePage + 1} / {totalPages}
+              </span>
+              <button
+                onClick={() => setEventsPage((v) => Math.min(totalPages - 1, v + 1))}
+                disabled={safePage >= totalPages - 1}
+                className="icon-btn disabled:opacity-30 disabled:cursor-not-allowed"
+                title="Next"
+                data-testid="events-page-next"
+              >
+                <ChevronRight size={14} />
+              </button>
+            </div>
+          )}
         </div>
-        <div className="flex-1 overflow-y-auto scrollbar-thin px-5 pb-5">
+        <div className="overflow-y-auto scrollbar-thin px-5 pb-5" style={{ maxHeight: "280px" }}>
           {recent.length === 0 ? (
             <div className="text-center py-6 text-dim text-xs">No events recorded.</div>
-          ) : recent.map((ev) => (
+          ) : pageEvents.map((ev) => (
             <div key={ev.id} className="border-b border-brand py-2 flex items-start gap-3 font-mono text-xs">
               <span className="text-muted text-[10px] tracking-widest pt-0.5 w-32 shrink-0">
                 {fmtShort(ev.ts)}
@@ -522,6 +636,52 @@ const PlayerDetailModal = ({ detail, allPlayers = [], onClose, t }) => {
             </div>
           ))}
         </div>
+
+        {/* Confirmation overlay — explicit double-click protection so an
+            admin can't accidentally promote/ban with one click. */}
+        {confirm && (
+          <div
+            className="absolute inset-0 z-10 bg-bg-deep/85 backdrop-blur-sm flex items-center justify-center p-6"
+            onClick={() => !busy && setConfirm(null)}
+            data-testid="action-confirm-overlay"
+          >
+            <div
+              className="panel max-w-md w-full p-5 border-2 border-accent-brand"
+              onClick={(e) => e.stopPropagation()}
+              style={{ background: "var(--surface)" }}
+            >
+              <div className="flex items-center gap-2 mb-3">
+                <confirm.icon size={16} style={{ color: confirm.color }} />
+                <span className="heading-stencil text-sm">{confirm.label}</span>
+              </div>
+              <p className="text-sm text-brand mb-2">
+                <span className="text-dim">{t("confirm_player_action_1")}</span>{" "}
+                <span className="font-mono text-accent-brand">{p.name}</span>
+              </p>
+              <p className="text-xs font-mono text-dim mb-4">{p.steam_id}</p>
+              <p className="text-xs text-dim mb-4">{t("confirm_player_action_2")}</p>
+              <div className="flex items-center justify-end gap-2">
+                <button
+                  className="btn-ghost"
+                  onClick={() => setConfirm(null)}
+                  disabled={busy}
+                  data-testid="action-confirm-no"
+                >
+                  {t("cancel")}
+                </button>
+                <button
+                  className="btn-primary"
+                  onClick={runConfirmed}
+                  disabled={busy}
+                  data-testid="action-confirm-yes"
+                  style={{ background: confirm.color, borderColor: confirm.color }}
+                >
+                  {busy ? "…" : t("yes_proceed")}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

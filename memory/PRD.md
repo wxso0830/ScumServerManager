@@ -46,6 +46,12 @@ Electron-based desktop server manager for SCUM game. On first launch: ask user t
 - Schema cleanup: removed `client` section + client_mouse/video/graphics/sound; moved `client_game` under `gameplay`
 
 ## Recent Changes
+- **2026-02 (v1.0.26 — Player modal: Copy SteamID + 5/page pagination + Quick Actions)**:
+  1. **Copy Steam ID button** next to the player's ID in the detail modal (clipboard write + Copied feedback).
+  2. **Recent Events pagination**: 5 events per page with `< 1/N >` controls so long histories no longer require scrolling the whole modal.
+  3. **Quick Actions toolbar** under the header: one-click "Make Admin / Server Admin / Add Whitelist / Add Exclusive / Ban / Silence". Each opens an in-modal confirmation overlay (CANCEL / YES, CONFIRM) before writing the steam_id to the corresponding `users_*` list via `PUT /api/servers/{id}/settings`. Already-listed players short-circuit with a toast.
+  4. Bump → v1.0.26.
+
 - **2026-02 (v1.0.25 — Users tab simplified, AdminUsers.ini auto [godmode])**:
   1. **FLAGS column REMOVED** from all User-list editors (Administrators, Server Admins, Whitelist, Exclusive, Banned, Silenced). Admins now enter ONLY Steam ID + optional note.
   2. **`render_user_list(entries, force_flag=None)`** centralises flag policy. Backend wiring:

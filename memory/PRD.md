@@ -46,6 +46,15 @@ Electron-based desktop server manager for SCUM game. On first launch: ask user t
 - Schema cleanup: removed `client` section + client_mouse/video/graphics/sound; moved `client_game` under `gameplay`
 
 ## Recent Changes
+- **2026-02 (v1.0.29 — XAML translation export for community contributors)**:
+  1. New utility `src/utils/xamlExporter.js` builds **WPF GlobalizationResourceDictionary XAML** files (same format ARK Server Manager uses) from any in-memory language dict.
+  2. Output is UTF-8 BOM + alphabetically sorted `<sys:String x:Key="…">…</sys:String>` rows with full XML escaping (`& < > " '`).
+  3. Two new buttons in the Language modal under a **"Community Translations"** section:
+     - **EN · TEMPLATE** → downloads `en.xaml` (the master translation source)
+     - **EN · CURRENT** (or whatever lang is selected) → downloads the currently active language's `.xaml`
+  4. Workflow: contributor downloads `en.xaml` → translates each `<sys:String>` body → renames to e.g. `fr.xaml` → sends back to LGSS for inclusion in the next release.
+  5. Exported `translations` object from I18nProvider so the exporter and any future runtime-override system can reach the data.
+
 - **2026-02 (v1.0.28 — Discord webhooks: auto-restart + auto-update lifecycle hooks)**:
   1. Two new webhook channels added to `DiscordWebhookConfig`: `auto_restart` and `auto_update`.
   2. Scheduler fires `_notify_lifecycle()` at 4 key moments — restart start/end and update detect/start/end/fail — with rich embed messages including server name, slot time, new vs installed build id, and success/failure status.

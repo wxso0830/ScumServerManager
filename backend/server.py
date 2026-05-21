@@ -170,7 +170,7 @@ def default_scum_settings() -> Dict[str, Any]:
 # ---------- ENDPOINTS ----------
 @api_router.get("/")
 async def root():
-    return {"service": "LGSS SCUM Server Manager", "version": "1.0.28"}
+    return {"service": "LGSS SCUM Server Manager", "version": "1.0.29"}
 
 
 _PUBLIC_IP_CACHE = {"ts": 0, "ip": None}
@@ -3327,7 +3327,7 @@ async def _start_scheduler():
         _scheduler_task = asyncio.create_task(_tick_scheduler())
         logger.info("LGSS automation scheduler started (tick=10s)")
 
-    # v1.0.28 migration: earlier versions stamped installed_build_id with a
+    # v1.0.29 migration: earlier versions stamped installed_build_id with a
     # timestamp-style token (`build-1779386976`) instead of the actual SCUM
     # in-game version (`1.2.3.2.115523`). That made the dashboard show a
     # meaningless number AND the auto-update check ALWAYS reported "update
@@ -3348,9 +3348,9 @@ async def _start_scheduler():
                         {"id": s["id"]},
                         {"$set": {"installed_build_id": ver, "update_available": False}},
                     )
-                logger.info("v1.0.28 build-id migration: rewrote %d legacy build-<ts> tokens → %s", len(legacy), ver)
+                logger.info("v1.0.29 build-id migration: rewrote %d legacy build-<ts> tokens → %s", len(legacy), ver)
     except Exception as e:
-        logger.info("v1.0.28 build-id migration skipped: %s", e)
+        logger.info("v1.0.29 build-id migration skipped: %s", e)
     # TTL index on activity samples — auto-delete rows older than 30 days.
     # If an older version created the index with a different TTL, drop and
     # recreate so the new retention takes effect.

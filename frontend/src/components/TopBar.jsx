@@ -2,10 +2,11 @@ import React, { useState } from "react";
 import {
   Palette, Languages, Check, Wrench, ShieldCheck, ShieldAlert,
   RotateCcw, Activity, Server, HardDrive, Terminal, LayoutDashboard, SlidersHorizontal, ScrollText, Users, Archive,
-  Globe, X,
+  Globe, X, Download,
 } from "lucide-react";
 import { useTheme } from "../providers/ThemeProvider";
-import { useI18n, LANG_META } from "../providers/I18nProvider";
+import { useI18n, LANG_META, translations } from "../providers/I18nProvider";
+import { downloadXaml } from "../utils/xamlExporter";
 import { endpoints } from "../lib/api";
 import { ConfirmModal } from "./ConfirmModal";
 
@@ -109,7 +110,7 @@ export const TopBar = ({
               SCUM SERVER MANAGER
             </div>
             <div className="font-mono text-[9px] tracking-[0.22em] text-accent-brand mt-1">
-              v1.0.28
+              v1.0.29
             </div>
           </div>
         </div>
@@ -244,6 +245,35 @@ export const TopBar = ({
                         {lang === code && <Check size={14} className="text-accent-brand flex-shrink-0" />}
                       </button>
                     ))}
+                  </div>
+                  {/* Community translation export — admins / translators
+                      can download the current language's strings as a XAML
+                      file (ARK Server Manager format), edit it in any text
+                      editor, and send it back to LGSS to be merged in the
+                      next release. */}
+                  <div className="border-t border-brand p-3 space-y-2 text-[11px]">
+                    <div className="label-overline text-dim">{t("community_translations")}</div>
+                    <p className="text-dim leading-relaxed">{t("community_translations_help")}</p>
+                    <div className="flex gap-2 pt-1">
+                      <button
+                        type="button"
+                        className="ghost-btn flex items-center gap-1.5 flex-1 justify-center text-[10px] uppercase tracking-widest"
+                        onClick={() => downloadXaml("en", translations.en, "LGSS")}
+                        data-testid="lang-download-en-template"
+                        title={t("download_en_template_hint")}
+                      >
+                        <Download size={12} /> EN · {t("template")}
+                      </button>
+                      <button
+                        type="button"
+                        className="ghost-btn flex items-center gap-1.5 flex-1 justify-center text-[10px] uppercase tracking-widest"
+                        onClick={() => downloadXaml(lang, translations[lang] || translations.en, "LGSS")}
+                        data-testid="lang-download-current"
+                        title={t("download_current_lang_hint")}
+                      >
+                        <Download size={12} /> {lang.toUpperCase()} · {t("current")}
+                      </button>
+                    </div>
                   </div>
                 </div>
               </div>

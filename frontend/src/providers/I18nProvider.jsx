@@ -1,6 +1,9 @@
 import React, { createContext, useContext, useEffect, useMemo, useState } from "react";
 
-const translations = {
+// Exported so the XAML template downloader (`utils/xamlExporter.js`) can
+// reach the in-memory translation dictionaries. Each top-level key is an
+// ISO language code (en, tr, fr, …); each leaf is a translation string.
+export const translations = {
   tr: {
     brand: "LGSS Managers",
     subtitle: "SCUM Sunucu Yöneticisi",
@@ -400,6 +403,12 @@ const translations = {
     discord_raid_channel: "Raid Kanalı",
     discord_auto_restart_channel: "Otomatik Yeniden Başlatma Kanalı",
     discord_auto_update_channel: "Otomatik Güncelleme Kanalı",
+    community_translations: "Topluluk Çevirileri",
+    community_translations_help: "Manager'a yeni dil eklemek isteyenler için: aşağıdan İngilizce şablonu (.xaml) indirin, herhangi bir metin editöründe çevirip bize ulaştırın. Bir sonraki sürümde dahil edeceğiz.",
+    download_en_template_hint: "İngilizce .xaml şablonunu indir (community translation kaynağı)",
+    download_current_lang_hint: "Şu anki seçili dilin .xaml dosyasını indir",
+    template: "Şablon",
+    current: "Mevcut",
     discord_mention_role: "İhlal Olayında Ping Rol ID",
     test_webhook: "Webhook Testi",
     webhook_sent: "Discord mesajı gönderildi",
@@ -992,6 +1001,12 @@ const translations = {
     discord_raid_channel: "Raid Channel",
     discord_auto_restart_channel: "Auto-Restart Channel",
     discord_auto_update_channel: "Auto-Update Channel",
+    community_translations: "Community Translations",
+    community_translations_help: "Want to add a new language to the manager? Download the English (.xaml) template below, translate it in any text editor, and send it back to LGSS. We'll ship it in the next release.",
+    download_en_template_hint: "Download the English .xaml template (community translation source)",
+    download_current_lang_hint: "Download the .xaml file for the currently selected language",
+    template: "Template",
+    current: "Current",
     discord_mention_role: "Violation Mention Role ID",
     test_webhook: "Send Test",
     webhook_sent: "Discord message sent",

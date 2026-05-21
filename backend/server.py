@@ -170,7 +170,7 @@ def default_scum_settings() -> Dict[str, Any]:
 # ---------- ENDPOINTS ----------
 @api_router.get("/")
 async def root():
-    return {"service": "LGSS SCUM Server Manager", "version": "1.0.27"}
+    return {"service": "LGSS SCUM Server Manager", "version": "1.0.28"}
 
 
 _PUBLIC_IP_CACHE = {"ts": 0, "ip": None}
@@ -1175,6 +1175,11 @@ class DiscordWebhookConfig(BaseModel):
     violation: Optional[str] = ""
     fame: Optional[str] = ""
     raid: Optional[str] = ""
+    # Lifecycle hooks — fire on every scheduled auto-restart / auto-update.
+    # Separate from `admin` so admins can route ops notifications to a #ops
+    # channel and gameplay notifications to #game-events.
+    auto_restart: Optional[str] = ""
+    auto_update: Optional[str] = ""
     mention_role_id: Optional[str] = ""  # pinged on violation events
 
 
@@ -1188,6 +1193,10 @@ def _event_to_discord_embed(ev: Dict[str, Any]) -> Dict[str, Any]:
         "violation": (0xD32F2F, "🚨 Violation"),
         "fame":      (0x9B59B6, "🏆 Fame"),
         "raid":      (0x607D8B, "⚔ Raid"),
+        # Lifecycle events — distinct colours so admins can spot them at a
+        # glance in a busy Discord channel.
+        "auto_restart": (0x00B8D4, "🔄 Auto-Restart"),
+        "auto_update":  (0x1E88E5, "⬇ Auto-Update"),
     }
     color, title = palette.get(ev.get("type", ""), (0x8B9A46, f"· {ev.get('type','event').upper()}"))
     player = ev.get("player_name") or ev.get("killer_name") or "-"
@@ -1207,6 +1216,9 @@ def _event_to_discord_embed(ev: Dict[str, Any]) -> Dict[str, Any]:
     elif ev["type"] == "fame":
         d = ev.get("delta", 0)
         desc_lines.append(f"**{player}** {'gained' if d >= 0 else 'lost'} {abs(d)} fame")
+    elif ev["type"] in ("auto_restart", "auto_update"):
+        # Lifecycle events use a structured `message` field instead of action+player.
+        desc_lines.append(ev.get("message", "(no details)"))
     else:
         desc_lines.append(ev.get("raw", ""))
     return {
@@ -1267,6 +1279,41 @@ async def _store_events_and_forward(server_id: str, events: List[Dict[str, Any]]
         to_send = newly_inserted[-200:]
         sent = await _forward_to_discord(hooks, to_send)
     return {"stored": len(newly_inserted), "forwarded": sent}
+
+
+async def _notify_lifecycle(server_id: str, kind: str, message: str,
+                            server_doc: Optional[Dict[str, Any]] = None) -> None:
+    """Send a one-shot Discord webhook for a manager-driven lifecycle event
+    (auto_restart / auto_update). These are NOT log-parsed events — they're
+    fired directly by the scheduler — so they bypass `_store_events_and_forward`
+    (which is for log/db parsed events) and don't pollute the event history.
+
+    `kind` must be one of: 'auto_restart', 'auto_update'.
+    `message` is the human-readable summary shown in the embed body
+             (e.g. "Server1 will restart in 15 min").
+    """
+    if kind not in ("auto_restart", "auto_update"):
+        return
+    try:
+        if server_doc is None:
+            server_doc = await db.servers.find_one(
+                {"id": server_id}, {"_id": 0, "name": 1, "discord_webhooks": 1}
+            ) or {}
+        hooks = server_doc.get("discord_webhooks") or {}
+        if not hooks.get(kind):
+            return  # Admin hasn't configured this webhook — nothing to do.
+        ev = {
+            "type": kind,
+            "ts": datetime.now(timezone.utc).isoformat(),
+            "server_id": server_id,
+            "source_file": "manager",
+            "player_name": server_doc.get("name", "Server"),
+            "message": message,
+            "raw": message,
+        }
+        await _forward_to_discord(hooks, [ev])
+    except Exception as e:
+        logger.info("lifecycle webhook (%s) failed: %s", kind, e)
 
 
 @api_router.post("/servers/{server_id}/logs/import")
@@ -2843,6 +2890,12 @@ async def _tick_scheduler():
                     if hhmm in restart_times and _last_restart_tick.get(sid) != day_tag:
                         _last_restart_tick[sid] = day_tag
                         logger.warning("Scheduler: scheduled restart firing for %s at %s", s.get("name"), hhmm)
+                        srv_name = s.get("name", "Server")
+                        await _notify_lifecycle(
+                            sid, "auto_restart",
+                            f"**{srv_name}** scheduled restart firing now (slot `{hhmm}`). Stopping gracefully…",
+                            server_doc=s,
+                        )
                         try:
                             await db.servers.update_one({"id": sid}, {"$set": {"status": "Updating"}})
                             await _do_stop_internal(sid, take_backup=True)
@@ -2850,8 +2903,18 @@ async def _tick_scheduler():
                             fresh = await db.servers.find_one({"id": sid}, {"_id": 0}) or s
                             await _do_start_internal(sid, fresh)
                             logger.info("Scheduler: scheduled restart complete for %s", s.get("name"))
+                            await _notify_lifecycle(
+                                sid, "auto_restart",
+                                f"**{srv_name}** ✅ restart complete — server is back online.",
+                                server_doc=fresh,
+                            )
                         except Exception as e:
                             logger.exception("Scheduler: scheduled restart failed for %s: %s", s.get("name"), e)
+                            await _notify_lifecycle(
+                                sid, "auto_restart",
+                                f"**{srv_name}** ⚠ restart FAILED: `{e}`",
+                                server_doc=s,
+                            )
                 # --- Auto update ---
                 if auto.get("auto_update_enabled") and s.get("installed"):
                     interval = int(auto.get("update_check_interval_min") or 360)
@@ -2878,6 +2941,15 @@ async def _tick_scheduler():
                                     fresh = await db.servers.find_one({"id": sid}, {"_id": 0})
                                     if fresh and not fresh.get("pending_update_at"):
                                         await _schedule_graceful_update(sid, fresh, lead_minutes=15)
+                                        # Notify admins ONCE on detection so they
+                                        # can plan around the upcoming downtime.
+                                        await _notify_lifecycle(
+                                            sid, "auto_update",
+                                            f"**{s.get('name','Server')}** new SCUM build detected: `{build_id}` "
+                                            f"(installed: `{s.get('installed_build_id','?')}`). "
+                                            f"Auto-update will run in ~15 minutes.",
+                                            server_doc=fresh or s,
+                                        )
                                 except Exception as e:
                                     logger.info("graceful update scheduling failed: %s", e)
                         except Exception as e:
@@ -2937,6 +3009,12 @@ async def _tick_scheduler():
                             target = target.replace(tzinfo=timezone.utc)
                         if now >= target:
                             logger.warning("Graceful update firing for %s", s.get("name"))
+                            srv_name = s.get("name", "Server")
+                            await _notify_lifecycle(
+                                sid, "auto_update",
+                                f"**{srv_name}** auto-update firing now. Stopping server, running SteamCMD…",
+                                server_doc=s,
+                            )
                             # 1. Pre-update backup (so an interrupted SteamCMD pass
                             #    can be reverted).
                             await _do_pre_stop_backup(sid, s, backup_type="auto")
@@ -2985,8 +3063,22 @@ async def _tick_scheduler():
                             fresh = await db.servers.find_one({"id": sid}, {"_id": 0}) or s
                             try:
                                 await _do_start_internal(sid, fresh)
+                                # Refetch one more time so the embed shows the
+                                # new installed_build_id stamped by install_server's
+                                # on_complete callback.
+                                final = await db.servers.find_one({"id": sid}, {"_id": 0}) or fresh
+                                await _notify_lifecycle(
+                                    sid, "auto_update",
+                                    f"**{srv_name}** ✅ update complete — new build `{final.get('installed_build_id','?')}`, server is back online.",
+                                    server_doc=final,
+                                )
                             except Exception as e:
                                 logger.exception("post-update start failed for %s: %s", s.get("name"), e)
+                                await _notify_lifecycle(
+                                    sid, "auto_update",
+                                    f"**{srv_name}** ⚠ post-update start FAILED: `{e}`",
+                                    server_doc=fresh,
+                                )
                     except Exception as e:
                         logger.info("pending update handling failed: %s", e)
 
@@ -3235,7 +3327,7 @@ async def _start_scheduler():
         _scheduler_task = asyncio.create_task(_tick_scheduler())
         logger.info("LGSS automation scheduler started (tick=10s)")
 
-    # v1.0.27 migration: earlier versions stamped installed_build_id with a
+    # v1.0.28 migration: earlier versions stamped installed_build_id with a
     # timestamp-style token (`build-1779386976`) instead of the actual SCUM
     # in-game version (`1.2.3.2.115523`). That made the dashboard show a
     # meaningless number AND the auto-update check ALWAYS reported "update
@@ -3256,9 +3348,9 @@ async def _start_scheduler():
                         {"id": s["id"]},
                         {"$set": {"installed_build_id": ver, "update_available": False}},
                     )
-                logger.info("v1.0.27 build-id migration: rewrote %d legacy build-<ts> tokens → %s", len(legacy), ver)
+                logger.info("v1.0.28 build-id migration: rewrote %d legacy build-<ts> tokens → %s", len(legacy), ver)
     except Exception as e:
-        logger.info("v1.0.27 build-id migration skipped: %s", e)
+        logger.info("v1.0.28 build-id migration skipped: %s", e)
     # TTL index on activity samples — auto-delete rows older than 30 days.
     # If an older version created the index with a different TTL, drop and
     # recreate so the new retention takes effect.

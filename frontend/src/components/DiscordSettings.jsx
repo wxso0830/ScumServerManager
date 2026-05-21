@@ -13,6 +13,10 @@ const FIELDS = [
   ["violation", "discord_violation_channel", "🚨"],
   ["fame", "discord_fame_channel", "🏆"],
   ["raid", "discord_raid_channel", "⚔"],
+  // Lifecycle: fired by the manager (not parsed from logs) so admins can
+  // route them to an #ops or #server-status channel separate from gameplay.
+  ["auto_restart", "discord_auto_restart_channel", "🔄"],
+  ["auto_update", "discord_auto_update_channel", "⬇"],
 ];
 
 export const DiscordSettings = ({ server }) => {

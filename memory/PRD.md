@@ -46,6 +46,13 @@ Electron-based desktop server manager for SCUM game. On first launch: ask user t
 - Schema cleanup: removed `client` section + client_mouse/video/graphics/sound; moved `client_game` under `gameplay`
 
 ## Recent Changes
+- **2026-02 (v1.0.28 — Discord webhooks: auto-restart + auto-update lifecycle hooks)**:
+  1. Two new webhook channels added to `DiscordWebhookConfig`: `auto_restart` and `auto_update`.
+  2. Scheduler fires `_notify_lifecycle()` at 4 key moments — restart start/end and update detect/start/end/fail — with rich embed messages including server name, slot time, new vs installed build id, and success/failure status.
+  3. Distinct embed colors so admins can spot lifecycle events at a glance: 🔄 cyan for restarts, ⬇ blue for updates.
+  4. Frontend: two new fields added to Discord Settings panel (after Raid, before Mention Role ID). Each has a SEND TEST button.
+  5. The `/discord/test` endpoint accepts the new event types and builds proper embeds.
+
 - **2026-02 (v1.0.27 — BETA / Community Settings tab)**:
   1. New **"BETA · Community"** sub-tab under the Advanced section. Hosts community-reported / undocumented SCUM keys (vehicle parts damage, engine damage, collision damage, loot respawn time, animal respawn time, item durability, god-mode-for-admins, allow-flying-for-admins) as toggleable rows with descriptions.
   2. Big red **"⚠ BETA / UNVERIFIED SETTINGS"** warning banner explicitly states: *not in official docs, LGSS will validate on real servers, invalid ones will be removed in a future release.*

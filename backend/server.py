@@ -170,7 +170,7 @@ def default_scum_settings() -> Dict[str, Any]:
 # ---------- ENDPOINTS ----------
 @api_router.get("/")
 async def root():
-    return {"service": "LGSS SCUM Server Manager", "version": "1.0.32"}
+    return {"service": "LGSS SCUM Server Manager", "version": "1.0.33"}
 
 
 _PUBLIC_IP_CACHE = {"ts": 0, "ip": None}
@@ -300,6 +300,38 @@ async def update_setup(payload: SetupUpdate):
         data[k] = v
     data["updated_at"] = datetime.now(timezone.utc).isoformat()
     await db.setup.update_one({"_id": SETUP_DOC_ID}, {"$set": data}, upsert=True)
+    # Ensure the Globalization/ folder exists as soon as the admin picks a
+    # workspace. Contributors can drop their .xaml translations there at any
+    # time and the manager will pick them up on the next /i18n/custom call.
+    mp = data.get("manager_path")
+    if mp:
+        try:
+            gdir = Path(mp) / "Globalization"
+            gdir.mkdir(parents=True, exist_ok=True)
+            # README so the first-time admin understands what the folder is
+            # for. Only written once — never overwrites an existing file.
+            readme = gdir / "README.txt"
+            if not readme.exists():
+                readme.write_text(
+                    "LGSS Manager — Custom Language Drop-in Folder\n"
+                    "==============================================\n\n"
+                    "Drop community-translated .xaml files here. The Manager\n"
+                    "will scan this folder on startup and on `Reload` and\n"
+                    "expose every parsed language in the language picker.\n\n"
+                    "Workflow:\n"
+                    "  1. Download `en.xaml` from the language picker.\n"
+                    "  2. Edit it (translate each <sys:String> body).\n"
+                    "  3. Rename to your language code (e.g. `pl.xaml`).\n"
+                    "  4. Drop it in THIS folder.\n"
+                    "  5. Click `Reload` in the language picker.\n"
+                    "  6. Your language now appears alongside the built-ins.\n\n"
+                    "Once you're happy with the translation, send the .xaml\n"
+                    "file to LGSS so it gets bundled in the next release\n"
+                    "for everyone.\n",
+                    encoding="utf-8",
+                )
+        except Exception as e:
+            logger.info("Globalization folder bootstrap failed: %s", e)
     return SetupState(**data)
 
 
@@ -315,6 +347,108 @@ async def reset_setup():
 async def list_servers():
     docs = await db.servers.find({}, {"_id": 0}).to_list(500)
     return [ServerProfile(**d) for d in docs]
+
+
+# ───────────────────────────────────────────────────────────────────────
+# Custom community translations (XAML drop-in folder)
+# ───────────────────────────────────────────────────────────────────────
+#
+# Workflow:
+#   1. Admin downloads en.xaml from the language modal.
+#   2. Edits it (translates each <sys:String>) and renames to e.g. pl.xaml.
+#   3. Drops the file into:
+#        <manager_path>/Globalization/<lang>.xaml
+#      e.g. C:/LGSSManagers/Globalization/pl.xaml
+#   4. Clicks "Reload" in the language modal → manager re-scans the folder
+#      and the new language appears in the picker WITHOUT a release.
+#
+# Once the admin is happy with the translation they send the .xaml file
+# back to LGSS for inclusion in the next release (built-in translations).
+
+_XAML_ENTRY_RE = re.compile(
+    r'<sys:String\s+x:Key="([^"]+)"\s*>(.*?)</sys:String>',
+    re.DOTALL,
+)
+
+
+def _xml_unescape(s: str) -> str:
+    """Inverse of the XAML exporter's escape helper. .NET's XmlReader only
+    decodes the same 5 entities so we mirror them here for symmetry."""
+    return (
+        s.replace("&apos;", "'")
+         .replace("&quot;", '"')
+         .replace("&gt;", ">")
+         .replace("&lt;", "<")
+         .replace("&amp;", "&")
+    )
+
+
+def _parse_xaml_file(path: Path) -> Dict[str, str]:
+    """Parse a single WPF GlobalizationResourceDictionary XAML file. We use a
+    forgiving regex instead of a full XML parser because:
+      * Contributors sometimes hand-edit the file and break a closing tag
+        we still want to recover the rest of the strings.
+      * The XAML uses .NET-only namespaces which Python's ElementTree handles
+        but with extra ceremony for no benefit here — we only care about
+        <sys:String x:Key="…">value</sys:String> rows.
+    """
+    out: Dict[str, str] = {}
+    try:
+        text = path.read_text(encoding="utf-8-sig")  # tolerant of UTF-8 BOM
+    except Exception as e:
+        logger.info("XAML read failed for %s: %s", path, e)
+        return out
+    for m in _XAML_ENTRY_RE.finditer(text):
+        key, value = m.group(1), m.group(2)
+        out[key] = _xml_unescape(value.strip())
+    return out
+
+
+async def _get_globalization_dir() -> Optional[Path]:
+    """Locate the Globalization folder. Order of preference:
+      1. `LGSS_GLOBALIZATION_DIR` env var (testing / power-user override).
+      2. `<manager_path>/Globalization/`  (production — set by Setup wizard).
+      3. `<ROOT_DIR>/Globalization/`      (dev / preview fallback).
+    """
+    override = os.environ.get("LGSS_GLOBALIZATION_DIR")
+    if override:
+        return Path(override)
+    setup = await db.setup.find_one({"_id": SETUP_DOC_ID}, {"_id": 0}) or {}
+    manager_path = setup.get("manager_path")
+    if manager_path:
+        return Path(manager_path) / "Globalization"
+    return ROOT_DIR.parent / "Globalization"  # /app/Globalization in preview
+
+
+@api_router.get("/i18n/custom")
+async def get_custom_translations():
+    """Scan the manager's Globalization folder and return every parsed XAML
+    file as a JSON map: { "pl": { "brand": "...", "yes": "Tak", ... }, ... }.
+
+    Frontend merges this into its in-memory translations dict on startup so
+    new languages appear without rebuilding the app. Each entry also reports
+    metadata (Generic_TranslatedBy, Generic_TranslationDate) so the language
+    picker can show "Polish · Mehmet · 2026-03-14".
+    """
+    gdir = await _get_globalization_dir()
+    if not gdir or not gdir.is_dir():
+        return {"globalization_dir": str(gdir) if gdir else None, "languages": {}}
+    languages: Dict[str, Any] = {}
+    for xaml_file in sorted(gdir.glob("*.xaml")):
+        # Lang code = filename minus suffix. Accept en.xaml AND en-US.xaml
+        # (ARK SM convention) — keep just the leading ISO code.
+        stem = xaml_file.stem.split("-")[0].lower()
+        parsed = _parse_xaml_file(xaml_file)
+        if not parsed:
+            continue
+        meta = {
+            "translator": parsed.pop("Generic_TranslatedBy", "Community"),
+            "date": parsed.pop("Generic_TranslationDate", ""),
+            "filename": xaml_file.name,
+        }
+        parsed.pop("Generic_LanguageCode", None)
+        languages[stem] = {"meta": meta, "strings": parsed}
+    return {"globalization_dir": str(gdir), "languages": languages}
 
 
 @api_router.post("/servers", response_model=ServerProfile)
@@ -3327,7 +3461,7 @@ async def _start_scheduler():
         _scheduler_task = asyncio.create_task(_tick_scheduler())
         logger.info("LGSS automation scheduler started (tick=10s)")
 
-    # v1.0.32 migration: earlier versions stamped installed_build_id with a
+    # v1.0.33 migration: earlier versions stamped installed_build_id with a
     # timestamp-style token (`build-1779386976`) instead of the actual SCUM
     # in-game version (`1.2.3.2.115523`). That made the dashboard show a
     # meaningless number AND the auto-update check ALWAYS reported "update
@@ -3348,9 +3482,9 @@ async def _start_scheduler():
                         {"id": s["id"]},
                         {"$set": {"installed_build_id": ver, "update_available": False}},
                     )
-                logger.info("v1.0.32 build-id migration: rewrote %d legacy build-<ts> tokens → %s", len(legacy), ver)
+                logger.info("v1.0.33 build-id migration: rewrote %d legacy build-<ts> tokens → %s", len(legacy), ver)
     except Exception as e:
-        logger.info("v1.0.32 build-id migration skipped: %s", e)
+        logger.info("v1.0.33 build-id migration skipped: %s", e)
     # TTL index on activity samples — auto-delete rows older than 30 days.
     # If an older version created the index with a different TTL, drop and
     # recreate so the new retention takes effect.

@@ -409,6 +409,11 @@ export const translations = {
     download_current_lang_hint: "Şu anki seçili dilin .xaml dosyasını indir",
     template: "Şablon",
     current: "Mevcut",
+    drop_in_folder: "Bırakma Klasörü",
+    drop_in_folder_hint: "Çevirilmiş .xaml dosyalarınızı bu klasöre bırakın",
+    drop_in_folder_pending: "Önce kurulumu tamamlayın (Disk seçin)",
+    reload_languages: "Dilleri Yeniden Yükle",
+    reloading: "Yükleniyor…",
     discord_mention_role: "İhlal Olayında Ping Rol ID",
     test_webhook: "Webhook Testi",
     webhook_sent: "Discord mesajı gönderildi",
@@ -1007,6 +1012,11 @@ export const translations = {
     download_current_lang_hint: "Download the .xaml file for the currently selected language",
     template: "Template",
     current: "Current",
+    drop_in_folder: "Drop-In Folder",
+    drop_in_folder_hint: "Drop your translated .xaml files in this folder",
+    drop_in_folder_pending: "Complete setup first (pick a Disk)",
+    reload_languages: "Reload Languages",
+    reloading: "Loading…",
     discord_mention_role: "Violation Mention Role ID",
     test_webhook: "Send Test",
     webhook_sent: "Discord message sent",
@@ -1551,6 +1561,55 @@ export const LANG_META = {
 
 const I18nContext = createContext(null);
 
+/**
+ * Merge a parsed XAML language file into the in-memory translation tables.
+ * Strings prefixed with `field.` end up in FIELD_META (overlay) — for now
+ * we keep them in the flat dict; DynamicFields/Field still calls
+ * `getFieldMeta` which is read directly from fieldMeta.js, so custom field
+ * translations require a frontend release. UI strings (everything else)
+ * apply immediately on next render.
+ *
+ * `customMap` shape (from GET /api/i18n/custom):
+ *   {
+ *     pl: { meta: { translator, date, filename }, strings: { brand: "...", ... } },
+ *     ja: { ... },
+ *   }
+ *
+ * Returns the list of newly-registered language codes (so the picker can
+ * highlight them with a "custom" badge if desired).
+ */
+const _mergeCustomTranslations = (customMap) => {
+  const newCodes = [];
+  for (const [code, payload] of Object.entries(customMap || {})) {
+    if (!payload || typeof payload !== "object") continue;
+    const strings = payload.strings || {};
+    if (!Object.keys(strings).length) continue;
+    // Merge into the main translations dict. If a built-in exists, the
+    // user's custom values override key-by-key (no full replace) so any
+    // missing keys still fall back to English in the existing `t()` chain.
+    translations[code] = { ...(translations[code] || {}), ...strings };
+    if (!LANG_META[code]) {
+      // Brand-new language — invent display metadata from filename
+      LANG_META[code] = {
+        label: code.toUpperCase(),
+        flag: "",
+        dir: code === "ar" || code === "he" || code === "fa" ? "rtl" : "ltr",
+        translator: payload.meta?.translator || "Community",
+        date: payload.meta?.date || "",
+        custom: true,
+      };
+      newCodes.push(code);
+    } else {
+      // Existing language — still update credit fields if the .xaml has them
+      // (gives the contributor visible attribution without a release).
+      if (payload.meta?.translator) LANG_META[code].translator = payload.meta.translator;
+      if (payload.meta?.date) LANG_META[code].date = payload.meta.date;
+      LANG_META[code].custom = true;
+    }
+  }
+  return newCodes;
+};
+
 export const I18nProvider = ({ children }) => {
   // Default to English. Users can still pick Turkish (or any other language)
   // from the language menu — their choice is persisted in localStorage.
@@ -1559,10 +1618,35 @@ export const I18nProvider = ({ children }) => {
     if (saved && translations[saved]) return saved;
     return "en";
   });
+  // Bumped whenever custom translations are (re)loaded so consumers re-render.
+  const [customVersion, setCustomVersion] = useState(0);
+  // Folder path returned by the backend; shown in the language modal so
+  // contributors know exactly where to drop their .xaml file.
+  const [globalizationDir, setGlobalizationDir] = useState(null);
+
+  const reloadCustom = async () => {
+    try {
+      // Lazy backend URL — same convention as the rest of the app.
+      const base = process.env.REACT_APP_BACKEND_URL;
+      if (!base) return;
+      const res = await fetch(`${base}/api/i18n/custom`);
+      if (!res.ok) return;
+      const data = await res.json();
+      _mergeCustomTranslations(data.languages || {});
+      setGlobalizationDir(data.globalization_dir || null);
+      setCustomVersion((v) => v + 1);
+    } catch (e) {
+      // Network failures are fine — backend might not be up yet during
+      // initial load. Caller can retry by calling reloadCustom() again.
+    }
+  };
+
+  useEffect(() => {
+    reloadCustom();
+  }, []);
+
   useEffect(() => {
     localStorage.setItem("lgss.lang", lang);
-    // Reflect text direction (RTL for Arabic) on <html> so layout flips
-    // naturally without each component re-implementing dir handling.
     const dir = LANG_META[lang]?.dir || "ltr";
     document.documentElement.setAttribute("dir", dir);
     document.documentElement.setAttribute("lang", lang);
@@ -1570,10 +1654,6 @@ export const I18nProvider = ({ children }) => {
 
   const t = (key, vars = {}) => {
     const dict = translations[lang] || translations.en;
-    // Two-step lookup: requested language first, then English fallback.
-    // This is what lets us ship Russian/German/etc. with partial coverage —
-    // anything we haven't translated yet still renders (in English) instead
-    // of dumping the raw `key` string into the UI.
     let s = dict[key];
     if (s === undefined) s = translations.en[key];
     if (s === undefined) s = key;
@@ -1581,7 +1661,13 @@ export const I18nProvider = ({ children }) => {
     return s;
   };
 
-  const value = useMemo(() => ({ lang, setLang, t, languages: Object.keys(translations) }), [lang]);
+  const value = useMemo(() => ({
+    lang, setLang, t,
+    languages: Object.keys(translations),
+    reloadCustom,
+    globalizationDir,
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }), [lang, customVersion, globalizationDir]);
   return <I18nContext.Provider value={value}>{children}</I18nContext.Provider>;
 };
 

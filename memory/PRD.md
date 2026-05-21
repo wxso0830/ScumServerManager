@@ -46,6 +46,18 @@ Electron-based desktop server manager for SCUM game. On first launch: ask user t
 - Schema cleanup: removed `client` section + client_mouse/video/graphics/sound; moved `client_game` under `gameplay`
 
 ## Recent Changes
+- **2026-02 (v1.0.33 — Globalization drop-in folder for live language testing)**:
+  1. New endpoint `GET /api/i18n/custom` scans `<manager_path>/Globalization/*.xaml`, parses each file (regex-based, BOM-tolerant), and returns `{ lang: { meta, strings } }`. Auto-strips `Generic_*` meta keys and surfaces translator + date in the meta block.
+  2. Setup endpoint auto-creates the `Globalization/` folder + a README.txt explaining the workflow when the admin sets `manager_path`.
+  3. `I18nProvider`:
+     - On boot, fetches `/api/i18n/custom` and merges the result into the in-memory `translations` + `LANG_META` dicts.
+     - Brand-new languages (not in the built-in 8) get auto-registered with their ISO code as display label.
+     - Existing languages get their credits overwritten by the .xaml's `Generic_TranslatedBy` / `Generic_TranslationDate` for instant visible attribution.
+     - Exposes `reloadCustom()` + `globalizationDir` via context.
+  4. Language modal footer adds a **DROP-IN FOLDER** section showing the absolute path (selectable, copyable) and a **RELOAD LANGUAGES** button (animated spin while fetching).
+  5. End-to-end verified with a Polish test file: dropped `pl.xaml` into `/app/Globalization/`, hit Reload, picker showed "PL · Marek Kowalski · 2026-03-22" instantly with no rebuild.
+  6. Added `LGSS_GLOBALIZATION_DIR` env override for testing.
+
 - **2026-02 (v1.0.32 — Language modal: emoji flags removed)**:
   1. User reported that emoji flags didn't render on Windows (fell back to `GB`, `SA`, etc. country codes). Removed flag column entirely.
   2. The 2-letter language code on the left is now rendered in the **accent (orange) color** so it still works as a strong visual anchor.

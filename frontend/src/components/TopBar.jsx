@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import {
   Palette, Languages, Check, Wrench, ShieldCheck, ShieldAlert,
   RotateCcw, Activity, Server, HardDrive, Terminal, LayoutDashboard, SlidersHorizontal, ScrollText, Users, Archive,
-  Globe, X, Download,
+  Globe, X, Download, RefreshCw, FolderOpen,
 } from "lucide-react";
 import { useTheme } from "../providers/ThemeProvider";
 import { useI18n, LANG_META, translations } from "../providers/I18nProvider";
@@ -57,9 +57,10 @@ export const TopBar = ({
   onManagerUpdate,
 }) => {
   const { theme, setTheme, themes } = useTheme();
-  const { lang, setLang, t } = useI18n();
+  const { lang, setLang, t, reloadCustom, globalizationDir } = useI18n();
   const [themeOpen, setThemeOpen] = useState(false);
   const [langOpen, setLangOpen] = useState(false);
+  const [reloadingLangs, setReloadingLangs] = useState(false);
   // Reset is a 2-step destructive action: first show the "what will happen"
   // warning, then a final "are you sure" with a 3s countdown-style gate so
   // users can't double-click through both.
@@ -111,7 +112,7 @@ export const TopBar = ({
               SCUM SERVER MANAGER
             </div>
             <div className="font-mono text-[9px] tracking-[0.22em] text-accent-brand mt-1">
-              v1.0.32
+              v1.0.33
             </div>
           </div>
         </div>
@@ -239,7 +240,7 @@ export const TopBar = ({
                         className={`w-full flex items-center justify-between px-4 py-2.5 text-sm hover:bg-surface-2 transition-colors font-display uppercase tracking-wider text-xs ${lang === code ? "bg-accent-soft" : ""}`}
                       >
                         <span className="flex items-center gap-3 min-w-0 flex-1">
-                          {/* v1.0.32: dropped emoji flags — they fall back to
+                          {/* v1.0.33: dropped emoji flags — they fall back to
                               bare country codes on Windows (no Twemoji font)
                               and look broken. The 2-letter lang code on the
                               left already serves as a visual anchor. */}
@@ -258,8 +259,9 @@ export const TopBar = ({
                   {/* Community translation export — admins / translators
                       can download the current language's strings as a XAML
                       file (ARK Server Manager format), edit it in any text
-                      editor, and send it back to LGSS to be merged in the
-                      next release. */}
+                      editor, drop it back in the Globalization folder for
+                      live testing, and finally send it back to LGSS to be
+                      merged in the next release. */}
                   <div className="border-t border-brand p-3 space-y-2 text-[11px]">
                     <div className="label-overline text-dim">{t("community_translations")}</div>
                     <p className="text-dim leading-relaxed">{t("community_translations_help")}</p>
@@ -292,6 +294,40 @@ export const TopBar = ({
                         title={t("download_current_lang_hint")}
                       >
                         <Download size={12} /> {lang.toUpperCase()} · {t("current")}
+                      </button>
+                    </div>
+
+                    {/* Drop-in folder + reload button — admins drop their
+                        .xaml file in this folder and click Reload to see
+                        their language live in the picker. */}
+                    <div className="border-t border-brand mt-2 pt-2 space-y-2">
+                      <div className="label-overline text-dim flex items-center gap-1.5">
+                        <FolderOpen size={10} /> {t("drop_in_folder")}
+                      </div>
+                      <div
+                        className="px-2 py-1.5 border border-brand bg-bg-deep font-mono text-[10px] text-accent-brand break-all select-all"
+                        data-testid="globalization-dir-path"
+                        title={t("drop_in_folder_hint")}
+                      >
+                        {globalizationDir || t("drop_in_folder_pending")}
+                      </div>
+                      <button
+                        type="button"
+                        className="tactical-btn w-full flex items-center justify-center gap-1.5 text-[10px] uppercase tracking-widest"
+                        onClick={async () => {
+                          if (reloadingLangs) return;
+                          setReloadingLangs(true);
+                          try {
+                            await reloadCustom();
+                          } finally {
+                            setReloadingLangs(false);
+                          }
+                        }}
+                        disabled={reloadingLangs}
+                        data-testid="lang-reload-custom"
+                      >
+                        <RefreshCw size={12} className={reloadingLangs ? "animate-spin" : ""} />
+                        {reloadingLangs ? t("reloading") : t("reload_languages")}
                       </button>
                     </div>
                   </div>

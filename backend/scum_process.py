@@ -606,13 +606,21 @@ def start_server(server_id: str, folder_path: str, port: int = 7779,
     _ensure_firewall_rules(server_id, exe, port, query_port)
 
     # CREATE_NEW_CONSOLE       = 0x00000010  — own visible console window
+    # CREATE_NEW_PROCESS_GROUP = 0x00000200  — required for GenerateConsoleCtrlEvent
     # HIGH_PRIORITY_CLASS      = 0x00000080  — OS scheduler gives SCUM extra CPU
+    # We attach CREATE_NEW_PROCESS_GROUP so stop_server() can post a real
+    # CTRL+C to SCUM's console — that's the only stop signal which triggers
+    # SCUM's graceful save-and-shutdown path. Without it, TerminateProcess
+    # cuts the EXE mid-tick and the next start rewinds the world to the last
+    # auto-save (admins reported losing 3-5 minutes of player progress every
+    # auto-restart).
     CREATE_NEW_CONSOLE = 0x00000010
+    CREATE_NEW_PROCESS_GROUP = 0x00000200
     HIGH_PRIORITY_CLASS = 0x00000080
     proc = subprocess.Popen(
         args,
         cwd=str(exe.parent),
-        creationflags=CREATE_NEW_CONSOLE | HIGH_PRIORITY_CLASS,
+        creationflags=CREATE_NEW_CONSOLE | CREATE_NEW_PROCESS_GROUP | HIGH_PRIORITY_CLASS,
         close_fds=True,
         # inherit stdio so the new console can display the log; do NOT redirect
     )
@@ -733,9 +741,54 @@ def _spawn_ready_watcher(server_id: str, query_port: int) -> None:
     th.start()
 
 
-def stop_server(server_id: str) -> bool:
-    """Terminate SCUMServer.exe for this server_id. Returns True if it was
-    running (and is now stopped)."""
+def _send_ctrl_break(pid: int) -> bool:
+    """Send a real Windows console CTRL_BREAK_EVENT to a process group.
+
+    SCUM's dedicated server installs a console-control handler that, on
+    CTRL+C or CTRL+BREAK, flushes the world to SaveFiles and shuts down
+    cleanly (takes 5-30s depending on player count). TerminateProcess
+    skips that handler entirely.
+
+    We send CTRL_BREAK (not CTRL_C) because:
+      - CTRL_C_EVENT can only be sent to the SAME console group as the caller;
+        our backend EXE doesn't share a console with SCUMServer.exe.
+      - CTRL_BREAK_EVENT can be sent across process groups when the target
+        was started with CREATE_NEW_PROCESS_GROUP — exactly what we now do
+        in start_server().
+
+    Returns True on success, False on failure.
+    """
+    if not _is_windows():
+        return False
+    try:
+        import ctypes
+        kernel32 = ctypes.windll.kernel32
+        # GenerateConsoleCtrlEvent(CTRL_BREAK_EVENT=1, dwProcessGroupId=pid)
+        ok = kernel32.GenerateConsoleCtrlEvent(1, pid)
+        if ok:
+            log.info("Sent CTRL_BREAK to SCUM pid=%s for graceful save", pid)
+            return True
+        err = ctypes.get_last_error()
+        log.warning("GenerateConsoleCtrlEvent failed pid=%s err=%s", pid, err)
+        return False
+    except Exception as e:
+        log.warning("CTRL_BREAK send failed: %s", e)
+        return False
+
+
+def stop_server(server_id: str, graceful_timeout: float = 30.0) -> bool:
+    """Stop SCUMServer.exe gracefully so the world is saved.
+
+    Sequence:
+      1. Send CTRL_BREAK_EVENT to the SCUM process group → SCUM's console
+         handler kicks in, flushes SaveFiles, prints "Saving world..." in
+         the console window (admin sees it just like a manual CTRL+C).
+      2. Wait up to `graceful_timeout` seconds for the EXE to exit on its own.
+      3. If still alive after the deadline (rare — usually SCUM saves in
+         5-15s), fall back to TerminateProcess on the whole tree.
+
+    Returns True if a running process was stopped.
+    """
     rec = REGISTRY.get(server_id, {}).get("process")
     pid = rec.get("pid") if rec else None
     if not pid or not _pid_alive(pid):
@@ -744,16 +797,40 @@ def stop_server(server_id: str) -> bool:
                 REGISTRY[server_id].pop("process", None)
         return False
 
+    graceful_ok = False
     try:
-        p = psutil.Process(pid)
-        # Kill whole tree (SCUMServer may spawn children)
-        for child in p.children(recursive=True):
-            _safe_kill(child)
-        _safe_kill(p)
-    except psutil.NoSuchProcess:
-        pass
-    except Exception:
-        log.exception("stop_server kill failed")
+        # Step 1: graceful save via console CTRL+BREAK
+        if _send_ctrl_break(pid):
+            # Step 2: wait for SCUM to finish saving
+            t_start = time.time()
+            while time.time() - t_start < graceful_timeout:
+                if not _pid_alive(pid):
+                    graceful_ok = True
+                    log.info(
+                        "SCUM %s exited gracefully in %.1fs (save complete)",
+                        server_id, time.time() - t_start,
+                    )
+                    break
+                time.sleep(0.5)
+            if not graceful_ok:
+                log.warning(
+                    "SCUM %s did not exit within %.0fs after CTRL_BREAK — forcing kill",
+                    server_id, graceful_timeout,
+                )
+    except Exception as e:
+        log.warning("Graceful stop failed: %s — falling back to kill", e)
+
+    # Step 3: force-kill anything that's left (children too)
+    if not graceful_ok:
+        try:
+            p = psutil.Process(pid)
+            for child in p.children(recursive=True):
+                _safe_kill(child)
+            _safe_kill(p)
+        except psutil.NoSuchProcess:
+            pass
+        except Exception:
+            log.exception("stop_server force-kill failed")
 
     with _LOCK:
         REGISTRY.get(server_id, {}).pop("process", None)

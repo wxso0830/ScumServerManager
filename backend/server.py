@@ -2728,6 +2728,32 @@ async def _tick_scheduler():
                     except Exception as e:
                         logger.info("Starting→Running promotion check failed for %s: %s", s.get("name"), e)
 
+                # --- External-stop detector (admin pressed CTRL+C in SCUM's
+                # own console window) -------------------------------------
+                # When the admin saves the world by pressing CTRL+C inside
+                # SCUMServer.exe's console window, the PID dies but our
+                # backend still has status="Running" in Mongo. The frontend
+                # therefore keeps showing the server as up forever. We
+                # detect: status=Running BUT scum_proc says process is gone.
+                # In that case flip to Stopped — and mark it as expected so
+                # the crash backup logic below does NOT capture an emergency
+                # snapshot (the admin already saved via CTRL+C).
+                if s.get("status") == "Running" and s.get("installed"):
+                    try:
+                        m_running = scum_proc.get_metrics(sid, s.get("folder_path"))
+                        if m_running.get("running") is False:
+                            mark_expected_stop(sid)
+                            await db.servers.update_one(
+                                {"id": sid}, {"$set": {"status": "Stopped"}},
+                            )
+                            s = {**s, "status": "Stopped"}
+                            logger.warning(
+                                "External stop detected for %s — admin closed SCUM console (CTRL+C). Marked Stopped.",
+                                s.get("name"),
+                            )
+                    except Exception as e:
+                        logger.debug("external-stop check failed for %s: %s", s.get("name"), e)
+
                 # --- Scheduled restarts ---
                 if auto.get("enabled") and s.get("installed") and s.get("status") == "Running":
                     restart_times = auto.get("restart_times") or []

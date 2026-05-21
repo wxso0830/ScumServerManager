@@ -46,6 +46,11 @@ Electron-based desktop server manager for SCUM game. On first launch: ask user t
 - Schema cleanup: removed `client` section + client_mouse/video/graphics/sound; moved `client_game` under `gameplay`
 
 ## Recent Changes
+- **2026-02 (v1.0.32 — Language modal: emoji flags removed)**:
+  1. User reported that emoji flags didn't render on Windows (fell back to `GB`, `SA`, etc. country codes). Removed flag column entirely.
+  2. The 2-letter language code on the left is now rendered in the **accent (orange) color** so it still works as a strong visual anchor.
+  3. Cleaner, OS-independent layout: `[ACCENT_CODE]  Language Name / translator · date`.
+
 - **2026-02 (v1.0.31 — XAML now includes ALL text sources: UI + 215 SCUM settings)**:
   1. Discovered that `en.xaml` v1.0.30 was missing ~430 strings from `/app/frontend/src/lib/fieldMeta.js` (215 SCUM settings × {label, desc}).
   2. New helper `flattenFieldMeta(FIELD_META, lang)` in `utils/xamlExporter.js` flattens the nested per-field meta into `field.<scum.Key>.label` / `field.<scum.Key>.desc` rows.

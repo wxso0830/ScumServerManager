@@ -111,7 +111,7 @@ export const TopBar = ({
               SCUM SERVER MANAGER
             </div>
             <div className="font-mono text-[9px] tracking-[0.22em] text-accent-brand mt-1">
-              v1.0.31
+              v1.0.32
             </div>
           </div>
         </div>
@@ -239,11 +239,14 @@ export const TopBar = ({
                         className={`w-full flex items-center justify-between px-4 py-2.5 text-sm hover:bg-surface-2 transition-colors font-display uppercase tracking-wider text-xs ${lang === code ? "bg-accent-soft" : ""}`}
                       >
                         <span className="flex items-center gap-3 min-w-0 flex-1">
-                          <span className="font-mono text-[11px] text-dim w-7 shrink-0">{code.toUpperCase()}</span>
-                          <span className="text-base leading-none shrink-0">{meta.flag}</span>
-                          <span className="flex flex-col items-start min-w-0 flex-1">
+                          {/* v1.0.32: dropped emoji flags — they fall back to
+                              bare country codes on Windows (no Twemoji font)
+                              and look broken. The 2-letter lang code on the
+                              left already serves as a visual anchor. */}
+                          <span className="font-mono text-[11px] text-accent-brand w-8 shrink-0">{code.toUpperCase()}</span>
+                          <span className="flex flex-col items-start min-w-0 flex-1 gap-0.5">
                             <span className="text-brand normal-case truncate">{meta.label}</span>
-                            <span className="text-[9px] text-muted normal-case font-mono mt-0.5 truncate">
+                            <span className="text-[10px] text-dim normal-case font-mono tracking-normal truncate">
                               {meta.translator} · {meta.date}
                             </span>
                           </span>

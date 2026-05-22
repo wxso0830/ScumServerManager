@@ -26,21 +26,37 @@ const Shell = () => {
   const [view, setView] = useState("dashboard"); // dashboard | configs | logs
   const [updateModalOpen, setUpdateModalOpen] = useState(false);
   const [firewallPrompt, setFirewallPrompt] = useState(null); // {serverId, status}
+  // v1.0.37d — DB offline banner state. Set when /api/setup returns a 503 with
+  // {code: "MONGO_OFFLINE"}. UI shows a sticky banner with copy-paste fix
+  // instructions instead of crashing the React tree with "Uncaught runtime error".
+  const [dbOffline, setDbOffline] = useState(false);
 
   const load = useCallback(async () => {
+    // Wrap every initial call with a .catch so a single 503 (MongoDB offline)
+    // doesn't reject the whole Promise.all and crash the React error overlay.
+    const safe = (p, fallback) => p.catch((err) => {
+      const code = err?.response?.data?.code;
+      const status = err?.response?.status;
+      if (code === "MONGO_OFFLINE" || status === 503) setDbOffline(true);
+      return fallback;
+    });
     const [adminRes, setupRes, serverList, schemaRes, versionRes] = await Promise.all([
-      endpoints.adminCheck().catch(() => ({ is_admin: false })),
-      endpoints.getSetup(),
-      endpoints.listServers(),
-      endpoints.getSchema().catch(() => null),
-      endpoints.getAppVersion().catch(() => ({ current: "1.0.37", latest: "1.0.37", update_available: false })),
+      safe(endpoints.adminCheck(), { is_admin: false }),
+      safe(endpoints.getSetup(), null),
+      safe(endpoints.listServers(), []),
+      safe(endpoints.getSchema(), null),
+      safe(endpoints.getAppVersion(), { current: "1.0.37", latest: "1.0.37", update_available: false }),
     ]);
     setIsAdmin(adminRes.is_admin);
     setSetup(setupRes);
     setServers(serverList);
     setSchema(schemaRes);
     setAppVersion(versionRes);
-    if (!setupRes.is_admin_confirmed) {
+    if (!setupRes) {
+      // DB offline — keep the UI mounted but skip phase transitions so the
+      // banner is what the admin sees first.
+      setPhase("workspace");
+    } else if (!setupRes.is_admin_confirmed) {
       setPhase("admin");
     } else if (!setupRes.completed) {
       setPhase("setup");
@@ -242,6 +258,8 @@ const Shell = () => {
         onManagerUpdate={handleManagerUpdate}
       />
 
+      {dbOffline && <DbOfflineBanner onRetry={async () => { setDbOffline(false); await load(); }} />}
+
       <div className="flex-1 flex overflow-hidden">
         {view === "dashboard" && (
           <DashboardView
@@ -382,6 +400,31 @@ const NoServerSelected = ({ t, onGoDashboard }) => (
         {t("back_to_dashboard")}
       </button>
     </div>
+  </div>
+);
+
+// v1.0.37d — Sticky banner shown when /api/setup returns 503 MONGO_OFFLINE.
+// Replaces the previous "Uncaught runtime error" red overlay with a
+// copy-paste actionable hint so the admin can start mongod and recover.
+const DbOfflineBanner = ({ onRetry }) => (
+  <div
+    className="border-b-2 border-warning bg-warning/5 px-4 py-2.5 flex items-center gap-3 font-mono text-[11px]"
+    style={{ color: "var(--warning)", borderColor: "var(--warning)", background: "color-mix(in srgb, var(--warning) 8%, transparent)" }}
+    data-testid="db-offline-banner"
+  >
+    <span className="text-base">⚠</span>
+    <div className="flex-1 leading-tight">
+      <div className="font-bold uppercase tracking-widest">Database Unreachable</div>
+      <div className="opacity-90 mt-0.5">
+        The local MongoDB service is not running. Open <b>services.msc</b> →
+        start <b>MongoDB Server</b>, or run{" "}
+        <code className="px-1 bg-bg-deep border border-warning/40">net start MongoDB</code>{" "}
+        in an admin PowerShell, then click Retry.
+      </div>
+    </div>
+    <button onClick={onRetry} className="btn-secondary px-3 py-1.5 text-[10px]" data-testid="db-offline-retry-btn">
+      Retry
+    </button>
   </div>
 );
 

@@ -57,6 +57,12 @@ Electron-based desktop server manager for SCUM game. On first launch: ask user t
   8. **Regression test**: `backend/tests/test_lgss_iteration14_firewall.py` — covers full create→status→apply→diagnose→delete cycle. Passes on Linux preview (asserts `non-windows` fallback shape).
   9. Version bump to **v1.0.37** in `server.py`, `electron/package.json`, `TopBar.jsx`, and `App.js` defaults.
 
+- **2026-02 (v1.0.37d — Frontend: 503 MONGO_OFFLINE soft fallback)**:
+  1. User report (TR): backend 503'leri doğru dönüyor ama frontend hâlâ "Uncaught runtime errors" overlay'i gösteriyor çünkü `App.js` içindeki `Promise.all` 503'leri yakalamıyordu.
+  2. **Fix**: `load()` artık her endpoint çağrısını `safe(promise, fallback)` helper'ı ile sarıyor. Bir endpoint 503/MONGO_OFFLINE dönerse `setDbOffline(true)` çağrılıyor, Promise.all sağlam çalışıyor.
+  3. **New component `<DbOfflineBanner>`** — `TopBar`'ın hemen altında sticky sarı uyarı bandı (`services.msc` / `net start MongoDB` talimatı + Retry butonu). Retry tıklayınca `load()` yeniden çalışır ve mongod açılmışsa banner kaybolur.
+  4. `setupRes` null gelirse phase'i workspace'e oturtuyor, böylece banner kullanıcıya ilk görünen şey oluyor.
+
 - **2026-02 (v1.0.37c — CRITICAL: P0 CORS + MongoDB-offline 500 fix)**:
   1. User screenshot (TR): `localhost:3000` → `127.0.0.1:8001` showed "Access to XMLHttpRequest blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present" plus Uncaught Network Errors on every initial load.
   2. **Root cause #1 (CORS)**: `allow_credentials=True` combined with `allow_origins=["*"]` is forbidden by the CORS spec — Starlette silently DROPS the `Access-Control-Allow-Origin` response header in that combo. The default `CORS_ORIGINS=*` matched this footgun exactly.

@@ -57,6 +57,14 @@ Electron-based desktop server manager for SCUM game. On first launch: ask user t
   8. **Regression test**: `backend/tests/test_lgss_iteration14_firewall.py` — covers full create→status→apply→diagnose→delete cycle. Passes on Linux preview (asserts `non-windows` fallback shape).
   9. Version bump to **v1.0.37** in `server.py`, `electron/package.json`, `TopBar.jsx`, and `App.js` defaults.
 
+- **2026-02 (v1.0.37f — Firewall automation FULLY REMOVED per user request)**:
+  1. User report (TR): Sunucu açılıyor ama IP ile bağlanamıyor + listede eski port (7780) görünüyor. Firewall otomasyonu artık daha çok kafa karışıklığı çıkarıyor — kullanıcı vazgeçti, **"awq cokta sıkımde, kapatsınlar"** dedi.
+  2. **Backend removed**: All four firewall endpoints (`/firewall/status`, `/firewall/apply`, `/firewall/remove`, `/diagnostics/visibility`) deleted from `server.py`. The `_ensure_firewall_rules()` call removed from `start_server()` in `scum_process.py`. Server-delete also no longer touches netsh. The helper functions in `scum_process.py` are kept (dead code, harmless) so any future re-enablement is a one-line restore.
+  3. **Frontend removed**: `NetworkSetupPanel.jsx` deleted, `FirewallPromptModal` deleted from App.js, post-server-create popup trigger removed, `firewallStatus/Apply/Remove/visibilityDiagnostic` removed from `lib/api.js`.
+  4. **Cleanup**: `tests/test_lgss_iteration14_firewall.py` deleted.
+  5. Launch args still minimal (`-port=N -log -NoVerifyGC -nocrashreports -nosound` + admin extra_args).
+  6. Users now manage Windows Firewall manually (one-time GUI click). Steam server-list cache lag (~5 min) is a Steam-side issue and not in scope.
+
 - **2026-02 (v1.0.37e — CRITICAL: Server invisible in Steam browser — launch args overshare fix)**:
   1. User report (TR): "Manuel `SCUMServer.exe -port 7777 -log` ile sunucu listede görünüyor ama Manager'dan başlatınca görünmüyor."
   2. **Root cause**: We were passing `-SteamServerPort=query_port` (e.g. 7778) on the command line. But SCUM's actual connect port is `game_port+2` (7779), not the query port. Forcing Steam to advertise on 7778 made the master server's periodic health check fail → server gets delisted every ~30s. Bonus damage: `-QueryPort`, `-MULTIHOME=0.0.0.0` and `-MaxPlayers` were explicit on argv, fighting with the values in `ServerSettings.ini` (the in-game settings menu writes there).

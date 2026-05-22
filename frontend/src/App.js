@@ -25,7 +25,6 @@ const Shell = () => {
   const [appVersion, setAppVersion] = useState({ current: "1.0.37", latest: "1.0.37", update_available: false });
   const [view, setView] = useState("dashboard"); // dashboard | configs | logs
   const [updateModalOpen, setUpdateModalOpen] = useState(false);
-  const [firewallPrompt, setFirewallPrompt] = useState(null); // {serverId, status}
   // v1.0.37d — DB offline banner state. Set when /api/setup returns a 503 with
   // {code: "MONGO_OFFLINE"}. UI shows a sticky banner with copy-paste fix
   // instructions instead of crashing the React tree with "Uncaught runtime error".
@@ -124,20 +123,6 @@ const Shell = () => {
       setServers((arr) => [...arr, s]);
       setActiveId(s.id);
       toast.success(t("toast_server_created"));
-      // v1.0.37 — after creating a fresh server, audit the Windows Firewall
-      // and proactively offer to auto-configure if any LGSS rules are
-      // missing. This is the popup the admin asked for:
-      //   "LGSS detected that Windows Firewall rules are missing.
-      //    Would you like to configure them automatically?"
-      // We fire-and-forget so a slow netsh call doesn't block the UI.
-      (async () => {
-        try {
-          const fw = await endpoints.firewallStatus(s.id);
-          if (fw.platform === "Windows" && !fw.ok) {
-            setFirewallPrompt({ serverId: s.id, status: fw });
-          }
-        } catch (_e) { /* non-fatal — panel UI will surface the same info */ }
-      })();
     } catch (e) {
       toast.error(String(e.response?.data?.detail || e.message || e));
     }
@@ -295,99 +280,6 @@ const Shell = () => {
       </div>
 
       <ManagerUpdateModal open={updateModalOpen} onClose={() => setUpdateModalOpen(false)} />
-      <FirewallPromptModal
-        t={t}
-        prompt={firewallPrompt}
-        onClose={() => setFirewallPrompt(null)}
-        onApplied={(updated) => {
-          setFirewallPrompt(null);
-          if (updated.ok) {
-            toast.success(t("netsetup_toast_applied"));
-          } else if (updated.needs_admin) {
-            toast.error(t("netsetup_toast_admin_required"), { duration: 9000 });
-          } else {
-            toast.warning(t("netsetup_toast_partial_inline"));
-          }
-        }}
-      />
-    </div>
-  );
-};
-
-const FirewallPromptModal = ({ t, prompt, onClose, onApplied }) => {
-  const [applying, setApplying] = useState(false);
-  if (!prompt) return null;
-  const { serverId, status } = prompt;
-  const isWindows = status?.platform === "Windows";
-  const needsAdmin = status?.needs_admin || (isWindows && !status?.is_admin);
-  const gp = status?.game_port || 0;
-  const qp = status?.query_port || 0;
-
-  const handleApply = async () => {
-    setApplying(true);
-    try {
-      const res = await endpoints.firewallApply(serverId);
-      onApplied(res);
-    } catch (e) {
-      toast.error(e.response?.data?.detail || e.message);
-    } finally {
-      setApplying(false);
-    }
-  };
-
-  return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm"
-      data-testid="firewall-prompt-modal"
-    >
-      <div className="bg-bg border-2 border-accent-brand max-w-lg w-full mx-4 p-6 space-y-4">
-        <div className="flex items-start gap-3">
-          <div className="shrink-0 w-10 h-10 flex items-center justify-center border border-accent-brand" style={{ background: "color-mix(in srgb, var(--accent) 12%, transparent)" }}>
-            <span className="text-accent-brand text-xl font-bold">!</span>
-          </div>
-          <div className="flex-1">
-            <div className="heading-stencil text-lg text-brand mb-1">{t("fwprompt_title")}</div>
-            <div className="font-mono text-[11px] text-dim leading-relaxed">
-              {t("fwprompt_body")}
-            </div>
-          </div>
-        </div>
-
-        <div className="border border-brand bg-bg-deep/40 px-3 py-2 font-mono text-[10px] text-dim space-y-1">
-          <div>• {t("fwprompt_rule_udp_range", { start: gp, end: gp + 2 })}</div>
-          <div>• {t("fwprompt_rule_query", { port: qp })}</div>
-          <div>• {t("fwprompt_rule_exe")}</div>
-          <div>• {t("fwprompt_rule_profile")}</div>
-        </div>
-
-        <div className="font-mono text-[10px] text-muted leading-relaxed">
-          {t("fwprompt_philosophy")}
-        </div>
-
-        {needsAdmin && (
-          <div className="border border-warning/40 bg-warning/5 px-3 py-2 font-mono text-[10px]" style={{ color: "var(--warning)" }}>
-            {t("fwprompt_admin_warn")}
-          </div>
-        )}
-
-        <div className="flex items-center justify-end gap-2 pt-2 border-t border-brand">
-          <button
-            onClick={onClose}
-            className="btn-secondary px-4 py-2"
-            data-testid="firewall-prompt-skip-btn"
-          >
-            {t("fwprompt_btn_later")}
-          </button>
-          <button
-            onClick={handleApply}
-            disabled={applying || !isWindows}
-            className="btn-primary px-4 py-2"
-            data-testid="firewall-prompt-apply-btn"
-          >
-            {applying ? t("fwprompt_btn_applying") : t("fwprompt_btn_apply")}
-          </button>
-        </div>
-      </div>
     </div>
   );
 };

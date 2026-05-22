@@ -866,15 +866,11 @@ def start_server(server_id: str, folder_path: str, port: int = 7779,
             log.warning("Could not parse extra_args %r (skipping): %s", extra_args, e)
     log.info("Starting SCUM: %s", " ".join(args))
 
-    # Ensure Windows Firewall has inbound UDP rules for SCUM's 3-port range
-    # (port, port+1, port+2) AND the Steam query port. Without this, Windows
-    # Defender silently drops incoming UDP and the server doesn't show up in
-    # the Steam browser (the symptom the admin reported: only 7777/7778 were
-    # being opened by Windows' first-run "Allow access" popup, NOT 7779 which
-    # is the actual connect port — game_port+2). We add the rules idempotently
-    # via `netsh advfirewall firewall add rule` and ignore errors so a
-    # restricted environment doesn't block startup.
-    _ensure_firewall_rules(server_id, exe, port, query_port)
+    # v1.0.37f: Firewall auto-configuration was REMOVED per user request.
+    # The previous _ensure_firewall_rules() call here was creating more
+    # confusion than value (false-positive diagnostics, server-list churn,
+    # admin-elevation friction). Admins who want firewall rules can add
+    # them once via Windows GUI; the rules persist across restarts.
 
     # CREATE_NEW_CONSOLE       = 0x00000010  — own visible console window
     # CREATE_NEW_PROCESS_GROUP = 0x00000200  — required for GenerateConsoleCtrlEvent

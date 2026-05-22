@@ -81,4 +81,9 @@ export const endpoints = {
   serverMetrics: (id) => api.get(`/servers/${id}/metrics`).then(r => r.data),
   serverActivity: (id, hours = 24) => api.get(`/servers/${id}/activity`, { params: { hours } }).then(r => r.data),
   installProgress: (id) => api.get(`/servers/${id}/install/progress`).then(r => r.data),
+  // ---- v1.0.37: Windows Firewall / Network Setup wizard ----
+  firewallStatus: (id) => api.get(`/servers/${id}/firewall/status`).then(r => r.data),
+  firewallApply: (id) => api.post(`/servers/${id}/firewall/apply`).then(r => r.data),
+  firewallRemove: (id) => api.delete(`/servers/${id}/firewall`).then(r => r.data),
+  visibilityDiagnostic: (id) => api.get(`/servers/${id}/diagnostics/visibility`).then(r => r.data),
 };

@@ -470,68 +470,323 @@ def a2s_player_query(host: str, port: int, timeout: float = 1.2) -> list:
 
 
 
+def _firewall_rule_base(server_id: str) -> str:
+    """Stable rule-base name for a server. We tag every netsh rule with this
+    prefix so the manager can find/remove/audit them later. v1.0.37: bumped
+    suffix so older rules without outbound coverage get rebuilt on next start."""
+    return f"LGSS-SCUM-{server_id[:8]}"
+
+
+def _firewall_rule_specs(server_id: str, exe: Path, game_port: int, query_port: int) -> list[dict]:
+    """Return the full canonical list of firewall rules this manager owns for
+    a server. Each entry is a dict with:
+      - name      : the rule name (also used as primary key for delete/check)
+      - direction : "in" | "out"
+      - protocol  : "UDP" | "TCP" | "ANY"
+      - port      : human-friendly description (e.g. "7777-7779")
+      - args      : netsh argv suffix used to (re)create the rule
+      - critical  : whether failure to add this rule will cripple visibility
+                    in the Steam server browser (used to decide if we
+                    surface a hard warning in the UI vs a soft notice).
+
+    v1.0.37 changes (server list visibility fix):
+      * Added matching OUTBOUND rules — the Steam master server protocol
+        relies on the dedicated server initiating outbound UDP traffic to
+        hl2master.steampowered.com:27011 + various sender ports. Hosts with
+        an outbound-deny firewall policy (Win 11 Pro / Enterprise default
+        for "Public" profile) were silently delisting from the browser.
+      * Added profile=any — without this, netsh defaults to domain+private
+        but home users are usually on the "Public" network profile and the
+        rule wasn't applied to their actual active profile.
+      * Added explicit -EXE-OUT rule pointing at SCUMServer.exe so any
+        Steam P2P/auxiliary outbound traffic (NAT punch, master heartbeat)
+        is unconditionally allowed regardless of port.
+    """
+    rb = _firewall_rule_base(server_id)
+    udp_range = f"{game_port}-{game_port + 2}"
+    specs: list[dict] = []
+
+    # ---- INBOUND ----
+    specs.append({
+        "name": f"{rb}-UDP-game-IN", "direction": "in", "protocol": "UDP", "port": udp_range,
+        "critical": True,
+        "args": ["dir=in", "action=allow", "protocol=UDP", f"localport={udp_range}",
+                 "profile=any", "enable=yes"],
+    })
+    specs.append({
+        "name": f"{rb}-TCP-game-IN", "direction": "in", "protocol": "TCP", "port": udp_range,
+        "critical": False,
+        "args": ["dir=in", "action=allow", "protocol=TCP", f"localport={udp_range}",
+                 "profile=any", "enable=yes"],
+    })
+    specs.append({
+        "name": f"{rb}-UDP-query-IN", "direction": "in", "protocol": "UDP", "port": str(query_port),
+        "critical": True,
+        "args": ["dir=in", "action=allow", "protocol=UDP", f"localport={query_port}",
+                 "profile=any", "enable=yes"],
+    })
+    specs.append({
+        "name": f"{rb}-TCP-query-IN", "direction": "in", "protocol": "TCP", "port": str(query_port),
+        "critical": False,
+        "args": ["dir=in", "action=allow", "protocol=TCP", f"localport={query_port}",
+                 "profile=any", "enable=yes"],
+    })
+    specs.append({
+        "name": f"{rb}-EXE-IN", "direction": "in", "protocol": "ANY", "port": "*",
+        "critical": True,
+        "args": ["dir=in", "action=allow", f"program={exe}", "profile=any", "enable=yes"],
+    })
+
+    # ---- OUTBOUND (v1.0.37 — required for Steam master server visibility) ----
+    specs.append({
+        "name": f"{rb}-UDP-game-OUT", "direction": "out", "protocol": "UDP", "port": udp_range,
+        "critical": True,
+        "args": ["dir=out", "action=allow", "protocol=UDP", f"localport={udp_range}",
+                 "profile=any", "enable=yes"],
+    })
+    specs.append({
+        "name": f"{rb}-UDP-query-OUT", "direction": "out", "protocol": "UDP", "port": str(query_port),
+        "critical": True,
+        "args": ["dir=out", "action=allow", "protocol=UDP", f"localport={query_port}",
+                 "profile=any", "enable=yes"],
+    })
+    specs.append({
+        "name": f"{rb}-EXE-OUT", "direction": "out", "protocol": "ANY", "port": "*",
+        "critical": True,
+        "args": ["dir=out", "action=allow", f"program={exe}", "profile=any", "enable=yes"],
+    })
+    return specs
+
+
+def _netsh_run(args: list[str], timeout: float = 8.0) -> tuple[int, str, str]:
+    """Run `netsh advfirewall firewall <args>` and return (rc, stdout, stderr).
+    Used both to add/delete rules and to query their existence."""
+    try:
+        proc = subprocess.run(
+            ["netsh", "advfirewall", "firewall", *args],
+            creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0),
+            capture_output=True,
+            timeout=timeout,
+            text=True,
+        )
+        return proc.returncode, (proc.stdout or ""), (proc.stderr or "")
+    except Exception as e:
+        log.debug("netsh %s failed: %s", args[:3], e)
+        return -1, "", str(e)
+
+
 def _ensure_firewall_rules(server_id: str, exe: Path, game_port: int, query_port: int) -> None:
-    """Add Windows Firewall inbound rules for the SCUM 3-port range + query.
+    """Idempotently (re)create all LGSS firewall rules for a server.
 
-    SCUM dedicated server actually listens on THREE consecutive UDP ports
-    starting at `game_port` (game_port, +1, +2). Players connect to
-    `game_port + 2`. If we only have rules for `game_port` and `query_port`,
-    Windows Firewall drops traffic on the connect port and the server is
-    invisible in the in-game browser — exactly the bug the admin hit with
-    7777 + 7778 open but 7779 blocked.
-
-    We add 5 rules per server, all idempotent (netsh silently skips duplicates
-    after we delete-by-name first):
-      - <rulename>-UDP-game        : UDP port range game_port..game_port+2
-      - <rulename>-TCP-game        : TCP same range (for Steam P2P fallback)
-      - <rulename>-UDP-query       : UDP single query_port
-      - <rulename>-TCP-query       : TCP single query_port
-      - <rulename>-EXE             : EXE-wide allow rule (covers any other
-                                     port SCUM opens dynamically for Steam P2P)
-
-    All errors are swallowed — a restricted environment (no admin, locked
-    GPO) shouldn't block server startup. The admin will just have to allow
-    the connection in the standard Windows popup that appears when the EXE
-    first binds.
+    This is the legacy entry point called at start_server(). It mirrors
+    apply_firewall_rules() but swallows errors so a restricted environment
+    can't block boot. Use apply_firewall_rules() when the caller needs to
+    know whether each rule actually got created (e.g. wizard UI).
     """
     if not _is_windows():
         return
-    rule_base = f"LGSS-SCUM-{server_id[:8]}"
-    udp_range = f"{game_port}-{game_port + 2}"
+    try:
+        apply_firewall_rules(server_id, exe, game_port, query_port)
+    except Exception as e:
+        log.warning("Firewall ensure skipped for %s: %s", server_id, e)
 
-    def _netsh(args: list[str]) -> None:
-        try:
-            subprocess.run(
-                ["netsh", "advfirewall", "firewall", *args],
-                creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0),
-                capture_output=True,
-                timeout=8,
-            )
-        except Exception as e:
-            log.debug("netsh %s skipped: %s", args[:3], e)
 
-    rules = [
-        (f"{rule_base}-UDP-game",
-         ["add", "rule", f"name={rule_base}-UDP-game", "dir=in", "action=allow",
-          "protocol=UDP", f"localport={udp_range}"]),
-        (f"{rule_base}-TCP-game",
-         ["add", "rule", f"name={rule_base}-TCP-game", "dir=in", "action=allow",
-          "protocol=TCP", f"localport={udp_range}"]),
-        (f"{rule_base}-UDP-query",
-         ["add", "rule", f"name={rule_base}-UDP-query", "dir=in", "action=allow",
-          "protocol=UDP", f"localport={query_port}"]),
-        (f"{rule_base}-TCP-query",
-         ["add", "rule", f"name={rule_base}-TCP-query", "dir=in", "action=allow",
-          "protocol=TCP", f"localport={query_port}"]),
-        (f"{rule_base}-EXE",
-         ["add", "rule", f"name={rule_base}-EXE", "dir=in", "action=allow",
-          f"program={exe}", "enable=yes"]),
+def apply_firewall_rules(server_id: str, exe: Path, game_port: int, query_port: int) -> dict:
+    """Apply the full LGSS firewall ruleset for a server and report per-rule
+    success. Returns a dict suitable for the UI:
+
+      {
+        "ok": bool,                # every CRITICAL rule applied successfully
+        "needs_admin": bool,       # at least one add failed with "access denied"
+        "applied": [name, ...],    # rules now in effect
+        "failed":  [{name, error}, ...],
+        "rules":   [               # full inventory with state (for the checklist UI)
+            {name, direction, protocol, port, critical, ok}
+        ],
+      }
+
+    Each rule is deleted-by-name first so re-running this is idempotent and
+    auto-heals a partial install. The `needs_admin` flag is set when netsh
+    returns rc=1 with "elevation" / "5" / "access is denied" in stderr — the
+    UI uses it to surface the "Run as Administrator" hint.
+    """
+    if not _is_windows():
+        return {"ok": False, "needs_admin": False, "applied": [], "failed": [],
+                "rules": [], "platform": "non-windows"}
+
+    specs = _firewall_rule_specs(server_id, exe, game_port, query_port)
+    applied: list[str] = []
+    failed: list[dict] = []
+    needs_admin = False
+    inventory: list[dict] = []
+
+    for spec in specs:
+        name = spec["name"]
+        # Idempotency: blow away any same-named rule first (silently ignores
+        # "no rule found" via rc != 0 — we don't care). Then add fresh.
+        _netsh_run(["delete", "rule", f"name={name}"])
+        rc, _stdout, stderr = _netsh_run(
+            ["add", "rule", f"name={name}", *spec["args"]]
+        )
+        ok = (rc == 0)
+        if ok:
+            applied.append(name)
+        else:
+            failed.append({"name": name, "error": (stderr or "rc=" + str(rc)).strip()[:200]})
+            low = stderr.lower()
+            if "elev" in low or "access is denied" in low or "denied" in low or "5" in low:
+                needs_admin = True
+        inventory.append({
+            "name": name,
+            "direction": spec["direction"],
+            "protocol": spec["protocol"],
+            "port": spec["port"],
+            "critical": spec["critical"],
+            "ok": ok,
+        })
+
+    critical_ok = all(r["ok"] for r in inventory if r["critical"])
+    result = {
+        "ok": critical_ok and not failed,
+        "needs_admin": needs_admin,
+        "applied": applied,
+        "failed": failed,
+        "rules": inventory,
+    }
+    log.info("Firewall apply for %s: ok=%s needs_admin=%s failed=%d",
+             server_id, result["ok"], needs_admin, len(failed))
+    return result
+
+
+def check_firewall_rules(server_id: str, exe: Path, game_port: int, query_port: int) -> dict:
+    """Inspect Windows Firewall and report whether each LGSS rule for this
+    server currently exists & is enabled. Read-only — does NOT mutate.
+
+    Returns the same shape as apply_firewall_rules() but with `applied`
+    listing rules that exist & are enabled, and `failed` listing rules
+    that are missing or disabled. `needs_admin` is False here since this
+    is a read-only operation.
+    """
+    if not _is_windows():
+        return {"ok": False, "needs_admin": False, "applied": [], "failed": [],
+                "rules": [], "platform": "non-windows"}
+    specs = _firewall_rule_specs(server_id, exe, game_port, query_port)
+    inventory: list[dict] = []
+    applied: list[str] = []
+    failed: list[dict] = []
+
+    for spec in specs:
+        name = spec["name"]
+        rc, stdout, _stderr = _netsh_run(["show", "rule", f"name={name}"])
+        # netsh prints "No rules match the specified criteria." when missing.
+        exists = (rc == 0) and ("Enabled:" in stdout) and ("No rules match" not in stdout)
+        enabled = exists and re.search(r"Enabled:\s*Yes", stdout) is not None
+        ok = exists and enabled
+        if ok:
+            applied.append(name)
+        else:
+            failed.append({"name": name, "error": "missing" if not exists else "disabled"})
+        inventory.append({
+            "name": name,
+            "direction": spec["direction"],
+            "protocol": spec["protocol"],
+            "port": spec["port"],
+            "critical": spec["critical"],
+            "ok": ok,
+        })
+
+    critical_ok = all(r["ok"] for r in inventory if r["critical"])
+    return {
+        "ok": critical_ok,
+        "needs_admin": False,
+        "applied": applied,
+        "failed": failed,
+        "rules": inventory,
+    }
+
+
+def remove_firewall_rules(server_id: str) -> dict:
+    """Delete every LGSS-tagged rule for a server. Used when the admin
+    deletes a server profile or explicitly clicks "Remove firewall rules"
+    in the network setup wizard.
+    """
+    if not _is_windows():
+        # Non-windows is treated as a successful no-op so the UI can call this
+        # endpoint unconditionally without having to special-case the platform.
+        return {"ok": True, "removed": [], "platform": "non-windows"}
+    rb = _firewall_rule_base(server_id)
+    # We can't enumerate easily by prefix with netsh, so we delete every
+    # well-known suffix. Unknown rules are simply ignored (rc != 0).
+    suffixes = [
+        # v1.0.37 names
+        "UDP-game-IN", "TCP-game-IN", "UDP-query-IN", "TCP-query-IN", "EXE-IN",
+        "UDP-game-OUT", "UDP-query-OUT", "EXE-OUT",
+        # Legacy v1.0.36 names (pre outbound) — clean them up too
+        "UDP-game", "TCP-game", "UDP-query", "TCP-query", "EXE",
     ]
-    for name, add_args in rules:
-        # Delete by name first to avoid duplicate-rule clutter on every restart
-        _netsh(["delete", "rule", f"name={name}"])
-        _netsh(add_args)
-    log.info("Firewall rules ensured for %s: UDP %s + query %d", server_id, udp_range, query_port)
+    removed: list[str] = []
+    for suf in suffixes:
+        name = f"{rb}-{suf}"
+        rc, _stdout, _stderr = _netsh_run(["delete", "rule", f"name={name}"])
+        if rc == 0:
+            removed.append(name)
+    log.info("Firewall rules removed for %s: %d", server_id, len(removed))
+    return {"ok": True, "removed": removed}
+
+
+def check_master_server_reachable(timeout: float = 2.0) -> dict:
+    """Check whether the host can reach the Steam master server. SCUM uses
+    Valve's master server to advertise itself; if outbound traffic to
+    hl2master.steampowered.com is blocked, the server won't show up in the
+    in-game browser even when all local rules are correct.
+
+    Returns:
+      {
+        "ok": bool,
+        "host": str,
+        "port": int,
+        "latency_ms": int | None,
+        "error": str | None,
+      }
+    """
+    import socket
+    host = "hl2master.steampowered.com"
+    port = 27011  # Steam master server UDP port
+    t0 = time.time()
+    try:
+        # We can't TCP-connect (master is UDP-only) so we just resolve the
+        # hostname AND send a tiny UDP probe and see if the OS lets us
+        # transmit. A blocking outbound firewall surfaces as either OSError
+        # ECONNREFUSED or a silent drop — we treat any send() success as
+        # "outbound is at least not policy-blocked at L7".
+        addr = socket.gethostbyname(host)
+        with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as s:
+            s.settimeout(timeout)
+            # Steam Master Server Query Protocol — list servers request.
+            # Region 0xff = "world", filter "\\appid\\513710" = SCUM.
+            payload = b"1\xff0.0.0.0:0\x00\\appid\\513710\x00"
+            s.sendto(payload, (addr, port))
+            try:
+                s.recvfrom(4096)  # Best-effort — many networks drop the reply
+            except socket.timeout:
+                pass  # Send succeeded → outbound is allowed; reply timeout is normal
+        latency = int((time.time() - t0) * 1000)
+        return {"ok": True, "host": host, "port": port, "latency_ms": latency, "error": None}
+    except (socket.gaierror, OSError) as e:
+        return {"ok": False, "host": host, "port": port, "latency_ms": None, "error": str(e)}
+
+
+def is_process_elevated() -> bool:
+    """Return True if the current process is running with Administrator
+    privileges on Windows. Used so the UI can pre-warn the admin that
+    netsh add rule will fail before they click 'Apply'."""
+    if not _is_windows():
+        return False
+    try:
+        import ctypes
+        return bool(ctypes.windll.shell32.IsUserAnAdmin())
+    except Exception:
+        return False
 
 
 def start_server(server_id: str, folder_path: str, port: int = 7779,

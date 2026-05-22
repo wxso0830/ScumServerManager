@@ -3,6 +3,7 @@ import { Save, AlertTriangle, Network, Wifi, Search, Plug } from "lucide-react";
 import { endpoints } from "../lib/api";
 import { toast } from "sonner";
 import { useI18n } from "../providers/I18nProvider";
+import { NetworkSetupPanel } from "./NetworkSetupPanel";
 
 /**
  * NetworkPortsPanel — SCUM 3-port layout.
@@ -196,6 +197,9 @@ export const NetworkPortsPanel = ({ server, onSaved }) => {
           <Save size={13} /> {saving ? t("saving_dotted") : t("save_ports")}
         </button>
       </div>
+
+      {/* v1.0.37 — Firewall / Network Setup wizard */}
+      <NetworkSetupPanel server={server} />
     </div>
   );
 };

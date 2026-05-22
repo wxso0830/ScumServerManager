@@ -175,7 +175,7 @@ def default_scum_settings() -> Dict[str, Any]:
 # ---------- ENDPOINTS ----------
 @api_router.get("/")
 async def root():
-    return {"service": "LGSS SCUM Server Manager", "version": "1.0.36"}
+    return {"service": "LGSS SCUM Server Manager", "version": "1.0.37"}
 
 
 _PUBLIC_IP_CACHE = {"ts": 0, "ip": None}
@@ -509,6 +509,139 @@ async def update_server_ports(server_id: str, payload: ServerPortsUpdate):
     return ServerProfile(**res)
 
 
+# ===================== FIREWALL / NETWORK SETUP (v1.0.37) =====================
+# Lets the admin auto-configure Windows Firewall for a server WITHOUT having
+# to disable the firewall. Three endpoints back the "Network Setup" wizard
+# in the UI:
+#   GET    /servers/{id}/firewall/status   read-only check (no admin needed)
+#   POST   /servers/{id}/firewall/apply    creates / repairs all rules
+#   DELETE /servers/{id}/firewall          removes every LGSS-tagged rule
+# Plus a connectivity diagnostic that combines firewall state + Steam master
+# server reachability so the admin can answer the question "why is my server
+# disappearing from the in-game browser?" in one click.
+
+def _resolve_firewall_inputs(doc: dict) -> tuple[Path, int, int]:
+    """Common helper: pull (exe_path, game_port, query_port) from a server
+    profile doc and fall back to SCUM defaults when fields are missing.
+
+    The exe path can legitimately not exist yet (admin hasn't run install
+    yet); that's fine for adding rules — netsh accepts an EXE path for a
+    file that doesn't exist (the rule activates the moment the file shows
+    up). We still return a Path so the program= rule names something stable.
+    """
+    folder = doc.get("folder_path") or ""
+    exe = scum_proc._scum_exe(folder) if folder else Path("SCUMServer.exe")
+    gp = int(doc.get("game_port") or 7777)
+    qp = int(doc.get("query_port") or (gp + 1))
+    return exe, gp, qp
+
+
+@api_router.get("/servers/{server_id}/firewall/status")
+async def firewall_status(server_id: str):
+    """Inspect existing Windows Firewall rules for this server (read-only).
+    Returns the per-rule checklist used by the Network Setup panel."""
+    doc = await db.servers.find_one({"id": server_id}, {"_id": 0})
+    if not doc:
+        raise HTTPException(status_code=404, detail="Server not found")
+    exe, gp, qp = _resolve_firewall_inputs(doc)
+    result = scum_proc.check_firewall_rules(server_id, exe, gp, qp)
+    result["is_admin"] = scum_proc.is_process_elevated()
+    result["platform"] = platform.system()
+    result["game_port"] = gp
+    result["query_port"] = qp
+    return result
+
+
+@api_router.post("/servers/{server_id}/firewall/apply")
+async def firewall_apply(server_id: str):
+    """Create / repair every LGSS firewall rule for this server (inbound +
+    outbound, UDP+TCP, profile=any). Requires Administrator on Windows; the
+    `needs_admin` flag in the response tells the UI when to surface the
+    'Run as Administrator' hint."""
+    doc = await db.servers.find_one({"id": server_id}, {"_id": 0})
+    if not doc:
+        raise HTTPException(status_code=404, detail="Server not found")
+    exe, gp, qp = _resolve_firewall_inputs(doc)
+    result = scum_proc.apply_firewall_rules(server_id, exe, gp, qp)
+    result["is_admin"] = scum_proc.is_process_elevated()
+    result["platform"] = platform.system()
+    result["game_port"] = gp
+    result["query_port"] = qp
+    return result
+
+
+@api_router.delete("/servers/{server_id}/firewall")
+async def firewall_remove(server_id: str):
+    """Remove every LGSS-tagged firewall rule for this server. Used by the
+    'Reset' button in the wizard and automatically when a server profile is
+    deleted."""
+    doc = await db.servers.find_one({"id": server_id}, {"_id": 0})
+    if not doc:
+        raise HTTPException(status_code=404, detail="Server not found")
+    result = scum_proc.remove_firewall_rules(server_id)
+    result["is_admin"] = scum_proc.is_process_elevated()
+    return result
+
+
+@api_router.get("/servers/{server_id}/diagnostics/visibility")
+async def server_visibility_diagnostic(server_id: str):
+    """Combined "why isn't my server in the browser?" diagnostic. Runs:
+      * Firewall rule audit (same as /firewall/status)
+      * Local A2S_INFO probe on 127.0.0.1:query_port
+      * Steam master server reachability check (outbound UDP 27011)
+    Returns a structured report the UI uses to suggest the next action.
+    """
+    doc = await db.servers.find_one({"id": server_id}, {"_id": 0})
+    if not doc:
+        raise HTTPException(status_code=404, detail="Server not found")
+    exe, gp, qp = _resolve_firewall_inputs(doc)
+
+    # 1. Firewall — are our rules in place?
+    fw = scum_proc.check_firewall_rules(server_id, exe, gp, qp)
+
+    # 2. Local A2S ping — is the server actually responding on the query port?
+    #    Only meaningful when the server is running; otherwise we report
+    #    "not_running" so the UI doesn't show a misleading red mark.
+    a2s_alive = False
+    a2s_info = None
+    if doc.get("status") == "Running":
+        a2s_info = scum_proc._a2s_info_query("127.0.0.1", qp, timeout=1.5)
+        a2s_alive = a2s_info is not None
+
+    # 3. Steam master reachability — can we even talk to the browser registry?
+    master = scum_proc.check_master_server_reachable()
+
+    # Compose human-friendly hints the UI surfaces under "Next steps".
+    hints: list[str] = []
+    if not fw["ok"]:
+        if fw.get("needs_admin"):
+            hints.append("admin_required")
+        else:
+            hints.append("apply_firewall")
+    if doc.get("status") == "Running" and not a2s_alive:
+        hints.append("a2s_unreachable")
+    if not master["ok"]:
+        hints.append("master_blocked")
+    if not hints:
+        hints.append("all_good")
+
+    return {
+        "server_id": server_id,
+        "status": doc.get("status"),
+        "game_port": gp,
+        "query_port": qp,
+        "firewall": fw,
+        "a2s": {
+            "alive": a2s_alive,
+            "checked": doc.get("status") == "Running",
+            "info": a2s_info,
+        },
+        "master_server": master,
+        "is_admin": scum_proc.is_process_elevated(),
+        "hints": hints,
+    }
+
+
 @api_router.post("/servers/{server_id}/open-folder")
 async def open_server_folder(server_id: str):
     r"""Open the server's installation folder in the OS file explorer.
@@ -593,6 +726,12 @@ async def delete_server(server_id: str):
     res = await db.servers.delete_one({"id": server_id})
     if res.deleted_count == 0:
         raise HTTPException(status_code=404, detail="Server not found")
+    # Clean up firewall rules so the next install on a different port doesn't
+    # leave stale LGSS-tagged rules cluttering the admin's Defender console.
+    try:
+        scum_proc.remove_firewall_rules(server_id)
+    except Exception:
+        logger.exception("delete_server: firewall cleanup failed (ignored)")
     return {"ok": True}
 
 

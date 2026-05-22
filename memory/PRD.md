@@ -46,6 +46,17 @@ Electron-based desktop server manager for SCUM game. On first launch: ask user t
 - Schema cleanup: removed `client` section + client_mouse/video/graphics/sound; moved `client_game` under `gameplay`
 
 ## Recent Changes
+- **2026-02 (v1.0.37 — Windows Firewall auto-wizard + server browser visibility fix)**:
+  1. User report (TR): "Sunucum bazen in-game listede görünüyor, bazen kayboluyor" + ChatGPT-suggested firewall auto-config instead of forcing users to disable Defender.
+  2. **Outbound firewall rules added** (`scum_process._firewall_rule_specs`): previously only inbound rules were created; SCUM dedicated server uses outbound UDP→hl2master.steampowered.com:27011 to advertise itself, and hosts with outbound-deny policies were getting silently delisted from the in-game browser every ~3 polls. Added `*-UDP-game-OUT`, `*-UDP-query-OUT`, `*-EXE-OUT` rules with `profile=any` (covers Public + Private + Domain — previously only the default domain/private was used).
+  3. **New helpers in `scum_process.py`**: `apply_firewall_rules()`, `check_firewall_rules()` (read-only), `remove_firewall_rules()`, `check_master_server_reachable()` (UDP probe to Valve master), `is_process_elevated()`.
+  4. **New API endpoints**: `GET /api/servers/{id}/firewall/status`, `POST /api/servers/{id}/firewall/apply`, `DELETE /api/servers/{id}/firewall`, `GET /api/servers/{id}/diagnostics/visibility` (combined firewall + A2S + Steam master report with structured `hints` for the UI).
+  5. **`DELETE /api/servers/{id}`** now auto-cleans firewall rules so stale `LGSS-SCUM-*` rules don't clutter the admin's Defender console after a profile delete.
+  6. **New UI: `NetworkSetupPanel.jsx`** — 5-item checklist (Auto Configure, Open Ports, Inbound, Outbound, Verify) embedded inside the existing `NetworkPortsPanel`. Buttons: "Otomatik Yapılandır" (apply), "Doğrula" (run visibility diagnostic), "Yenile", "Kuralları Sil". Surfaces `needs_admin` warning when netsh fails with access-denied.
+  7. **New popup: `FirewallPromptModal`** — triggered immediately after `handleAddServer` if `firewallStatus` reports `ok: false` on Windows. Shows the rule plan ("UDP 7777-7779 + UDP 7778 + SCUMServer.exe, profile=any") and one-click applies.
+  8. **Regression test**: `backend/tests/test_lgss_iteration14_firewall.py` — covers full create→status→apply→diagnose→delete cycle. Passes on Linux preview (asserts `non-windows` fallback shape).
+  9. Version bump to **v1.0.37** in `server.py`, `electron/package.json`, `TopBar.jsx`, and `App.js` defaults.
+
 - **2026-02 (v1.0.36 — CRITICAL: backend never blocks on MongoDB startup)**:
   1. User report: Electron stuck on "Loading…" forever on Windows because uvicorn's startup hook ran 3 sequential MongoDB migrations × 30s default timeout = 90+s of blocking, during which port 8001 didn't accept any HTTP connection → frontend got `ERR_CONNECTION_REFUSED`.
   2. **MongoDB timeout**: `AsyncIOMotorClient(..., serverSelectionTimeoutMS=3000)` — every DB call now errors out in 3s instead of 30s.

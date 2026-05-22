@@ -112,7 +112,7 @@ export const TopBar = ({
               SCUM SERVER MANAGER
             </div>
             <div className="font-mono text-[9px] tracking-[0.22em] text-accent-brand mt-1">
-              v1.0.36
+              v1.0.37
             </div>
           </div>
         </div>

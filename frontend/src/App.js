@@ -22,9 +22,10 @@ const Shell = () => {
   const [servers, setServers] = useState([]);
   const [activeId, setActiveId] = useState(null);
   const [schema, setSchema] = useState(null);
-  const [appVersion, setAppVersion] = useState({ current: "1.0.36", latest: "1.0.36", update_available: false });
+  const [appVersion, setAppVersion] = useState({ current: "1.0.37", latest: "1.0.37", update_available: false });
   const [view, setView] = useState("dashboard"); // dashboard | configs | logs
   const [updateModalOpen, setUpdateModalOpen] = useState(false);
+  const [firewallPrompt, setFirewallPrompt] = useState(null); // {serverId, status}
 
   const load = useCallback(async () => {
     const [adminRes, setupRes, serverList, schemaRes, versionRes] = await Promise.all([
@@ -32,7 +33,7 @@ const Shell = () => {
       endpoints.getSetup(),
       endpoints.listServers(),
       endpoints.getSchema().catch(() => null),
-      endpoints.getAppVersion().catch(() => ({ current: "1.0.36", latest: "1.0.36", update_available: false })),
+      endpoints.getAppVersion().catch(() => ({ current: "1.0.37", latest: "1.0.37", update_available: false })),
     ]);
     setIsAdmin(adminRes.is_admin);
     setSetup(setupRes);
@@ -107,6 +108,20 @@ const Shell = () => {
       setServers((arr) => [...arr, s]);
       setActiveId(s.id);
       toast.success(t("toast_server_created"));
+      // v1.0.37 — after creating a fresh server, audit the Windows Firewall
+      // and proactively offer to auto-configure if any LGSS rules are
+      // missing. This is the popup the admin asked for:
+      //   "LGSS detected that Windows Firewall rules are missing.
+      //    Would you like to configure them automatically?"
+      // We fire-and-forget so a slow netsh call doesn't block the UI.
+      (async () => {
+        try {
+          const fw = await endpoints.firewallStatus(s.id);
+          if (fw.platform === "Windows" && !fw.ok) {
+            setFirewallPrompt({ serverId: s.id, status: fw });
+          }
+        } catch (_e) { /* non-fatal — panel UI will surface the same info */ }
+      })();
     } catch (e) {
       toast.error(String(e.response?.data?.detail || e.message || e));
     }
@@ -262,6 +277,98 @@ const Shell = () => {
       </div>
 
       <ManagerUpdateModal open={updateModalOpen} onClose={() => setUpdateModalOpen(false)} />
+      <FirewallPromptModal
+        prompt={firewallPrompt}
+        onClose={() => setFirewallPrompt(null)}
+        onApplied={(updated) => {
+          setFirewallPrompt(null);
+          if (updated.ok) {
+            toast.success("Firewall kuralları başarıyla uygulandı.");
+          } else if (updated.needs_admin) {
+            toast.error("Yönetici yetkisi gerekli — Manager'ı admin olarak yeniden başlat.", { duration: 9000 });
+          } else {
+            toast.warning("Bazı firewall kuralları uygulanamadı. Network Setup panelinden tekrar deneyebilirsin.");
+          }
+        }}
+      />
+    </div>
+  );
+};
+
+const FirewallPromptModal = ({ prompt, onClose, onApplied }) => {
+  const [applying, setApplying] = useState(false);
+  if (!prompt) return null;
+  const { serverId, status } = prompt;
+  const isWindows = status?.platform === "Windows";
+  const needsAdmin = status?.needs_admin || (isWindows && !status?.is_admin);
+
+  const handleApply = async () => {
+    setApplying(true);
+    try {
+      const res = await endpoints.firewallApply(serverId);
+      onApplied(res);
+    } catch (e) {
+      toast.error(e.response?.data?.detail || e.message);
+    } finally {
+      setApplying(false);
+    }
+  };
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm"
+      data-testid="firewall-prompt-modal"
+    >
+      <div className="bg-bg border-2 border-accent-brand max-w-lg w-full mx-4 p-6 space-y-4">
+        <div className="flex items-start gap-3">
+          <div className="shrink-0 w-10 h-10 flex items-center justify-center border border-accent-brand" style={{ background: "color-mix(in srgb, var(--accent) 12%, transparent)" }}>
+            <span className="text-accent-brand text-xl font-bold">!</span>
+          </div>
+          <div className="flex-1">
+            <div className="heading-stencil text-lg text-brand mb-1">FIREWALL KURALLARI EKSİK</div>
+            <div className="font-mono text-[11px] text-dim leading-relaxed">
+              LGSS, yeni oluşturduğun sunucu için <b>Windows Firewall</b> kurallarının eksik olduğunu tespit etti. Şimdi otomatik yapılandırılmasını ister misin?
+            </div>
+          </div>
+        </div>
+
+        <div className="border border-brand bg-bg-deep/40 px-3 py-2 font-mono text-[10px] text-dim space-y-1">
+          <div>• UDP {status?.game_port}-{(status?.game_port || 0) + 2} (Inbound + Outbound)</div>
+          <div>• UDP {status?.query_port} (Steam A2S Query)</div>
+          <div>• SCUMServer.exe (Program rule — tüm dinamik portlar)</div>
+          <div>• Profil: <span className="text-brand">Any</span> (Public + Private + Domain)</div>
+        </div>
+
+        <div className="font-mono text-[10px] text-muted leading-relaxed">
+          Bu işlem güvenlik duvarını <span className="text-success" style={{ color: "var(--success)" }}>KAPATMAZ</span>.
+          Sadece SCUM için gerekli portları <b>açık</b> firewall'da whitelist'ler.
+          Outbound kurallar olmadan sunucu <span className="text-warning" style={{ color: "var(--warning)" }}>in-game listesinde aralıklı kaybolur</span>.
+        </div>
+
+        {needsAdmin && (
+          <div className="border border-warning/40 bg-warning/5 px-3 py-2 font-mono text-[10px]" style={{ color: "var(--warning)" }}>
+            <b>UYARI:</b> Manager şu anda admin yetkisi olmadan çalışıyor. Firewall kurallarını yazmak Administrator gerektirir — Manager'ı kapat ve <i>Yönetici olarak çalıştır</i> ile aç, sonra tekrar dene.
+          </div>
+        )}
+
+        <div className="flex items-center justify-end gap-2 pt-2 border-t border-brand">
+          <button
+            onClick={onClose}
+            className="btn-secondary px-4 py-2"
+            data-testid="firewall-prompt-skip-btn"
+          >
+            Daha Sonra
+          </button>
+          <button
+            onClick={handleApply}
+            disabled={applying || !isWindows}
+            className="btn-primary px-4 py-2"
+            data-testid="firewall-prompt-apply-btn"
+          >
+            {applying ? "Uygulanıyor..." : "Otomatik Yapılandır"}
+          </button>
+        </div>
+      </div>
     </div>
   );
 };

@@ -5,8 +5,6 @@ import {
   Shield,
   Loader2,
   Globe,
-  ArrowDown,
-  ArrowUp,
   RefreshCw,
   Wand2,
   XCircle,
@@ -16,6 +14,7 @@ import {
 } from "lucide-react";
 import { endpoints } from "../lib/api";
 import { toast } from "sonner";
+import { useI18n } from "../providers/I18nProvider";
 
 /**
  * NetworkSetupPanel — v1.0.37
@@ -32,17 +31,12 @@ import { toast } from "sonner";
  *   DELETE /api/servers/{id}/firewall               — wipe rules
  *   GET    /api/servers/{id}/diagnostics/visibility — combined report
  *
- * Design notes:
- *   • Checklist style matches NetworkPortsPanel rows (same border-brand /
- *     mono labels / 12-col grid).
- *   • Each "Network Setup" checkbox maps 1-to-1 to a critical firewall
- *     rule; the green tick lights up only when netsh confirms the rule
- *     exists AND is enabled.
- *   • The "Verify Port Availability" step combines A2S_INFO ping +
- *     Steam master server reachability — those are the two signals that
- *     actually predict in-game browser visibility.
+ * v1.0.37b: All copy moved into the i18n dictionary (default English).
+ * Turkish labels live under the `tr` section in I18nProvider.jsx; other
+ * languages fall back to English automatically via t()'s fallback chain.
  */
 export const NetworkSetupPanel = ({ server }) => {
+  const { t } = useI18n();
   const [loading, setLoading] = useState(true);
   const [applying, setApplying] = useState(false);
   const [removing, setRemoving] = useState(false);
@@ -70,14 +64,11 @@ export const NetworkSetupPanel = ({ server }) => {
       const s = await endpoints.firewallApply(server.id);
       setStatus(s);
       if (s.ok) {
-        toast.success("Firewall kuralları başarıyla uygulandı.");
+        toast.success(t("netsetup_toast_applied"));
       } else if (s.needs_admin) {
-        toast.error(
-          "Yönetici (Administrator) yetkisi gerekli. Manager'ı kapatıp 'Yönetici olarak çalıştır' ile yeniden açın.",
-          { duration: 8000 },
-        );
+        toast.error(t("netsetup_toast_admin_required"), { duration: 8000 });
       } else {
-        toast.warning(`Bazı kurallar uygulanamadı: ${s.failed?.length || 0} hata.`);
+        toast.warning(t("netsetup_toast_partial", { count: s.failed?.length || 0 }));
       }
     } catch (e) {
       toast.error(e.response?.data?.detail || e.message);
@@ -87,11 +78,11 @@ export const NetworkSetupPanel = ({ server }) => {
   };
 
   const handleRemove = async () => {
-    if (!window.confirm("Bu sunucu için tüm LGSS firewall kurallarını silmek istediğinize emin misiniz?")) return;
+    if (!window.confirm(t("netsetup_confirm_remove"))) return;
     setRemoving(true);
     try {
       await endpoints.firewallRemove(server.id);
-      toast.success("Firewall kuralları silindi.");
+      toast.success(t("netsetup_toast_removed"));
       await load();
     } catch (e) {
       toast.error(e.response?.data?.detail || e.message);
@@ -106,18 +97,17 @@ export const NetworkSetupPanel = ({ server }) => {
       const d = await endpoints.visibilityDiagnostic(server.id);
       setDiag(d);
       setStatus(prev => ({ ...(prev || {}), ...(d.firewall || {}) }));
-      // Surface the most actionable hint as a toast
       const h = d.hints?.[0];
       if (h === "all_good") {
-        toast.success("Tüm kontroller OK — sunucu görünür olmalı.");
+        toast.success(t("netsetup_toast_verify_ok"));
       } else if (h === "admin_required") {
-        toast.error("Firewall için admin yetkisi gerekli.");
+        toast.error(t("netsetup_toast_verify_admin"));
       } else if (h === "apply_firewall") {
-        toast.warning("Firewall kuralları eksik — 'Otomatik Yapılandır' ile düzelt.");
+        toast.warning(t("netsetup_toast_verify_apply"));
       } else if (h === "master_blocked") {
-        toast.error("Steam master sunucusuna ulaşılamıyor — outbound traffic engelleniyor.");
+        toast.error(t("netsetup_toast_verify_master"));
       } else if (h === "a2s_unreachable") {
-        toast.warning("Sunucu çalışıyor ama A2S sorgusu cevap vermiyor.");
+        toast.warning(t("netsetup_toast_verify_a2s"));
       }
     } catch (e) {
       toast.error(e.response?.data?.detail || e.message);
@@ -136,36 +126,49 @@ export const NetworkSetupPanel = ({ server }) => {
   const verified = diag != null;
   const verifiedOk = verified && diag.firewall?.ok && diag.master_server?.ok;
 
+  const ruleCountIn = ruleByDir("in").filter(r => r.ok).length;
+  const ruleTotalIn = ruleByDir("in").length;
+  const ruleCountOut = ruleByDir("out").filter(r => r.ok).length;
+  const ruleTotalOut = ruleByDir("out").length;
+
   const checklist = [
     {
       key: "auto_configure",
-      label: "Windows Firewall Otomatik Yapılandırma",
+      label: t("netsetup_check_auto"),
       ok: status?.ok === true,
-      desc: status?.ok ? "Tüm kurallar aktif" : (status?.needs_admin ? "Admin gerekli" : "Eksik / uygulanmamış"),
+      desc: status?.ok
+        ? t("netsetup_state_all_active")
+        : (status?.needs_admin ? t("netsetup_state_admin_needed") : t("netsetup_state_missing")),
     },
     {
       key: "open_ports",
-      label: "SCUM Portları Açık (UDP)",
+      label: t("netsetup_check_ports"),
       ok: allInboundOk && allOutboundOk,
       desc: `${status?.game_port || "-"}-${(status?.game_port || 0) + 2} + ${status?.query_port || "-"}`,
     },
     {
       key: "inbound",
-      label: "Inbound Kuralları",
+      label: t("netsetup_check_inbound"),
       ok: allInboundOk,
-      desc: hasInbound ? `${ruleByDir("in").filter(r => r.ok).length}/${ruleByDir("in").length} aktif` : "Eksik",
+      desc: hasInbound
+        ? t("netsetup_state_rules_active", { ok: ruleCountIn, total: ruleTotalIn })
+        : t("netsetup_state_rules_short"),
     },
     {
       key: "outbound",
-      label: "Outbound Kuralları (Server List görünürlük)",
+      label: t("netsetup_check_outbound"),
       ok: allOutboundOk,
-      desc: hasOutbound ? `${ruleByDir("out").filter(r => r.ok).length}/${ruleByDir("out").length} aktif` : "Eksik (görünürlük bozuk!)",
+      desc: hasOutbound
+        ? t("netsetup_state_rules_active", { ok: ruleCountOut, total: ruleTotalOut })
+        : t("netsetup_state_outbound_missing"),
     },
     {
       key: "verify",
-      label: "Port Erişilebilirliği Doğrulandı",
+      label: t("netsetup_check_verify"),
       ok: verifiedOk,
-      desc: !verified ? "Henüz doğrulanmadı" : (verifiedOk ? "Steam master OK · A2S OK" : "Sorun tespit edildi"),
+      desc: !verified
+        ? t("netsetup_state_not_verified")
+        : (verifiedOk ? t("netsetup_state_verified_ok") : t("netsetup_state_verified_fail")),
     },
   ];
 
@@ -173,7 +176,7 @@ export const NetworkSetupPanel = ({ server }) => {
     <div className="space-y-4 pt-2" data-testid="network-setup-panel">
       <div className="flex items-center gap-2 border-b border-brand pb-2">
         <Shield size={13} className="text-accent-brand" />
-        <span className="label-accent">NETWORK SETUP · FIREWALL OTOMASYONU</span>
+        <span className="label-accent">{t("netsetup_title")}</span>
       </div>
 
       {/* Admin-required warning */}
@@ -181,8 +184,8 @@ export const NetworkSetupPanel = ({ server }) => {
         <div className="flex items-start gap-2 text-[11px] font-mono border border-warning/40 bg-warning/5 px-3 py-2" style={{ color: "var(--warning)" }}>
           <ShieldAlert size={14} className="shrink-0 mt-0.5" />
           <div>
-            <div className="font-bold uppercase tracking-widest mb-0.5">Yönetici Yetkisi Gerekli</div>
-            <div className="opacity-90">Windows Firewall kurallarını oluşturabilmek için Manager'ı <b>Yönetici olarak çalıştır</b> seçeneğiyle açmalısın. Bu işlem güvenlik duvarını KAPATMAZ — sadece SCUM için gerekli portları açar.</div>
+            <div className="font-bold uppercase tracking-widest mb-0.5">{t("netsetup_admin_required_title")}</div>
+            <div className="opacity-90">{t("netsetup_admin_required_body")}</div>
           </div>
         </div>
       )}
@@ -191,7 +194,7 @@ export const NetworkSetupPanel = ({ server }) => {
       {status && status.platform && status.platform !== "Windows" && (
         <div className="flex items-center gap-2 text-[11px] font-mono border border-brand bg-bg-deep/40 px-3 py-2 text-muted">
           <Globe size={13} />
-          <span>Bu özellik sadece Windows üzerinde aktiftir. (Şu anki: {status.platform})</span>
+          <span>{t("netsetup_non_windows_hint", { platform: status.platform })}</span>
         </div>
       )}
 
@@ -225,7 +228,7 @@ export const NetworkSetupPanel = ({ server }) => {
                   background: `color-mix(in srgb, ${item.ok ? "var(--success)" : "var(--warning)"} 12%, transparent)`,
                 }}
               >
-                {item.ok ? "OK" : "EKSİK"}
+                {item.ok ? t("netsetup_badge_ok") : t("netsetup_badge_missing")}
               </span>
             </div>
           </div>
@@ -237,32 +240,35 @@ export const NetworkSetupPanel = ({ server }) => {
         <div className="border border-accent-brand/40 bg-accent-soft/20 p-3 space-y-2" data-testid="visibility-diagnostic-result">
           <div className="flex items-center gap-2">
             <Activity size={13} className="text-accent-brand" />
-            <span className="label-overline text-brand">VISIBILITY DIAGNOSTIC</span>
+            <span className="label-overline text-brand">{t("netsetup_diag_title")}</span>
           </div>
           <div className="grid grid-cols-3 gap-3 font-mono text-[10px]">
             <DiagBox
-              label="A2S Local"
+              label={t("netsetup_diag_a2s_label")}
               ok={diag.a2s.alive}
               skipped={!diag.a2s.checked}
-              detail={diag.a2s.info?.server_name || (diag.a2s.checked ? "Cevap yok" : "Sunucu kapalı")}
+              detail={diag.a2s.info?.server_name || (diag.a2s.checked ? t("netsetup_diag_a2s_no_reply") : t("netsetup_diag_a2s_offline"))}
             />
             <DiagBox
-              label="Steam Master"
+              label={t("netsetup_diag_master_label")}
               ok={diag.master_server.ok}
-              detail={diag.master_server.ok ? `${diag.master_server.latency_ms}ms` : (diag.master_server.error || "Bağlanamadı")}
+              detail={diag.master_server.ok
+                ? t("netsetup_diag_master_latency", { ms: diag.master_server.latency_ms })
+                : (diag.master_server.error || t("netsetup_diag_master_failed"))}
             />
             <DiagBox
-              label="Firewall"
+              label={t("netsetup_diag_firewall_label")}
               ok={diag.firewall.ok}
-              detail={`${diag.firewall.applied?.length || 0}/${diag.firewall.rules?.length || 0} kural`}
+              detail={t("netsetup_diag_firewall_rules", {
+                ok: diag.firewall.applied?.length || 0,
+                total: diag.firewall.rules?.length || 0,
+              })}
             />
           </div>
           {diag.hints?.includes("master_blocked") && (
             <div className="flex items-start gap-2 text-[11px] font-mono border border-warning/40 bg-warning/5 px-3 py-2 mt-2" style={{ color: "var(--warning)" }}>
               <AlertTriangle size={13} className="shrink-0 mt-0.5" />
-              <div>
-                Steam master sunucusuna outbound UDP bağlantısı engelleniyor. Bu, sunucunun in-game listesinde <b>aralıklı</b> görünmesine yol açar. Outbound firewall kurallarını uygulamak (aşağıdaki "Otomatik Yapılandır" butonu) bunu büyük ihtimalle düzeltir.
-              </div>
+              <div>{t("netsetup_master_blocked_warn")}</div>
             </div>
           )}
         </div>
@@ -277,7 +283,7 @@ export const NetworkSetupPanel = ({ server }) => {
           data-testid="firewall-apply-btn"
         >
           {applying ? <Loader2 size={13} className="animate-spin" /> : <Wand2 size={13} />}
-          {applying ? "Uygulanıyor..." : "Otomatik Yapılandır"}
+          {applying ? t("netsetup_btn_applying") : t("netsetup_btn_apply")}
         </button>
         <button
           onClick={handleVerify}
@@ -286,7 +292,7 @@ export const NetworkSetupPanel = ({ server }) => {
           data-testid="firewall-verify-btn"
         >
           {verifying ? <Loader2 size={13} className="animate-spin" /> : <Activity size={13} />}
-          Doğrula
+          {t("netsetup_btn_verify")}
         </button>
         <button
           onClick={load}
@@ -295,7 +301,7 @@ export const NetworkSetupPanel = ({ server }) => {
           data-testid="firewall-refresh-btn"
         >
           <RefreshCw size={13} className={loading ? "animate-spin" : ""} />
-          Yenile
+          {t("netsetup_btn_refresh")}
         </button>
         <div className="flex-1" />
         {status?.applied?.length > 0 && (
@@ -307,7 +313,7 @@ export const NetworkSetupPanel = ({ server }) => {
             data-testid="firewall-remove-btn"
           >
             {removing ? <Loader2 size={13} className="animate-spin" /> : <XCircle size={13} />}
-            Kuralları Sil
+            {t("netsetup_btn_remove")}
           </button>
         )}
       </div>
@@ -316,10 +322,8 @@ export const NetworkSetupPanel = ({ server }) => {
       <div className="border border-dashed border-accent-brand/40 bg-accent-soft/20 px-3 py-2 flex items-start gap-2">
         <ShieldCheck size={13} className="text-accent-brand shrink-0 mt-0.5" />
         <div className="font-mono text-[10px] text-dim leading-relaxed">
-          <div className="text-muted uppercase tracking-widest mb-1">NEDEN BU PANELİ KULLANMALISIN?</div>
-          <div>
-            Bazı rehberler Windows Firewall'ı kapatmanı söyler — bu <span className="text-warning" style={{ color: "var(--warning)" }}>güvenlik açığıdır</span>. Bu panel firewall'ı <b>açık tutarak</b> sadece SCUM'un ihtiyacı olan UDP portlarını + outbound trafiği whitelist'ler. Bonus: outbound kuralları olmadan sunucu listesinde sık kaybolma problemi de çözülür.
-          </div>
+          <div className="text-muted uppercase tracking-widest mb-1">{t("netsetup_why_title")}</div>
+          <div>{t("netsetup_why_body")}</div>
         </div>
       </div>
     </div>

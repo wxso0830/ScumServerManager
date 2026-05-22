@@ -278,16 +278,17 @@ const Shell = () => {
 
       <ManagerUpdateModal open={updateModalOpen} onClose={() => setUpdateModalOpen(false)} />
       <FirewallPromptModal
+        t={t}
         prompt={firewallPrompt}
         onClose={() => setFirewallPrompt(null)}
         onApplied={(updated) => {
           setFirewallPrompt(null);
           if (updated.ok) {
-            toast.success("Firewall kuralları başarıyla uygulandı.");
+            toast.success(t("netsetup_toast_applied"));
           } else if (updated.needs_admin) {
-            toast.error("Yönetici yetkisi gerekli — Manager'ı admin olarak yeniden başlat.", { duration: 9000 });
+            toast.error(t("netsetup_toast_admin_required"), { duration: 9000 });
           } else {
-            toast.warning("Bazı firewall kuralları uygulanamadı. Network Setup panelinden tekrar deneyebilirsin.");
+            toast.warning(t("netsetup_toast_partial_inline"));
           }
         }}
       />
@@ -295,12 +296,14 @@ const Shell = () => {
   );
 };
 
-const FirewallPromptModal = ({ prompt, onClose, onApplied }) => {
+const FirewallPromptModal = ({ t, prompt, onClose, onApplied }) => {
   const [applying, setApplying] = useState(false);
   if (!prompt) return null;
   const { serverId, status } = prompt;
   const isWindows = status?.platform === "Windows";
   const needsAdmin = status?.needs_admin || (isWindows && !status?.is_admin);
+  const gp = status?.game_port || 0;
+  const qp = status?.query_port || 0;
 
   const handleApply = async () => {
     setApplying(true);
@@ -325,29 +328,27 @@ const FirewallPromptModal = ({ prompt, onClose, onApplied }) => {
             <span className="text-accent-brand text-xl font-bold">!</span>
           </div>
           <div className="flex-1">
-            <div className="heading-stencil text-lg text-brand mb-1">FIREWALL KURALLARI EKSİK</div>
+            <div className="heading-stencil text-lg text-brand mb-1">{t("fwprompt_title")}</div>
             <div className="font-mono text-[11px] text-dim leading-relaxed">
-              LGSS, yeni oluşturduğun sunucu için <b>Windows Firewall</b> kurallarının eksik olduğunu tespit etti. Şimdi otomatik yapılandırılmasını ister misin?
+              {t("fwprompt_body")}
             </div>
           </div>
         </div>
 
         <div className="border border-brand bg-bg-deep/40 px-3 py-2 font-mono text-[10px] text-dim space-y-1">
-          <div>• UDP {status?.game_port}-{(status?.game_port || 0) + 2} (Inbound + Outbound)</div>
-          <div>• UDP {status?.query_port} (Steam A2S Query)</div>
-          <div>• SCUMServer.exe (Program rule — tüm dinamik portlar)</div>
-          <div>• Profil: <span className="text-brand">Any</span> (Public + Private + Domain)</div>
+          <div>• {t("fwprompt_rule_udp_range", { start: gp, end: gp + 2 })}</div>
+          <div>• {t("fwprompt_rule_query", { port: qp })}</div>
+          <div>• {t("fwprompt_rule_exe")}</div>
+          <div>• {t("fwprompt_rule_profile")}</div>
         </div>
 
         <div className="font-mono text-[10px] text-muted leading-relaxed">
-          Bu işlem güvenlik duvarını <span className="text-success" style={{ color: "var(--success)" }}>KAPATMAZ</span>.
-          Sadece SCUM için gerekli portları <b>açık</b> firewall'da whitelist'ler.
-          Outbound kurallar olmadan sunucu <span className="text-warning" style={{ color: "var(--warning)" }}>in-game listesinde aralıklı kaybolur</span>.
+          {t("fwprompt_philosophy")}
         </div>
 
         {needsAdmin && (
           <div className="border border-warning/40 bg-warning/5 px-3 py-2 font-mono text-[10px]" style={{ color: "var(--warning)" }}>
-            <b>UYARI:</b> Manager şu anda admin yetkisi olmadan çalışıyor. Firewall kurallarını yazmak Administrator gerektirir — Manager'ı kapat ve <i>Yönetici olarak çalıştır</i> ile aç, sonra tekrar dene.
+            {t("fwprompt_admin_warn")}
           </div>
         )}
 
@@ -357,7 +358,7 @@ const FirewallPromptModal = ({ prompt, onClose, onApplied }) => {
             className="btn-secondary px-4 py-2"
             data-testid="firewall-prompt-skip-btn"
           >
-            Daha Sonra
+            {t("fwprompt_btn_later")}
           </button>
           <button
             onClick={handleApply}
@@ -365,7 +366,7 @@ const FirewallPromptModal = ({ prompt, onClose, onApplied }) => {
             className="btn-primary px-4 py-2"
             data-testid="firewall-prompt-apply-btn"
           >
-            {applying ? "Uygulanıyor..." : "Otomatik Yapılandır"}
+            {applying ? t("fwprompt_btn_applying") : t("fwprompt_btn_apply")}
           </button>
         </div>
       </div>

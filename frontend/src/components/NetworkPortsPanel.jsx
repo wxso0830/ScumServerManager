@@ -172,13 +172,13 @@ export const NetworkPortsPanel = ({ server, onSaved }) => {
         <Network size={13} className="text-accent-brand shrink-0 mt-0.5" />
         <div className="font-mono text-[10px] text-dim leading-relaxed">
           <div>
-            <span className="text-muted uppercase tracking-widest">OYUNCU BAĞLANTI ADRESİ: </span>
+            <span className="text-muted uppercase tracking-widest">{t("ports_player_address")}: </span>
             <span className="text-accent-brand font-display text-sm">PUBLIC_IP:{steamPort}</span>
           </div>
           <div className="mt-1 opacity-80">
-            SCUM Direct Connect bölümüne <span className="text-accent-brand">IP:{steamPort}</span> yazılır (game_port değil!).
-            Manager başlatırken Windows Firewall'da otomatik açar: <span className="text-accent-brand">UDP {gp}-{steamPort}</span>.
-            Ev kullanıcısıysan router'da da bu 3 portu (UDP) forward etmelisin.
+            {t("ports_hint_line1_prefix")} <span className="text-accent-brand">IP:{steamPort}</span> {t("ports_hint_line1_suffix")}
+            {" "}{t("ports_hint_line2_prefix")} <span className="text-accent-brand">UDP {gp}-{steamPort}</span>.
+            {" "}{t("ports_hint_line3")}
           </div>
         </div>
       </div>

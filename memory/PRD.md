@@ -57,6 +57,13 @@ Electron-based desktop server manager for SCUM game. On first launch: ask user t
   8. **Regression test**: `backend/tests/test_lgss_iteration14_firewall.py` — covers full create→status→apply→diagnose→delete cycle. Passes on Linux preview (asserts `non-windows` fallback shape).
   9. Version bump to **v1.0.37** in `server.py`, `electron/package.json`, `TopBar.jsx`, and `App.js` defaults.
 
+- **2026-02 (v1.0.37b — i18n: Network Setup / Firewall panel default English)**:
+  1. User report (TR): "server network port + firewall automation default ingilizce yap ve dil dosyasında yer ver."
+  2. Replaced every hardcoded Turkish string in `NetworkSetupPanel.jsx` and `FirewallPromptModal` (App.js) with `t("...")` calls. Added ~50 new keys (`netsetup_*`, `fwprompt_*`) with English as primary and Turkish translations preserved.
+  3. Also fixed the lingering "OYUNCU BAĞLANTI ADRESİ" hint in `NetworkPortsPanel.jsx` (now `ports_player_address` + 4 hint keys).
+  4. Other locales (ru/de/fr/it/ar/az) fall back to English via the existing `t()` fallback chain.
+  5. **RCON integration question** (SCUM-RCON UE4SS mod): Answered YES, feasible but parked in backlog. Mod license forbids redistributing the bundle — any future implementation will be an in-app Source RCON client + install wizard pointing to Nexus.
+
 - **2026-02 (v1.0.36 — CRITICAL: backend never blocks on MongoDB startup)**:
   1. User report: Electron stuck on "Loading…" forever on Windows because uvicorn's startup hook ran 3 sequential MongoDB migrations × 30s default timeout = 90+s of blocking, during which port 8001 didn't accept any HTTP connection → frontend got `ERR_CONNECTION_REFUSED`.
   2. **MongoDB timeout**: `AsyncIOMotorClient(..., serverSelectionTimeoutMS=3000)` — every DB call now errors out in 3s instead of 30s.

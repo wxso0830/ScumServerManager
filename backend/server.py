@@ -2971,13 +2971,87 @@ async def get_settings_schema():
 
 app.include_router(api_router)
 
-app.add_middleware(
-    CORSMiddleware,
-    allow_credentials=True,
-    allow_origins=os.environ.get('CORS_ORIGINS', '*').split(','),
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+# CORS — careful here. The Starlette CORSMiddleware silently DROPS the
+# `Access-Control-Allow-Origin` response header when credentials=True is
+# combined with the wildcard "*" origin (per CORS spec). The user's
+# Electron/Chrome was getting "No 'Access-Control-Allow-Origin' header"
+# errors against http://127.0.0.1:8001 from http://localhost:3000 for
+# exactly this reason. Fix: when CORS_ORIGINS is unset or "*", switch to
+# `allow_origin_regex=".*"` which is spec-compliant with credentials=True.
+# Admins who want a strict allowlist set CORS_ORIGINS in .env (comma-list).
+_cors_raw = (os.environ.get('CORS_ORIGINS') or '*').strip()
+if _cors_raw in ('*', '') or '*' in _cors_raw:
+    app.add_middleware(
+        CORSMiddleware,
+        allow_credentials=True,
+        allow_origin_regex=".*",      # accept every origin but echo it back
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
+else:
+    app.add_middleware(
+        CORSMiddleware,
+        allow_credentials=True,
+        allow_origins=[o.strip() for o in _cors_raw.split(',') if o.strip()],
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
+
+# ---- Global exception handler for MongoDB offline (v1.0.37c) ----
+# When the local MongoDB is offline (very common on dev machines that don't
+# auto-start mongod), every Motor call raises `ServerSelectionTimeoutError`
+# after `serverSelectionTimeoutMS=3000`. Default FastAPI converts that into
+# a bare 500 with NO CORS headers, so the browser shows "Network Error"
+# instead of the actual problem. We catch it here and return a clean 503
+# with the CORS middleware still in the response chain (FastAPI runs
+# middleware on exception-handler responses too).
+from fastapi import Request
+from fastapi.responses import JSONResponse
+try:
+    from pymongo.errors import ServerSelectionTimeoutError, ConnectionFailure, AutoReconnect, NetworkTimeout
+    _MONGO_OFFLINE_EXCS = (ServerSelectionTimeoutError, ConnectionFailure, AutoReconnect, NetworkTimeout)
+except ImportError:  # pragma: no cover — pymongo is always installed
+    _MONGO_OFFLINE_EXCS = tuple()
+
+
+@app.exception_handler(Exception)
+async def _global_exception_handler(request: Request, exc: Exception):
+    # CORS headers don't pass through Starlette's ServerErrorMiddleware
+    # (it sits outside the CORSMiddleware in the middleware stack). So when
+    # an unhandled exception bubbles up, the response we return here would
+    # otherwise be missing `Access-Control-Allow-Origin` — exactly the
+    # symptom the user reported in the screenshot. We attach the headers
+    # manually here, echoing back whatever Origin the request carried.
+    origin = request.headers.get("origin")
+    cors_headers = {}
+    if origin:
+        cors_headers["Access-Control-Allow-Origin"] = origin
+        cors_headers["Access-Control-Allow-Credentials"] = "true"
+        cors_headers["Vary"] = "Origin"
+
+    # Only intercept MongoDB-down errors here. Everything else falls through
+    # to FastAPI's default 500 handler so we don't accidentally hide real
+    # application bugs (KeyError, etc.) behind a 503.
+    if _MONGO_OFFLINE_EXCS and isinstance(exc, _MONGO_OFFLINE_EXCS):
+        return JSONResponse(
+            status_code=503,
+            headers=cors_headers,
+            content={
+                "detail": "MongoDB unreachable. Start the local mongod service "
+                          "(or the bundled portable MongoDB) and refresh.",
+                "error_class": exc.__class__.__name__,
+                "code": "MONGO_OFFLINE",
+            },
+        )
+    # Surface other exceptions normally; logger.exception preserves the
+    # traceback in the backend log so we can still debug without breaking
+    # the CORS contract on the wire.
+    logger.exception("Unhandled exception on %s %s", request.method, request.url.path)
+    return JSONResponse(
+        status_code=500,
+        headers=cors_headers,
+        content={"detail": "Internal server error", "error_class": exc.__class__.__name__},
+    )
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)

@@ -57,6 +57,15 @@ Electron-based desktop server manager for SCUM game. On first launch: ask user t
   8. **Regression test**: `backend/tests/test_lgss_iteration14_firewall.py` — covers full create→status→apply→diagnose→delete cycle. Passes on Linux preview (asserts `non-windows` fallback shape).
   9. Version bump to **v1.0.37** in `server.py`, `electron/package.json`, `TopBar.jsx`, and `App.js` defaults.
 
+- **2026-02 (v1.0.37c — CRITICAL: P0 CORS + MongoDB-offline 500 fix)**:
+  1. User screenshot (TR): `localhost:3000` → `127.0.0.1:8001` showed "Access to XMLHttpRequest blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present" plus Uncaught Network Errors on every initial load.
+  2. **Root cause #1 (CORS)**: `allow_credentials=True` combined with `allow_origins=["*"]` is forbidden by the CORS spec — Starlette silently DROPS the `Access-Control-Allow-Origin` response header in that combo. The default `CORS_ORIGINS=*` matched this footgun exactly.
+  3. **Root cause #2 (500 on exceptions)**: When MongoDB is offline, every API call raised `pymongo.errors.ServerSelectionTimeoutError` (after the 3s `serverSelectionTimeoutMS`), bubbled up through FastAPI's default 500 handler — which does NOT pass back through the CORSMiddleware, so the browser saw a raw 500 with no CORS headers and reported "Network Error" instead of the actual problem.
+  4. **Fix #1 — Spec-compliant CORS**: When `CORS_ORIGINS` is `*` or unset, we now use `allow_origin_regex=".*"` (compatible with `credentials=True`). When the admin sets a comma-list, we honour it as an explicit allowlist. Headers `vary: Origin` + `access-control-allow-origin: <echoed>` + `access-control-allow-credentials: true` verified via curl.
+  5. **Fix #2 — Global exception handler with manual CORS**: New `@app.exception_handler(Exception)` catches `ServerSelectionTimeoutError`/`ConnectionFailure`/`AutoReconnect`/`NetworkTimeout` and returns a clean `503 MONGO_OFFLINE` JSON. Because Starlette's `ServerErrorMiddleware` sits OUTSIDE `CORSMiddleware`, we attach the CORS headers manually inside the handler (echoes back the request's `Origin`). Other exceptions fall through to 500 + tracebacks logged but still get CORS headers so the UI can surface them.
+  6. Verified with `TestClient` + bogus `MONGO_URL=mongodb://192.0.2.1`: `Status: 503`, `access-control-allow-origin: http://localhost:3000`, `code: MONGO_OFFLINE`, body explains how to fix.
+  7. Bonus: Electron splash screen hardcoded `v1.0.7` swapped to `v${app.getVersion()}` so it auto-syncs with `electron/package.json`.
+
 - **2026-02 (v1.0.37b — i18n: Network Setup / Firewall panel default English)**:
   1. User report (TR): "server network port + firewall automation default ingilizce yap ve dil dosyasında yer ver."
   2. Replaced every hardcoded Turkish string in `NetworkSetupPanel.jsx` and `FirewallPromptModal` (App.js) with `t("...")` calls. Added ~50 new keys (`netsetup_*`, `fwprompt_*`) with English as primary and Turkish translations preserved.

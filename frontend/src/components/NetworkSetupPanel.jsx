@@ -124,7 +124,12 @@ export const NetworkSetupPanel = ({ server }) => {
   const allInboundOk = ruleByDir("in").filter(r => r.critical).every(r => r.ok);
   const allOutboundOk = ruleByDir("out").filter(r => r.critical).every(r => r.ok);
   const verified = diag != null;
-  const verifiedOk = verified && diag.firewall?.ok && diag.master_server?.ok;
+  // v1.0.37e: do NOT factor master_server into the verify result. Its hostname
+  // check is a known false-positive (legacy master server, deprecated for
+  // modern Steamworks). Only firewall + (running ? a2s) determines OK.
+  const verifiedOk = verified
+    && diag.firewall?.ok
+    && (!diag.a2s?.checked || diag.a2s?.alive);
 
   const ruleCountIn = ruleByDir("in").filter(r => r.ok).length;
   const ruleTotalIn = ruleByDir("in").length;
@@ -252,6 +257,7 @@ export const NetworkSetupPanel = ({ server }) => {
             <DiagBox
               label={t("netsetup_diag_master_label")}
               ok={diag.master_server.ok}
+              informational
               detail={diag.master_server.ok
                 ? t("netsetup_diag_master_latency", { ms: diag.master_server.latency_ms })
                 : (diag.master_server.error || t("netsetup_diag_master_failed"))}
@@ -330,15 +336,23 @@ export const NetworkSetupPanel = ({ server }) => {
   );
 };
 
-const DiagBox = ({ label, ok, skipped, detail }) => {
-  const color = skipped ? "var(--muted)" : (ok ? "var(--success)" : "var(--warning)");
+const DiagBox = ({ label, ok, skipped, informational, detail }) => {
+  // `informational` makes a failed check render gray/muted instead of red,
+  // used for diagnostics that are noisy false-positives (e.g. Steam Master
+  // hostname check — the legacy master server is deprecated for modern
+  // Steamworks games so a failure here is usually meaningless).
+  let color;
+  if (skipped) color = "var(--muted)";
+  else if (ok) color = "var(--success)";
+  else if (informational) color = "var(--muted)";
+  else color = "var(--warning)";
   return (
     <div
       className="px-2 py-2 flex flex-col items-start gap-0.5"
       style={{ border: `1px solid ${color}`, background: `color-mix(in srgb, ${color} 8%, transparent)` }}
     >
       <div className="flex items-center gap-1 text-[9px] uppercase tracking-widest" style={{ color }}>
-        {skipped ? <Loader2 size={10} /> : ok ? <CheckCircle2 size={10} /> : <XCircle size={10} />}
+        {skipped || (informational && !ok) ? <Loader2 size={10} /> : ok ? <CheckCircle2 size={10} /> : <XCircle size={10} />}
         {label}
       </div>
       <div className="text-[10px] text-brand truncate w-full">{detail}</div>

@@ -820,39 +820,35 @@ def start_server(server_id: str, folder_path: str, port: int = 7779,
     # -nocrashreports : skip CrashReportClient warm-up (~3-8s saving on first boot)
     # -nosound        : dedicated server has no audio device; skip SoundCue warmup
     #
-    # NETWORK / VISIBILITY flags — these are why the server actually shows up
-    # in Steam's "Internet" server browser. Without them admins saw an empty
-    # listing even though their firewall rules were correct:
+    # NETWORK / VISIBILITY flags — IMPORTANT LESSON LEARNED (v1.0.37e):
+    # The previous SCUM-recommended arg set was REMOVED because over-specifying
+    # ports breaks Steam master server registration. Comparison:
     #
-    # -port=N          : Game port (UDP). SCUM also auto-binds N+1 (Query) and
-    #                    N+2 (Steam) on top of this.
-    # -QueryPort=N     : Steam A2S_INFO + master-server query port. MUST be set
-    #                    explicitly; SCUM does NOT default to game_port + 1 on
-    #                    all builds and silently registers with the master at
-    #                    port 0 when this is missing → server is "invisible".
-    # -SteamServerPort=N: The port Steam's lobby/connect peer uses. Belt-and-
-    #                    -braces — some Unreal builds key off this instead of
-    #                    -QueryPort when registering with steamcommunity.com.
-    # -MULTIHOME=0.0.0.0: Bind on ALL local interfaces. Defaults to 0.0.0.0
-    #                    already but many home Windows boxes with multiple NICs
-    #                    (VPN/Hyper-V virtual adapters) silently bind to only
-    #                    the first one which is then unreachable from the WAN.
-    # NOTE: -FORCELOGFLUSH is REMOVED because it forces fsync on every single log
-    #       line — on SCUM's very chatty LogQuadTree/LogStreaming output that costs
-    #       10-40 seconds of pure I/O during boot. We rely on Unreal's default
-    #       periodic flush which is still live enough for the admin to read.
+    #   Manual command that WORKS:  SCUMServer.exe -port 7777 -log
+    #   Old Manager (BROKEN):       ... -port=7777 -QueryPort=7778 -SteamServerPort=7778 -MULTIHOME=0.0.0.0 -MaxPlayers=64
+    #
+    # The two killers were:
+    #   1. -SteamServerPort=query_port  → wrong! Real connect port is game_port+2
+    #      (7779 when game=7777). Forcing the Steam port to the query port (7778)
+    #      makes SCUM advertise itself on the wrong UDP socket → master server
+    #      health-checks fail → server gets delisted from the in-game browser
+    #      every ~30s.
+    #   2. -QueryPort + -MULTIHOME + -MaxPlayers explicit → bypasses SCUM's
+    #      built-in auto-derivation. The in-game settings menu writes these
+    #      values into ServerSettings.ini and the engine reads from there at
+    #      boot. Passing them on the command line creates a second source of
+    #      truth that can fight with the .ini value.
+    #
+    # The fix is the SCUM-Server documented launch: just -port + log flags.
+    # Engine derives Query=N+1 and Steam=N+2 automatically, binds on every
+    # interface (default 0.0.0.0), and pulls MaxPlayers from ServerSettings.ini.
     args = [
         str(exe),
         "-log",
-        "-stdout",
         "-NoVerifyGC",
         "-nocrashreports",
         "-nosound",
         f"-port={port}",
-        f"-QueryPort={query_port}",
-        f"-SteamServerPort={query_port}",
-        "-MULTIHOME=0.0.0.0",
-        f"-MaxPlayers={max_players}",
     ]
     # Append admin-supplied custom flags last so they take precedence when
     # SCUM/Unreal resolves duplicates (later -port=... wins, etc).

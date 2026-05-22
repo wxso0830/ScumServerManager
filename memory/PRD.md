@@ -57,6 +57,13 @@ Electron-based desktop server manager for SCUM game. On first launch: ask user t
   8. **Regression test**: `backend/tests/test_lgss_iteration14_firewall.py` — covers full create→status→apply→diagnose→delete cycle. Passes on Linux preview (asserts `non-windows` fallback shape).
   9. Version bump to **v1.0.37** in `server.py`, `electron/package.json`, `TopBar.jsx`, and `App.js` defaults.
 
+- **2026-02 (v1.0.37e — CRITICAL: Server invisible in Steam browser — launch args overshare fix)**:
+  1. User report (TR): "Manuel `SCUMServer.exe -port 7777 -log` ile sunucu listede görünüyor ama Manager'dan başlatınca görünmüyor."
+  2. **Root cause**: We were passing `-SteamServerPort=query_port` (e.g. 7778) on the command line. But SCUM's actual connect port is `game_port+2` (7779), not the query port. Forcing Steam to advertise on 7778 made the master server's periodic health check fail → server gets delisted every ~30s. Bonus damage: `-QueryPort`, `-MULTIHOME=0.0.0.0` and `-MaxPlayers` were explicit on argv, fighting with the values in `ServerSettings.ini` (the in-game settings menu writes there).
+  3. **Fix**: Stripped launch args down to the documented SCUM minimum — `-log -NoVerifyGC -nocrashreports -nosound -port=N`. Engine auto-derives Query=N+1 and Steam=N+2, binds on all interfaces by default, and reads MaxPlayers from `ServerSettings.ini`. Now matches the user's manual launch byte-for-byte.
+  4. **Visibility diagnostic — Steam Master false positive removed**: `hl2master.steampowered.com` is the legacy Source/Goldsrc master, deprecated for modern Steamworks. The hostname doesn't resolve on many networks (the user saw `[Errno 11001] getaddrinfo failed`) even when the server IS visible in the in-game browser. The check is now informational only — rendered gray instead of red, removed from `hints`, and excluded from the `verifiedOk` calculation in `NetworkSetupPanel`. Documented with a comment block so we don't accidentally re-enable it.
+  5. UI `<DiagBox>` gained an `informational` prop for soft-failure visualisation.
+
 - **2026-02 (v1.0.37d — Frontend: 503 MONGO_OFFLINE soft fallback)**:
   1. User report (TR): backend 503'leri doğru dönüyor ama frontend hâlâ "Uncaught runtime errors" overlay'i gösteriyor çünkü `App.js` içindeki `Promise.all` 503'leri yakalamıyordu.
   2. **Fix**: `load()` artık her endpoint çağrısını `safe(promise, fallback)` helper'ı ile sarıyor. Bir endpoint 503/MONGO_OFFLINE dönerse `setDbOffline(true)` çağrılıyor, Promise.all sağlam çalışıyor.

@@ -608,7 +608,16 @@ async def server_visibility_diagnostic(server_id: str):
         a2s_info = scum_proc._a2s_info_query("127.0.0.1", qp, timeout=1.5)
         a2s_alive = a2s_info is not None
 
-    # 3. Steam master reachability — can we even talk to the browser registry?
+    # 3. Steam master reachability — informational only.
+    # WARNING: This probe targets `hl2master.steampowered.com:27011`, the
+    # historical Source/Goldsrc master server. It's deprecated for modern
+    # Steamworks games (SCUM included) — those use the SDK's embedded
+    # endpoints which DO NOT resolve via that hostname. A "getaddrinfo
+    # failed" or "no reply" here is therefore a FALSE POSITIVE 99% of the
+    # time (the user's manual `SCUMServer.exe -port 7777 -log` happily
+    # registers even when this check fails). Result: keep showing the
+    # result for diagnostic curiosity, but DO NOT add `master_blocked` to
+    # `hints`. The UI will render the box yellow-on-info instead of red.
     master = scum_proc.check_master_server_reachable()
 
     # Compose human-friendly hints the UI surfaces under "Next steps".
@@ -620,8 +629,7 @@ async def server_visibility_diagnostic(server_id: str):
             hints.append("apply_firewall")
     if doc.get("status") == "Running" and not a2s_alive:
         hints.append("a2s_unreachable")
-    if not master["ok"]:
-        hints.append("master_blocked")
+    # NOTE: master_blocked intentionally NOT added — see comment above.
     if not hints:
         hints.append("all_good")
 
